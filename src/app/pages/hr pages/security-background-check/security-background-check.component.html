@@ -1,0 +1,349 @@
+<!-- src/app/pages/hr pages/security-background-check/security-background-check.component.html -->
+<section class="bg-page">
+  <div class="bg-card">
+    <!-- Header -->
+    <div class="bg-header">
+      <div class="bg-header-main">
+        <h1 class="bg-title">
+          Security Background Check
+          <span class="bg-count">({{ filteredRows().length }})</span>
+        </h1>
+        <p class="bg-subtitle">
+          Couriers with HR feedback = Signed, and their security background
+          result.
+        </p>
+      </div>
+
+      <div class="bg-header-actions">
+        <!-- Export -->
+        <export-button
+          class="export-btn"
+          [data]="exportData()"
+          filename="security_background_check.xlsx"
+        ></export-button>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-filters">
+      <!-- Search -->
+      <div class="filter-group filter-group--wide">
+        <label for="bgSearch" class="field-label">Search</label>
+        <input
+          id="bgSearch"
+          type="text"
+          class="field-input"
+          placeholder="Search by name, ID, phone, residence, hub, area, account, HR / security status..."
+          [ngModel]="search()"
+          (ngModelChange)="onSearchChange($event)"
+        />
+      </div>
+
+      <!-- Security result filter -->
+      <div class="filter-group">
+        <label for="securityFilter" class="field-label">Security result</label>
+        <select
+          id="securityFilter"
+          class="field-input"
+          [ngModel]="securityResultFilter()"
+          (ngModelChange)="onSecurityResultFilterChange($event)"
+        >
+          <option value="">All</option>
+          <option value="Positive">Positive</option>
+          <option value="Negative">Negative</option>
+          <option value="pending">Pending</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Table header (range + page size) -->
+    <div class="table-header">
+      <div class="table-info">
+        Showing
+        <ng-container *ngIf="filteredRows().length > 0; else emptyRange">
+          {{ startIndex() + 1 }}-{{ endIndex() }}
+        </ng-container>
+        <ng-template #emptyRange>0-0</ng-template>
+        of {{ filteredRows().length }} records
+      </div>
+
+      <div class="table-actions">
+        <div class="page-size-selector">
+          <label for="pageSize" class="page-size-label">Show:</label>
+          <select
+            id="pageSize"
+            class="page-size-select"
+            [ngModel]="pageSize()"
+            (ngModelChange)="onPageSizeChange($event)"
+          >
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper">
+      <table class="bg-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Courier</th>
+            <th>National ID</th>
+            <th>Phone</th>
+            <th>Company</th>
+            <th>Security result</th>
+            <th>Notes</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let row of paginatedRows(); trackBy: trackById" class="row">
+            <td>{{ row.date || "—" }}</td>
+
+            <td class="cell-primary">
+              {{ row.courierName || "—" }}
+            </td>
+
+            <td class="cell-mono">{{ row.nationalId || "—" }}</td>
+            <td>{{ row.phoneNumber || "—" }}</td>
+            <td>{{ row.account || "—" }}</td>
+
+
+            <!-- Security result -->
+            <td>
+              <span
+                class="status-pill status-pill--strong"
+                [ngClass]="statusPillClass(row.securityResult)"
+              >
+                {{ row.securityResult || "Pending" }}
+              </span>
+            </td>
+
+            <!-- Notes (2-line preview + eye icon opens modal) -->
+            <td class="notes-cell">
+              <div class="notes-preview-wrap">
+                <span class="notes-preview-multiline">
+                  {{ row.notes || "—" }}
+                </span>
+
+                <button
+                  *ngIf="row.notes && row.notes.trim()"
+                  type="button"
+                  class="icon-action icon-action--view-notes"
+                  title="View full note"
+                  (click)="openNotesModal(row)"
+                >
+                  <i class="ri-eye-line" aria-hidden="true"></i>
+                  <span class="sr-only">View full note</span>
+                </button>
+              </div>
+            </td>
+
+            <td class="cell-actions">
+              <button
+                type="button"
+                class="icon-action icon-action--edit"
+                title="Update security result"
+                (click)="openEditModal(row)"
+              >
+                <i class="ri-edit-line" aria-hidden="true"></i>
+                <span class="sr-only">Update security result</span>
+              </button>
+            </td>
+          </tr>
+
+          <tr *ngIf="filteredRows().length === 0">
+            <td class="empty-cell" colspan="13">
+              No records match your search.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination footer -->
+    <div class="pagination" *ngIf="totalPages() > 1">
+      <div class="pagination-info">
+        Page {{ currentPage() }} of {{ totalPages() }}
+      </div>
+
+      <div class="pagination-controls">
+        <button
+          class="pagination-btn"
+          [disabled]="currentPage() === 1"
+          (click)="goToPage(1)"
+        >
+          <i class="ri-skip-left-line"></i>
+        </button>
+
+        <button
+          class="pagination-btn"
+          [disabled]="currentPage() === 1"
+          (click)="previousPage()"
+        >
+          <i class="ri-arrow-left-line"></i>
+        </button>
+
+        <div class="pagination-pages">
+          <button
+            *ngFor="let page of visiblePages()"
+            class="pagination-page"
+            [class.active]="page === currentPage()"
+            (click)="goToPage(page)"
+          >
+            {{ page }}
+          </button>
+        </div>
+
+        <button
+          class="pagination-btn"
+          [disabled]="currentPage() === totalPages()"
+          (click)="nextPage()"
+        >
+          <i class="ri-arrow-right-line"></i>
+        </button>
+
+        <button
+          class="pagination-btn"
+          [disabled]="currentPage() === totalPages()"
+          (click)="goToPage(totalPages())"
+        >
+          <i class="ri-skip-right-line"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Edit security result -->
+  <div
+    class="modal-backdrop"
+    *ngIf="isModalOpen && editingRow"
+    (click)="closeModal()"
+  >
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Update security result</h2>
+          <p class="modal-subtitle" *ngIf="editingRow">
+            {{ editingRow.courierName }} —
+            {{ editingRow.nationalId || "No ID" }}
+          </p>
+        </div>
+
+        <button type="button" class="modal-close" (click)="closeModal()">
+          <i class="ri-close-line" aria-hidden="true"></i>
+          <span class="sr-only">Close</span>
+        </button>
+      </div>
+
+      <form #f="ngForm" class="modal-body" (ngSubmit)="onSave(f)" novalidate>
+        <div class="modal-grid modal-grid--single">
+          <div class="field">
+            <label class="field-label" for="securityResultField">
+              Security result
+            </label>
+            <select
+              id="securityResultField"
+              class="field-input"
+              name="securityResult"
+              [(ngModel)]="editingRow.securityResult"
+              required
+            >
+              <option [ngValue]="null" disabled hidden>
+                Select security result
+              </option>
+              <option *ngFor="let opt of securityResultOptions" [ngValue]="opt">
+                {{ opt }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="notesField">Notes / ملحوظة</label>
+            <textarea
+              id="notesField"
+              class="field-input field-textarea"
+              name="notes"
+              [(ngModel)]="editingRow.notes"
+              rows="4"
+            ></textarea>
+          </div>
+
+          <p class="error-text" *ngIf="errorMessage">
+            {{ errorMessage }}
+          </p>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn--ghost"
+            (click)="closeModal()"
+            [disabled]="saving"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="btn btn--primary" [disabled]="saving">
+            <span *ngIf="!saving">Save changes</span>
+            <span *ngIf="saving">Saving...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: View notes -->
+  <div
+    class="modal-backdrop"
+    *ngIf="isNotesModalOpen && notesRow"
+    (click)="closeNotesModal()"
+  >
+    <div class="modal modal--notes" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Notes</h2>
+          <p class="modal-subtitle">
+            {{ notesRow.courierName || "—" }} —
+            {{ notesRow.nationalId || "No ID" }}
+          </p>
+        </div>
+
+        <button type="button" class="modal-close" (click)="closeNotesModal()">
+          <i class="ri-close-line" aria-hidden="true"></i>
+          <span class="sr-only">Close</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="notes-content">
+          <p class="notes-text" *ngIf="notesRow.notes; else noNotes">
+            {{ notesRow.notes }}
+          </p>
+          <ng-template #noNotes>
+            <p class="notes-text notes-text--empty">No notes.</p>
+          </ng-template>
+        </div>
+
+        <div class="modal-footer modal-footer--notes">
+          <button type="button" class="btn btn--ghost" (click)="closeNotesModal()">
+            Close
+          </button>
+
+          <button
+            type="button"
+            class="btn btn--primary"
+            (click)="copyNotesToClipboard(notesRow.notes)"
+            [disabled]="!notesRow.notes"
+          >
+            Copy
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

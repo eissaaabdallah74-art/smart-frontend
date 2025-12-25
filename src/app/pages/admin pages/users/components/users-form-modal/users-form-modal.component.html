@@ -1,0 +1,179 @@
+<div class="modal-backdrop" (click)="close.emit()"></div>
+
+<div
+  class="modal"
+  role="dialog"
+  aria-modal="true"
+  aria-label="User form"
+  (click)="$event.stopPropagation()"
+>
+  <header class="modal-head">
+    <h3 class="modal-title">
+      {{ isEditMode ? 'Edit User' : 'Add New User' }}
+    </h3>
+    <button
+      class="icon-btn"
+      type="button"
+      (click)="close.emit()"
+      aria-label="Close"
+    >
+      ×
+    </button>
+  </header>
+
+  <form #f="ngForm" (ngSubmit)="onSubmit(f)" class="modal-body" novalidate>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label" for="fullName">Full Name *</label>
+        <input
+          id="fullName"
+          name="fullName"
+          class="form-input"
+          [(ngModel)]="model.fullName"
+          required
+          #fullNameInput="ngModel"
+        />
+        <div class="error-message" *ngIf="fullNameInput.invalid && fullNameInput.touched">
+          Full name is required
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="email">Email *</label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          class="form-input"
+          [(ngModel)]="model.email"
+          required
+          #emailInput="ngModel"
+        />
+        <div class="error-message" *ngIf="emailInput.invalid && emailInput.touched">
+          Valid email is required
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="role">Department *</label>
+        <select
+          id="role"
+          name="role"
+          class="form-input"
+          [(ngModel)]="model.role"
+          required
+          #roleInput="ngModel"
+        >
+          <option value="" disabled>Select department...</option>
+          <option *ngFor="let r of roles" [value]="r">
+            {{ formatRole(r) }}
+          </option>
+        </select>
+        <div class="error-message" *ngIf="roleInput.invalid && roleInput.touched">
+          Department is required
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="position">Position</label>
+        <select
+          id="position"
+          name="position"
+          class="form-input"
+          [(ngModel)]="model.position"
+          [disabled]="!availablePositions.length"
+        >
+          <option value="">
+            {{ !availablePositions.length ? 'Not applicable' : 'Select position...' }}
+          </option>
+          <option *ngFor="let p of availablePositions" [ngValue]="p.value">
+            {{ p.label }}
+          </option>
+        </select>
+        <div class="help-text" *ngIf="!availablePositions.length && model.role">
+          No positions available for {{ formatRole(model.role) }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="hireDate">Hire Date</label>
+        <input
+          id="hireDate"
+          name="hireDate"
+          type="date"
+          class="form-input"
+          [(ngModel)]="model.hireDate"
+        />
+      </div>
+
+      <div class="form-group" *ngIf="!model.isActive">
+        <label class="form-label" for="terminationDate">Termination Date</label>
+        <input
+          id="terminationDate"
+          name="terminationDate"
+          type="date"
+          class="form-input"
+          [(ngModel)]="model.terminationDate"
+          [disabled]="model.isActive"
+        />
+        <div class="help-text" *ngIf="model.isActive">
+          Termination date is only for inactive users
+        </div>
+      </div>
+
+      <div class="form-group form-group--checkbox">
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            name="isActive"
+            [(ngModel)]="model.isActive"
+            (change)="onStatusChange()"
+          />
+          <span>Active User</span>
+        </label>
+        <div class="help-text">
+          {{ model.isActive ? 'User can login to the system' : 'User account is disabled' }}
+        </div>
+      </div>
+
+      <div class="form-group form-group--full">
+        <label class="form-label" for="password">
+          Password {{ !isEditMode ? '*' : '' }}
+        </label>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          class="form-input"
+          [(ngModel)]="model.password"
+          [required]="!isEditMode"
+          [placeholder]="
+            isEditMode
+              ? 'Leave blank to keep current password'
+              : 'Enter a secure password'
+          "
+          #passwordInput="ngModel"
+        />
+        <div class="error-message" *ngIf="passwordInput.invalid && passwordInput.touched && !isEditMode">
+          Password is required for new users
+        </div>
+        <div class="help-text" *ngIf="isEditMode">
+          Leave blank to keep the current password unchanged
+        </div>
+      </div>
+    </div>
+
+    <footer class="modal-foot">
+      <button
+        type="button"
+        class="btn btn--secondary"
+        (click)="close.emit()"
+      >
+        Cancel
+      </button>
+      <button type="submit" class="btn btn--primary">
+        {{ isEditMode ? 'Save Changes' : 'Add User' }}
+      </button>
+    </footer>
+  </form>
+</div>

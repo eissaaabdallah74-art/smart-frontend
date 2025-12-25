@@ -1,0 +1,210 @@
+<div class="backdrop" *ngIf="!isStandaloneRoute" (click)="onCloseClick()"></div>
+
+<div class="profile-container" [class.is-page]="isStandaloneRoute">
+  
+  <header class="top-nav">
+    <button class="nav-back-btn" (click)="onCloseClick()">
+      <i class="ri-arrow-left-s-line"></i>
+      <span>Back</span>
+    </button>
+    
+    <div class="nav-actions">
+        <span class="ticket-badge" *ngIf="interview?.ticketNo">
+            <i class="ri-ticket-line"></i> Ticket #{{ interview?.ticketNo }}
+        </span>
+        <button class="close-icon-btn" *ngIf="!isStandaloneRoute" (click)="onCloseClick()">
+            <i class="ri-close-line"></i>
+        </button>
+    </div>
+  </header>
+
+  <ng-container *ngIf="interview as row; else loadingSkeleton">
+    <div class="layout-grid">
+      
+      <aside class="col-identity">
+        <div class="profile-card">
+          <div class="profile-status" [ngClass]="statusClass">
+            {{ row.courierStatus || 'New Applicant' }}
+          </div>
+
+          <div class="profile-header">
+            <div class="avatar-circle">{{ initials }}</div>
+            <h1 class="profile-name">{{ row.courierName || 'Unknown Name' }}</h1>
+            <p class="profile-role">{{ row.position || 'Courier Applicant' }}</p>
+          </div>
+
+          <div class="highlights-row">
+             <div class="highlight-badge" *ngIf="row.vehicleType">
+                <i class="ri-motorbike-line" *ngIf="row.vehicleType.toLowerCase().includes('motor')"></i>
+                <i class="ri-car-line" *ngIf="!row.vehicleType.toLowerCase().includes('motor')"></i>
+                {{ row.vehicleType }}
+             </div>
+             <div class="highlight-badge secondary" *ngIf="row.residence">
+                <i class="ri-map-pin-user-line"></i> {{ row.residence }}
+             </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="contact-section">
+             <div class="contact-row">
+                <i class="ri-phone-line"></i>
+                <span>{{ row.phoneNumber || 'No Phone' }}</span>
+                <button class="copy-btn" title="Copy"><i class="ri-file-copy-line"></i></button>
+             </div>
+             <div class="contact-row">
+                <i class="ri-id-card-line"></i>
+                <span>{{ row.nationalId || 'No National ID' }}</span>
+             </div>
+          </div>
+
+          <div class="profile-actions">
+             <button class="action-btn primary">
+                <i class="ri-phone-fill"></i> Call Candidate
+             </button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="col-details">
+        
+        <section class="highlights-grid">
+            
+            <div class="highlight-box brand-theme">
+                <div class="hb-icon"><i class="ri-building-4-line"></i></div>
+                <div class="hb-content">
+                    <label>Client Account</label>
+                    <div class="hb-value">{{ row.account || 'Not Assigned' }}</div>
+                    <div class="hb-sub">
+                        <i class="ri-user-star-line"></i> 
+                        Manager: <strong>{{ row.accountManager || '—' }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight-box blue-theme">
+                <div class="hb-icon"><i class="ri-user-voice-line"></i></div>
+                <div class="hb-content">
+                    <label>Interviewer</label>
+                    <div class="hb-value">{{ row.interviewer || 'Not Assigned' }}</div>
+                    <div class="hb-sub">Technical Assessment</div>
+                </div>
+            </div>
+
+            <div class="highlight-box status-theme" 
+                 [class.is-signed]="row.signedWithHr === 'Yes'"
+                 [class.not-signed]="row.signedWithHr !== 'Yes'">
+                <div class="hb-icon">
+                    <i class="ri-file-paper-2-line" *ngIf="row.signedWithHr !== 'Yes'"></i>
+                    <i class="ri-checkbox-circle-fill" *ngIf="row.signedWithHr === 'Yes'"></i>
+                </div>
+                <div class="hb-content">
+                    <label>Contract Status</label>
+                    <div class="hb-value">
+                        {{ row.signedWithHr === 'Yes' ? 'Signed Contract' : 'Pending Signature' }}
+                    </div>
+                    <div class="hb-sub" *ngIf="row.signedWithHr === 'Yes'">Ready for onboarding</div>
+                    <div class="hb-sub" *ngIf="row.signedWithHr !== 'Yes'">HR Action Required</div>
+                </div>
+            </div>
+
+        </section>
+
+        <section class="content-card">
+            <h3 class="card-title"><i class="ri-map-pin-2-line"></i> Location & Date Details</h3>
+            <div class="info-grid">
+                <div class="info-box">
+                    <label>Hub / Branch</label>
+                    <div class="val">{{ row.hub || 'Not Assigned' }}</div>
+                </div>
+                <div class="info-box">
+                    <label>Zone / Area</label>
+                    <div class="val">{{ row.zone || 'Not Assigned' }}</div>
+                </div>
+                <div class="info-box">
+                    <label>Interview Date</label>
+                    <div class="val">{{ row.date }}</div>
+                </div>
+            </div>
+             <div class="notes-block" *ngIf="row.notes">
+                <label>General Notes</label>
+                <p>{{ row.notes }}</p>
+            </div>
+        </section>
+
+        <section class="content-card">
+            <h3 class="card-title"><i class="ri-chat-quote-line"></i> Evaluation & Feedback</h3>
+            
+            <div class="feedback-list">
+                <div class="feedback-item" *ngIf="row.feedback">
+                    <div class="feedback-avatar is-interviewer"><i class="ri-user-voice-line"></i></div>
+                    <div class="feedback-content">
+                        <div class="feedback-author">Technical Feedback</div>
+                        <div class="feedback-text">{{ row.feedback }}</div>
+                    </div>
+                </div>
+
+                <div class="feedback-item" *ngIf="row.hrFeedback">
+                    <div class="feedback-avatar is-hr"><i class="ri-shield-user-line"></i></div>
+                    <div class="feedback-content">
+                        <div class="feedback-author">HR Decision</div>
+                        <div class="feedback-text">{{ row.hrFeedback }}</div>
+                    </div>
+                </div>
+
+                <div class="feedback-item" *ngIf="row.crmFeedback">
+                    <div class="feedback-avatar is-crm"><i class="ri-customer-service-2-line"></i></div>
+                    <div class="feedback-content">
+                        <div class="feedback-author">CRM Check</div>
+                        <div class="feedback-text">{{ row.crmFeedback }}</div>
+                    </div>
+                </div>
+
+                <div class="empty-state" *ngIf="!row.feedback && !row.hrFeedback && !row.crmFeedback">
+                    No feedback recorded yet.
+                </div>
+            </div>
+        </section>
+
+        <section class="content-card" *ngIf="hasAnyFollowups">
+             <h3 class="card-title"><i class="ri-history-line"></i> Follow-up History</h3>
+             <div class="timeline-container">
+                <div class="timeline-step" *ngIf="row.followUp1">
+                    <div class="step-marker">1</div>
+                    <div class="step-content">
+                        <h4>First Attempt</h4>
+                        <p>{{ row.followUp1 }}</p>
+                    </div>
+                </div>
+                <div class="timeline-step" *ngIf="row.followUp2">
+                    <div class="step-marker">2</div>
+                    <div class="step-content">
+                        <h4>Second Attempt</h4>
+                        <p>{{ row.followUp2 }}</p>
+                    </div>
+                </div>
+                <div class="timeline-step" *ngIf="row.followUp3">
+                    <div class="step-marker">3</div>
+                    <div class="step-content">
+                        <h4>Third Attempt</h4>
+                        <p>{{ row.followUp3 }}</p>
+                    </div>
+                </div>
+             </div>
+        </section>
+
+      </main>
+    </div>
+  </ng-container>
+
+  <ng-template #loadingSkeleton>
+    <div class="skeleton-loader">
+        <div class="sk-side"></div>
+        <div class="sk-main">
+            <div class="sk-grid-3"></div>
+            <div class="sk-card"></div>
+        </div>
+    </div>
+  </ng-template>
+
+</div>

@@ -1,0 +1,220 @@
+<section class="tracker-details-page">
+  <!-- Page header -->
+  <header class="page-header">
+    <div class="page-header__left">
+      <button
+        type="button"
+        class="page-header__back"
+        (click)="goBack()">
+        ← Back to tracker
+      </button>
+
+      <h1 class="page-header__title">DSP & licence details</h1>
+      <p class="page-header__subtitle">
+        Review driver, DSP mapping and ID / licence expiry.
+      </p>
+    </div>
+  </header>
+
+  <!-- Loading / error -->
+  <div class="card card--state" *ngIf="loading()">
+    Loading details…
+  </div>
+
+  <div class="card card--state card--error" *ngIf="!loading() && error()">
+    {{ error() }}
+  </div>
+
+  <!-- Main card -->
+  <article class="card" *ngIf="!loading() && !error() && row() as r">
+    <!-- Top strip -->
+    <div class="card__header">
+      <div class="card__title-block">
+        <div class="avatar">
+          {{ getInitials(r.driver?.name) }}
+        </div>
+
+        <div class="card__title-text">
+          <div class="card__name">
+            {{ r.driver?.name || 'Driver' }}
+          </div>
+
+          <div class="card__meta">
+            <span *ngIf="r.dspShortcode">DSP: {{ r.dspShortcode }}</span>
+            <span *ngIf="r.dasUsername">• Username: {{ r.dasUsername }}</span>
+            <span *ngIf="r.driver?.clientName">• {{ r.driver?.clientName }}</span>
+          </div>
+
+          <div class="card__contact">
+            <span *ngIf="r.driver?.courierPhone">
+              {{ r.driver?.courierPhone }}
+            </span>
+            <span *ngIf="r.vehiclePlateNumber">
+              · Plate: {{ r.vehiclePlateNumber }}
+            </span>
+            <span *ngIf="r.visaSponsorshipOnDsp">
+              · Visa:
+              {{
+                r.visaSponsorshipOnDsp === 'yes'
+                  ? 'On DSP'
+                  : r.visaSponsorshipOnDsp === 'no'
+                  ? 'Not on DSP'
+                  : ''
+              }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="card__body">
+      <div class="layout-2col">
+        <!-- LEFT COLUMN -->
+        <div class="layout-2col__col">
+          <!-- Driver -->
+          <section class="section">
+            <h2 class="section__title">Driver</h2>
+            <dl class="field-grid">
+              <div class="field">
+                <dt class="field__label">Name</dt>
+                <dd class="field__value">{{ r.driver?.name || '—' }}</dd>
+              </div>
+
+              <div class="field" *ngIf="r.driver?.courierPhone">
+                <dt class="field__label">Phone</dt>
+                <dd class="field__value">{{ r.driver?.courierPhone }}</dd>
+              </div>
+
+              <div class="field" *ngIf="r.driver?.courierId">
+                <dt class="field__label">Courier ID</dt>
+                <dd class="field__value">{{ r.driver?.courierId }}</dd>
+              </div>
+
+              <div class="field" *ngIf="r.driver?.courierCode">
+                <dt class="field__label">Courier code</dt>
+                <dd class="field__value">{{ r.driver?.courierCode }}</dd>
+              </div>
+
+              <div class="field" *ngIf="r.driver?.clientName">
+                <dt class="field__label">Client</dt>
+                <dd class="field__value">{{ r.driver?.clientName }}</dd>
+              </div>
+
+              <div class="field" *ngIf="r.driver?.vehicleType">
+                <dt class="field__label">Vehicle type</dt>
+                <dd class="field__value">{{ r.driver?.vehicleType }}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <!-- Notes -->
+          <section class="section section--full" *ngIf="r.notes">
+            <h2 class="section__title">Notes</h2>
+            <div class="notes">
+              {{ r.notes }}
+            </div>
+          </section>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="layout-2col__col">
+          <!-- DSP info -->
+          <section class="section">
+            <h2 class="section__title">DSP info</h2>
+            <dl class="field-grid">
+              <div class="field">
+                <dt class="field__label">DSP shortcode</dt>
+                <dd class="field__value">{{ r.dspShortcode || '—' }}</dd>
+              </div>
+
+              <div class="field" *ngIf="r.dasFirstName || r.dasLastName">
+                <dt class="field__label">DA name</dt>
+                <dd class="field__value">
+                  {{ r.dasFirstName || '' }} {{ r.dasLastName || '' }}
+                </dd>
+              </div>
+
+              <div class="field" *ngIf="r.dasUsername">
+                <dt class="field__label">DA username</dt>
+                <dd class="field__value">{{ r.dasUsername }}</dd>
+              </div>
+
+              <div class="field">
+                <dt class="field__label">Visa on DSP?</dt>
+                <dd class="field__value">
+                  {{
+                    r.visaSponsorshipOnDsp === 'yes'
+                      ? 'Yes'
+                      : r.visaSponsorshipOnDsp === 'no'
+                      ? 'No'
+                      : '—'
+                  }}
+                </dd>
+              </div>
+
+              <div class="field" *ngIf="r.birthDate">
+                <dt class="field__label">Birth date</dt>
+                <dd class="field__value">{{ r.birthDate }}</dd>
+              </div>
+
+              <div class="field" *ngIf="r.vehiclePlateNumber">
+                <dt class="field__label">Vehicle plate</dt>
+                <dd class="field__value">{{ r.vehiclePlateNumber }}</dd>
+              </div>
+
+              <div class="field" *ngIf="r.criminalRecordIssueDate">
+                <dt class="field__label">Criminal record issued</dt>
+                <dd class="field__value">{{ r.criminalRecordIssueDate }}</dd>
+              </div>
+            </dl>
+          </section>
+
+
+        </div>
+                  <!-- Expiry status -->
+          <section class="section section--full">
+            <h2 class="section__title">Expiry status</h2>
+
+            <div class="expiry-grid">
+              <div class="expiry-card">
+                <div class="expiry-label">ID expiry</div>
+                <div class="expiry-date">
+                  {{ r.idExpiryDate || '—' }}
+                </div>
+                <span
+                  class="expiry-pill"
+                  [ngClass]="expiryClass(r.idExpiryDate)">
+                  {{ expiryText(r.idExpiryDate) }}
+                </span>
+              </div>
+
+              <div class="expiry-card">
+                <div class="expiry-label">Driving licence</div>
+                <div class="expiry-date">
+                  {{ r.dLicenseExpiryDate || '—' }}
+                </div>
+                <span
+                  class="expiry-pill"
+                  [ngClass]="expiryClass(r.dLicenseExpiryDate)">
+                  {{ expiryText(r.dLicenseExpiryDate) }}
+                </span>
+              </div>
+
+              <div class="expiry-card">
+                <div class="expiry-label">Vehicle licence</div>
+                <div class="expiry-date">
+                  {{ r.vLicenseExpiryDate || '—' }}
+                </div>
+                <span
+                  class="expiry-pill"
+                  [ngClass]="expiryClass(r.vLicenseExpiryDate)">
+                  {{ expiryText(r.vLicenseExpiryDate) }}
+                </span>
+              </div>
+            </div>
+          </section>
+      </div>
+    </div>
+  </article>
+</section>

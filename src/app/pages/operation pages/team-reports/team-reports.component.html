@@ -1,0 +1,592 @@
+<section class="team-reports-page">
+  <div class="card">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-main">
+        <h1 class="title">
+          {{ isTeamMode() ? 'Operations Reports' : 'My Operations Reports' }}
+        </h1>
+        <p class="subtitle">
+          Calls Reports + Achievement Reports + Fulfillment Reports in the same page.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <export-button
+          class="btn btn--secondary"
+          *ngIf="isTeamMode() && activeTab === 'calls' && rows.length"
+          [data]="exportData"
+          filename="operations-calls-report.xlsx"
+        ></export-button>
+
+        <export-button
+          class="btn btn--secondary"
+          *ngIf="isTeamMode() && activeTab === 'achievements' && achievementRows.length"
+          [data]="achievementExportData"
+          filename="operations-achievements-report.xlsx"
+        ></export-button>
+
+        <export-button
+          class="btn btn--secondary"
+          *ngIf="isTeamMode() && activeTab === 'fulfillment' && fulfillmentRows.length"
+          [data]="fulfillmentExportData"
+          filename="account-managers-fulfillment-report.xlsx"
+        ></export-button>
+      </div>
+    </header>
+
+    <!-- Tabs -->
+    <nav class="tabs">
+      <button type="button" class="tab" [class.active]="activeTab === 'calls'" (click)="onTab('calls')">
+        Calls Reports
+      </button>
+
+      <button type="button" class="tab" [class.active]="activeTab === 'achievements'" (click)="onTab('achievements')">
+        Achievement Reports
+      </button>
+
+      <button type="button" class="tab" [class.active]="activeTab === 'fulfillment'" (click)="onTab('fulfillment')">
+        Fulfillment (Account Managers)
+      </button>
+    </nav>
+
+    <!-- Error -->
+    <div *ngIf="errorMsg" class="banner banner-error">{{ errorMsg }}</div>
+    <div *ngIf="loading" class="loading">Loading...</div>
+
+    <div class="layout" [class.layout--single]="!isTeamMode()" *ngIf="!loading">
+      <!-- Left: Sidebar -->
+      <aside class="sidebar" *ngIf="isTeamMode()">
+        <h2>Team</h2>
+        <p class="hint">Choose All for totals, or pick a staff member.</p>
+
+        <ul class="list">
+          <!-- All -->
+          <li class="item" [class.active]="selected === 'all'" (click)="onSelectAll()">
+            <div class="row">
+              <div class="name">All (Totals)</div>
+              <div class="meta">
+                <span class="pos">Team</span>
+              </div>
+            </div>
+
+            <!-- Mini: Calls -->
+            <div class="mini" *ngIf="activeTab === 'calls' && report">
+              <span>Completed: <strong>{{ report.totals.completedCalls }}</strong></span>
+              <span>Converted: <strong>{{ report.totals.convertedCalls }}</strong></span>
+            </div>
+
+            <!-- Mini: Achievements -->
+            <div class="mini" *ngIf="activeTab === 'achievements' && achievementReport">
+              <ng-container *ngFor="let c of achievementColumns | slice:0:2">
+                <span>{{ c.label }}: <strong>{{ achievementReport.totals[c.key] || 0 }}</strong></span>
+              </ng-container>
+            </div>
+
+            <!-- Mini: Fulfillment -->
+            <div class="mini" *ngIf="activeTab === 'fulfillment' && fulfillmentReport">
+              <span>Fulfilled: <strong>{{ fulfillmentReport.totals.fulfilled || 0 }}</strong></span>
+              <span>A: <strong>{{ fulfillmentReport.totals.companyA || 0 }}</strong></span>
+              <span>B: <strong>{{ fulfillmentReport.totals.companyB || 0 }}</strong></span>
+            </div>
+          </li>
+
+          <!-- Staff list: Calls -->
+          <ng-container *ngIf="activeTab === 'calls'">
+            <li
+              class="item"
+              *ngFor="let r of rows"
+              [class.active]="selected === r.assignee.id"
+              (click)="onSelectAssignee(r.assignee.id)"
+            >
+              <div class="row">
+                <div class="name">{{ r.assignee.fullName }}</div>
+                <div class="meta">
+                  <span class="pos">{{ r.assignee.position ? (r.assignee.position | titlecase) : '—' }}</span>
+                  <span class="status" [class.inactive]="!r.assignee.isActive">
+                    {{ r.assignee.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="mini">
+                <span>C: <strong>{{ r.completedCalls }}</strong></span>
+                <span>I: <strong>{{ r.convertedCalls }}</strong></span>
+                <span>Rate: <strong>{{ formatRate(r.conversionRate) }}</strong></span>
+              </div>
+            </li>
+          </ng-container>
+
+          <!-- Staff list: Achievements -->
+          <ng-container *ngIf="activeTab === 'achievements'">
+            <li
+              class="item"
+              *ngFor="let r of achievementRows"
+              [class.active]="selected === r.assignee.id"
+              (click)="onSelectAssignee(r.assignee.id)"
+            >
+              <div class="row">
+                <div class="name">{{ r.assignee.fullName }}</div>
+                <div class="meta">
+                  <span class="pos">{{ r.assignee.position ? (r.assignee.position | titlecase) : '—' }}</span>
+                  <span class="status" [class.inactive]="!r.assignee.isActive">
+                    {{ r.assignee.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="mini">
+                <ng-container *ngFor="let c of achievementColumns | slice:0:3">
+                  <span>{{ c.label }}: <strong>{{ r.metrics[c.key] || 0 }}</strong></span>
+                </ng-container>
+              </div>
+            </li>
+          </ng-container>
+
+          <!-- Account managers list: Fulfillment -->
+          <ng-container *ngIf="activeTab === 'fulfillment'">
+            <li
+              class="item"
+              *ngFor="let r of fulfillmentRows"
+              [class.active]="selected === (r.accountManager?.id ?? 'unassigned')"
+              (click)="onSelectAssignee(r.accountManager?.id ?? 'unassigned')"
+            >
+              <div class="row">
+                <div class="name">{{ r.accountManager?.fullName || 'Unassigned' }}</div>
+                <div class="meta">
+                  <span class="pos">{{ r.accountManager?.position ? (r.accountManager.position | titlecase) : '—' }}</span>
+                </div>
+              </div>
+
+              <div class="mini">
+                <span>Fulfilled: <strong>{{ r.totals.fulfilled || 0 }}</strong></span>
+                <span>A: <strong>{{ r.totals.companyA || 0 }}</strong></span>
+                <span>B: <strong>{{ r.totals.companyB || 0 }}</strong></span>
+              </div>
+            </li>
+          </ng-container>
+        </ul>
+      </aside>
+
+      <!-- Right -->
+      <main class="main">
+        <!-- Filters -->
+        <div class="filters">
+          <div class="fg">
+            <label>From</label>
+            <input type="date" [(ngModel)]="filterFromDate" />
+          </div>
+
+          <div class="fg">
+            <label>To</label>
+            <input type="date" [(ngModel)]="filterToDate" />
+          </div>
+
+          <!-- Window days: Calls only -->
+          <div class="fg" *ngIf="activeTab === 'calls'">
+            <label>Window days</label>
+            <input type="number" min="1" max="90" [(ngModel)]="windowDays" />
+          </div>
+
+          <!-- includeInactive: calls/achievements only -->
+          <div class="fg toggle" *ngIf="isTeamMode() && (activeTab === 'calls' || activeTab === 'achievements')">
+            <label>
+              <input type="checkbox" [(ngModel)]="includeInactive" />
+              Include inactive
+            </label>
+          </div>
+
+          <div class="fg actions">
+            <button type="button" class="btn btn--primary" (click)="onApplyFilters()">
+              Apply
+            </button>
+          </div>
+        </div>
+
+        <!-- ===================== Calls Tab ===================== -->
+        <ng-container *ngIf="activeTab === 'calls'">
+          <div class="stats">
+            <div class="stat">
+              <div class="label">Completed calls</div>
+              <div class="value">{{ currentStats.completedCalls }}</div>
+            </div>
+
+            <div class="stat">
+              <div class="label">Converted to interview</div>
+              <div class="value">{{ currentStats.convertedCalls }}</div>
+            </div>
+
+            <div class="stat">
+              <div class="label">Conversion rate</div>
+              <div class="value">{{ formatRate(currentStats.conversionRate) }}</div>
+            </div>
+
+            <div class="stat">
+              <div class="label">Unique phones (completed)</div>
+              <div class="value">{{ currentStats.uniquePhonesCompleted }}</div>
+            </div>
+
+            <div class="stat">
+              <div class="label">Unique phones (converted)</div>
+              <div class="value">{{ currentStats.uniqueConvertedPhones }}</div>
+            </div>
+          </div>
+
+          <!-- All view -->
+          <div class="table-wrap" *ngIf="isTeamMode() && selected === 'all'">
+            <table class="table" *ngIf="rows.length; else emptyCallsTpl">
+              <thead>
+                <tr>
+                  <th>Staff</th>
+                  <th>Position</th>
+                  <th>Completed</th>
+                  <th>Converted</th>
+                  <th>Rate</th>
+                  <th>Unique phones (C)</th>
+                  <th>Unique phones (I)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let r of rows">
+                  <td>{{ r.assignee.fullName }}</td>
+                  <td>{{ r.assignee.position ? (r.assignee.position | titlecase) : '—' }}</td>
+                  <td>{{ r.completedCalls }}</td>
+                  <td>{{ r.convertedCalls }}</td>
+                  <td>{{ formatRate(r.conversionRate) }}</td>
+                  <td>{{ r.uniquePhonesCompleted }}</td>
+                  <td>{{ r.uniqueConvertedPhones }}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <ng-template #emptyCallsTpl>
+              <div class="empty">
+                <h3>No data</h3>
+                <p>Try changing the date range.</p>
+              </div>
+            </ng-template>
+          </div>
+
+          <!-- Single view -->
+          <div class="table-wrap" *ngIf="(!isTeamMode() && selectedRow) || (isTeamMode() && selected !== 'all' && selectedRow)">
+            <ng-container *ngIf="selectedRow as sr">
+              <div class="single-actions" *ngIf="isTeamMode()">
+                <button type="button" class="btn btn--secondary" (click)="openDetailsModal('completed')">
+                  View Completed Phones
+                </button>
+
+                <button type="button" class="btn btn--secondary" (click)="openDetailsModal('converted')">
+                  View Converted Phones
+                </button>
+              </div>
+
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Staff</th>
+                    <th>Position</th>
+                    <th>Completed</th>
+                    <th>Converted</th>
+                    <th>Rate</th>
+                    <th>Unique phones (C)</th>
+                    <th>Unique phones (I)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{{ sr.assignee.fullName }}</td>
+                    <td>{{ sr.assignee.position ? (sr.assignee.position | titlecase) : '—' }}</td>
+                    <td>{{ sr.completedCalls }}</td>
+                    <td>{{ sr.convertedCalls }}</td>
+                    <td>{{ formatRate(sr.conversionRate || 0) }}</td>
+                    <td>{{ sr.uniquePhonesCompleted }}</td>
+                    <td>{{ sr.uniqueConvertedPhones }}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="single-hint">
+                Showing stats for <strong>{{ sr.assignee.fullName }}</strong>.
+              </div>
+            </ng-container>
+          </div>
+        </ng-container>
+
+        <!-- ================= Achievements Tab ================= -->
+        <ng-container *ngIf="activeTab === 'achievements'">
+          <div class="stats stats--ach" *ngIf="achievementCards.length">
+            <div class="stat" *ngFor="let c of achievementCards">
+              <div class="label">{{ c.label }}</div>
+              <div class="value">{{ c.value }}</div>
+            </div>
+          </div>
+
+          <div class="table-wrap table-wrap--scroll" *ngIf="isTeamMode() && selected === 'all'">
+            <table class="table table--ach" *ngIf="achievementRows.length; else emptyAchTpl">
+              <thead>
+                <tr>
+                  <th class="col-staff">Staff</th>
+                  <th class="col-pos">Position</th>
+                  <th class="num" *ngFor="let c of achievementColumns">{{ c.label }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let r of achievementRows">
+                  <td class="col-staff">{{ r.assignee.fullName }}</td>
+                  <td class="col-pos">{{ r.assignee.position ? (r.assignee.position | titlecase) : '—' }}</td>
+                  <td class="num" *ngFor="let c of achievementColumns">{{ r.metrics[c.key] || 0 }}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <ng-template #emptyAchTpl>
+              <div class="empty">
+                <h3>No data</h3>
+                <p>Try changing the date range.</p>
+              </div>
+            </ng-template>
+          </div>
+
+          <div class="table-wrap table-wrap--scroll"
+               *ngIf="(!isTeamMode() && selectedAchievementRow) || (isTeamMode() && selected !== 'all' && selectedAchievementRow)">
+            <ng-container *ngIf="selectedAchievementRow as ar">
+              <table class="table table--ach">
+                <thead>
+                  <tr>
+                    <th class="col-staff">Staff</th>
+                    <th class="col-pos">Position</th>
+                    <th class="num" *ngFor="let c of achievementColumns">{{ c.label }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="col-staff">{{ ar.assignee.fullName }}</td>
+                    <td class="col-pos">{{ ar.assignee.position ? (ar.assignee.position | titlecase) : '—' }}</td>
+                    <td class="num" *ngFor="let c of achievementColumns">{{ ar.metrics[c.key] || 0 }}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="single-hint">
+                Showing achievements for <strong>{{ ar.assignee.fullName }}</strong>.
+              </div>
+            </ng-container>
+          </div>
+        </ng-container>
+
+        <!-- ================= Fulfillment Tab ================= -->
+        <ng-container *ngIf="activeTab === 'fulfillment'">
+          <div class="stats stats--ful" *ngIf="fulfillmentCards.length">
+            <div class="stat" *ngFor="let c of fulfillmentCards">
+              <div class="label">{{ c.label }}</div>
+              <div class="value">{{ c.value }}</div>
+            </div>
+          </div>
+
+          <!-- All view table -->
+          <div class="table-wrap" *ngIf="isTeamMode() && selected === 'all'">
+            <table class="table" *ngIf="fulfillmentRows.length; else emptyFulTpl">
+              <thead>
+                <tr>
+                  <th>Account Manager</th>
+                  <th>Position</th>
+                  <th class="num">Fulfilled</th>
+                  <th class="num">Company A</th>
+                  <th class="num">Company B</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let r of fulfillmentRows">
+                  <td>{{ r.accountManager?.fullName || 'Unassigned' }}</td>
+                  <td>{{ r.accountManager?.position ? (r.accountManager.position | titlecase) : '—' }}</td>
+                  <td class="num">{{ r.totals.fulfilled || 0 }}</td>
+                  <td class="num">{{ r.totals.companyA || 0 }}</td>
+                  <td class="num">{{ r.totals.companyB || 0 }}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <ng-template #emptyFulTpl>
+              <div class="empty">
+                <h3>No data</h3>
+                <p>Try changing the date range.</p>
+              </div>
+            </ng-template>
+          </div>
+
+          <!-- Single view: weeks + requests -->
+          <div class="fulfillment-single" *ngIf="selected !== 'all' && selectedFulfillmentRow as fr">
+            <div class="ful-toolbar">
+              <div class="left">
+                <div class="title">
+                  {{ fr.accountManager?.fullName || 'Unassigned' }}
+                </div>
+                <div class="muted">
+                  Weeks breakdown inside selected range.
+                </div>
+              </div>
+
+              <div class="right">
+                <label class="inline">
+                  <input type="checkbox" [(ngModel)]="fulfillmentIncludeDetails" />
+                  Include details
+                </label>
+
+                <div class="limit">
+                  <label>Limit</label>
+                  <input
+                    type="number"
+                    min="10"
+                    max="1000"
+                    [ngModel]="fulfillmentDetailsLimit"
+                    (ngModelChange)="onFulfillmentDetailsLimitChange($event)"
+                  />
+                </div>
+
+                <button type="button" class="btn btn--secondary" (click)="reloadFulfillmentDetails()"
+                        [disabled]="fulfillmentDetailsLoading || !fulfillmentIncludeDetails">
+                  Reload Details
+                </button>
+              </div>
+            </div>
+
+            <div class="banner banner-error" *ngIf="fulfillmentDetailsError">
+              {{ fulfillmentDetailsError }}
+            </div>
+
+            <div class="loading" *ngIf="fulfillmentDetailsLoading">Loading details...</div>
+
+            <div class="weeks">
+              <div class="week" *ngFor="let w of fr.weeks">
+                <button type="button" class="week-head" (click)="toggleWeek(w.weekStart)">
+                  <div class="week-title">
+                    Week: {{ w.weekStart }} → {{ w.weekEnd }}
+                  </div>
+                  <div class="week-totals">
+                    <span>Total: <strong>{{ w.totals.fulfilled || 0 }}</strong></span>
+                    <span>A: <strong>{{ w.totals.companyA || 0 }}</strong></span>
+                    <span>B: <strong>{{ w.totals.companyB || 0 }}</strong></span>
+                  </div>
+                  <div class="chev" [class.open]="openWeekStart === w.weekStart">▾</div>
+                </button>
+
+                <div class="week-body" *ngIf="openWeekStart === w.weekStart">
+                  <div class="table-wrap table-wrap--scroll">
+                    <table class="table table--fulfillment">
+                      <thead>
+                        <tr>
+                          <th class="col-client">Client</th>
+                          <th class="col-hub">Hub</th>
+                          <th class="col-zone">Zone</th>
+                          <th class="col-type">Vehicle Type</th>
+                          <th class="num">Remaining</th>
+                          <th class="num">Fulfilled</th>
+                          <th class="num" *ngIf="fulfillmentIncludeDetails">Details</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let rq of w.requests">
+                          <td class="col-client">{{ rq.request?.client?.name || '—' }}</td>
+                          <td class="col-hub">{{ rq.request?.hub?.name || '—' }}</td>
+                          <td class="col-zone">{{ rq.request?.zone?.name || '—' }}</td>
+                          <td class="col-type">{{ rq.item?.vehicleType || '—' }}</td>
+                          <td class="num">{{ rq.item?.remainingVehicleCount ?? '—' }}</td>
+                          <td class="num"><strong>{{ rq.fulfilled || 0 }}</strong></td>
+                          <td class="num" *ngIf="fulfillmentIncludeDetails">
+                            {{ (rq.details?.length || 0) }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div class="week-hint">
+                    Tip: “Include details” بيجيب interviews داخل كل request bucket (حسب limit).
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </ng-container>
+      </main>
+    </div>
+  </div>
+
+  <!-- ===================== Calls Details Modal ===================== -->
+  <div class="modal-backdrop" *ngIf="detailsOpen" (click)="closeDetailsModal()"></div>
+
+  <section class="modal" *ngIf="detailsOpen" role="dialog" aria-modal="true">
+    <header class="modal-head">
+      <div class="modal-title">
+        <h3>Phones Details</h3>
+        <p class="muted" *ngIf="selectedRow as sr">
+          {{ sr.assignee.fullName }} — {{ filterFromDate }} → {{ filterToDate }} (window {{ windowDays }}d)
+        </p>
+      </div>
+
+      <button type="button" class="icon-btn" (click)="closeDetailsModal()" aria-label="Close">✕</button>
+    </header>
+
+    <div class="modal-toolbar">
+      <div class="pill-tabs">
+        <button type="button" class="pill" [class.active]="detailsTab==='completed'" (click)="setDetailsTab('completed')">
+          Completed ({{ detailsCompleted.length }})
+        </button>
+        <button type="button" class="pill" [class.active]="detailsTab==='converted'" (click)="setDetailsTab('converted')">
+          Converted ({{ detailsConverted.length }})
+        </button>
+      </div>
+
+      <div class="toolbar-right">
+        <input class="search" type="text" placeholder="Search name / phone" [(ngModel)]="detailsSearch" />
+
+        <div class="limit">
+          <label>Limit</label>
+          <input type="number" min="10" max="500" [ngModel]="detailsLimit" (ngModelChange)="onDetailsLimitChange($event)" />
+        </div>
+
+        <button type="button" class="btn btn--secondary" (click)="reloadDetails()" [disabled]="detailsLoading">
+          Reload
+        </button>
+      </div>
+    </div>
+
+    <div class="modal-body">
+      <div class="banner banner-error" *ngIf="detailsError">{{ detailsError }}</div>
+      <div class="loading" *ngIf="detailsLoading">Loading details...</div>
+
+      <div class="table-wrap" *ngIf="!detailsLoading">
+        <table class="table" *ngIf="filteredDetailsList.length; else emptyDetailsTpl">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Call date</th>
+              <th>Source</th>
+              <th class="th-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let d of filteredDetailsList">
+              <td>{{ d.name || '—' }}</td>
+              <td class="mono">{{ d.phone }}</td>
+              <td>{{ d.callDate || '—' }}</td>
+              <td>{{ d.source || '—' }}</td>
+              <td class="td-actions">
+                <button type="button" class="btn btn--small" (click)="copyPhone(d.phone)">Copy</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <ng-template #emptyDetailsTpl>
+          <div class="empty">
+            <h3>No details</h3>
+            <p>Try Reload or increase the limit.</p>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+  </section>
+</section>

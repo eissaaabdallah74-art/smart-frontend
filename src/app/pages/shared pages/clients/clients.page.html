@@ -1,0 +1,438 @@
+<!-- clients.page.html -->
+<section class="clients-page">
+  <div class="clients-card">
+    <div class="clients-header">
+      <div class="clients-header-main">
+        <h1 class="clients-title">
+          Clients
+          <span class="clients-count">({{ filtered().length }})</span>
+        </h1>
+        <p class="clients-subtitle">
+          Manage your client list, contacts, and account managers in one place.
+        </p>
+      </div>
+
+      <div class="clients-header-actions">
+        <import-button
+          class="import-btn"
+          (fileSelected)="onClientsImport($event)"
+        ></import-button>
+
+        <export-button
+          class="export-btn"
+          [data]="paginatedClients()"
+          filename="clients_export.xlsx"
+        ></export-button>
+
+        <button
+          *ngIf="isAdmin"
+          type="button"
+          class="btn btn--primary"
+          (click)="openAddModal()"
+        >
+          <i class="ri-user-add-line" aria-hidden="true"></i>
+          <span>Add Client</span>
+        </button>
+      </div>
+    </div>
+
+    <app-status-msg
+      *ngIf="status"
+      [type]="status.type"
+      [message]="status.message"
+      (close)="clearStatus()"
+    ></app-status-msg>
+
+    <!-- Advanced Filters -->
+    <div class="filters-section">
+      <div class="filters-header">
+        <h3 class="filters-title">
+          <i class="ri-filter-line" aria-hidden="true"></i>
+          Filters
+        </h3>
+        <button
+          type="button"
+          class="btn btn--secondary btn--sm"
+          (click)="clearFilters()"
+          *ngIf="hasActiveFilters()"
+        >
+          <i class="ri-close-line" aria-hidden="true"></i>
+          Clear Filters
+        </button>
+      </div>
+
+      <div class="filters-grid">
+        <!-- Quick Search -->
+        <div class="filter-group">
+          <label class="filter-label" for="quickSearch">Quick Search</label>
+          <input
+            id="quickSearch"
+            type="text"
+            class="filter-input"
+            placeholder="Search by name, contact, type..."
+            [ngModel]="search()"
+            (ngModelChange)="search.set($event)"
+          />
+        </div>
+
+        <!-- Status Filter -->
+        <div class="filter-group">
+          <label class="filter-label" for="statusFilter">Status</label>
+          <select
+            id="statusFilter"
+            class="filter-input"
+            [ngModel]="statusFilter()"
+            (ngModelChange)="statusFilter.set($event)"
+          >
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+
+        <!-- Company Filter -->
+        <div class="filter-group">
+          <label class="filter-label" for="companyFilter">Company</label>
+          <select
+            id="companyFilter"
+            class="filter-input"
+            [ngModel]="companyFilter()"
+            (ngModelChange)="companyFilter.set($event)"
+          >
+            <option value="">All Companies</option>
+            <option value="1">Company 1</option>
+            <option value="2">Company 2</option>
+          </select>
+        </div>
+
+        <!-- CRM Filter -->
+        <div class="filter-group">
+          <label class="filter-label" for="crmFilter">CRM</label>
+          <select
+            id="crmFilter"
+            class="filter-input"
+            [ngModel]="crmFilter()"
+            (ngModelChange)="crmFilter.set($event)"
+          >
+            <option value="">All CRM</option>
+            <option *ngFor="let crm of crmNames()" [value]="crm">
+              {{ crm }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Active Filters Badges -->
+      <div class="active-filters" *ngIf="hasActiveFilters()">
+        <div class="active-filters-list">
+          <span class="active-filter" *ngIf="statusFilter()">
+            Status: {{ statusFilter() }}
+            <button (click)="statusFilter.set('')" class="filter-remove">
+              <i class="ri-close-line"></i>
+            </button>
+          </span>
+          <span class="active-filter" *ngIf="companyFilter()">
+            Company: {{ companyFilter() === '1' ? 'Company 1' : 'Company 2' }}
+            <button (click)="companyFilter.set('')" class="filter-remove">
+              <i class="ri-close-line"></i>
+            </button>
+          </span>
+          <span class="active-filter" *ngIf="crmFilter()">
+            CRM: {{ crmFilter() }}
+            <button (click)="crmFilter.set('')" class="filter-remove">
+              <i class="ri-close-line"></i>
+            </button>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table Section -->
+    <div class="table-section">
+      <div class="table-header">
+        <div class="table-info">
+          Showing {{ startIndex() + 1 }}-{{ endIndex() }} of
+          {{ filtered().length }} clients
+        </div>
+        <div class="table-actions">
+          <!-- Items Per Page -->
+          <div class="page-size-selector">
+            <label for="pageSize" class="page-size-label">Show:</label>
+            <select
+              id="pageSize"
+              class="page-size-select"
+              [ngModel]="pageSize()"
+              (ngModelChange)="onPageSizeChange($event)"
+            >
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="clients-table">
+          <thead>
+            <tr>
+              <th (click)="sortBy('name')" class="sortable">
+                Client Name
+                <i
+                  class="ri-arrow-up-down-line"
+                  *ngIf="sortField() !== 'name'"
+                ></i>
+                <i
+                  class="ri-arrow-up-line"
+                  *ngIf="sortField() === 'name' && sortDirection() === 'asc'"
+                ></i>
+                <i
+                  class="ri-arrow-down-line"
+                  *ngIf="sortField() === 'name' && sortDirection() === 'desc'"
+                ></i>
+              </th>
+              <th (click)="sortBy('isActive')" class="sortable">
+                Status
+                <i
+                  class="ri-arrow-up-down-line"
+                  *ngIf="sortField() !== 'isActive'"
+                ></i>
+                <i
+                  class="ri-arrow-up-line"
+                  *ngIf="
+                    sortField() === 'isActive' && sortDirection() === 'asc'
+                  "
+                ></i>
+                <i
+                  class="ri-arrow-down-line"
+                  *ngIf="
+                    sortField() === 'isActive' && sortDirection() === 'desc'
+                  "
+                ></i>
+              </th>
+              <th (click)="sortBy('contractDate')" class="sortable">
+                Contract Date
+                <i
+                  class="ri-arrow-up-down-line"
+                  *ngIf="sortField() !== 'contractDate'"
+                ></i>
+                <i
+                  class="ri-arrow-up-line"
+                  *ngIf="
+                    sortField() === 'contractDate' && sortDirection() === 'asc'
+                  "
+                ></i>
+                <i
+                  class="ri-arrow-down-line"
+                  *ngIf="
+                    sortField() === 'contractDate' &&
+                    sortDirection() === 'desc'
+                  "
+                ></i>
+              </th>
+              <th *ngIf="hasInactiveClients()">Termination Date</th>
+              <th>CRM</th>
+              <th>Account Manager</th>
+              <th class="th-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let client of paginatedClients(); trackBy: trackById"
+              class="row"
+              [class.row-inactive]="!client.isActive"
+            >
+              <td class="cell-primary" data-label="Client Name">
+                <a
+                  [routerLink]="['/clients', client.id]"
+                  class="client-link"
+                >
+                  {{ client.name }}
+                </a>
+              </td>
+
+              <td data-label="Status">
+                <span
+                  class="status-badge"
+                  [class.status-active]="client.isActive"
+                  [class.status-inactive]="!client.isActive"
+                >
+                  {{ client.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+
+              <td data-label="Contract Date">
+                <span class="date-cell">
+                  {{ formatDate(client.contractDate) }}
+                </span>
+              </td>
+
+              <td *ngIf="hasInactiveClients()" data-label="Termination Date">
+                <span
+                  class="date-cell"
+                  *ngIf="!client.isActive; else dashCell"
+                >
+                  {{ formatDate(client.contractTerminationDate) }}
+                </span>
+                <ng-template #dashCell>
+                  <span class="date-cell">-</span>
+                </ng-template>
+              </td>
+
+              <td data-label="CRM">
+                {{ client.crm || '-' }}
+              </td>
+
+              <td data-label="Account Manager">
+                {{ client.accountManager || '-' }}
+              </td>
+
+              <td class="cell-actions" data-label="Actions">
+                <!-- Eye Icon for View Details -->
+                <button
+                  type="button"
+                  class="icon-action icon-action--view"
+                  (click)="openViewModal(client)"
+                  title="View client details"
+                >
+                  <i class="ri-eye-line" aria-hidden="true"></i>
+                  <span class="sr-only">View client details</span>
+                </button>
+
+                <!-- Edit and Delete for Admins only -->
+                <ng-container *ngIf="isAdmin">
+                  <button
+                    type="button"
+                    class="icon-action icon-action--edit"
+                    (click)="openEditModal(client)"
+                    title="Edit client"
+                  >
+                    <i class="ri-edit-line" aria-hidden="true"></i>
+                    <span class="sr-only">Edit client</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-action icon-action--delete"
+                    (click)="deleteClient(client.id)"
+                    title="Delete client"
+                  >
+                    <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
+                    <span class="sr-only">Delete client</span>
+                  </button>
+                </ng-container>
+              </td>
+            </tr>
+
+            <tr *ngIf="filtered().length === 0">
+              <td class="empty-cell" [attr.colspan]="getColspan()">
+                <div class="empty-state">
+                  <i class="ri-search-line empty-icon"></i>
+                  <p>No clients match your search criteria.</p>
+                  <button
+                    *ngIf="hasActiveFilters()"
+                    type="button"
+                    class="btn btn--secondary btn--sm"
+                    (click)="clearFilters()"
+                  >
+                    <i class="ri-close-line" aria-hidden="true"></i>
+                    <span>Clear Filters</span>
+                  </button>
+                  <button
+                    *ngIf="isAdmin && !hasActiveFilters()"
+                    type="button"
+                    class="btn btn--primary btn--sm"
+                    (click)="openAddModal()"
+                  >
+                    <i class="ri-user-add-line" aria-hidden="true"></i>
+                    <span>Add Your First Client</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" *ngIf="totalPages() > 1">
+        <div class="pagination-info">
+          Page {{ currentPage() }} of {{ totalPages() }}
+        </div>
+
+        <div class="pagination-controls">
+          <button
+            class="pagination-btn"
+            [disabled]="currentPage() === 1"
+            (click)="goToPage(1)"
+          >
+            <i class="ri-skip-left-line"></i>
+          </button>
+
+          <button
+            class="pagination-btn"
+            [disabled]="currentPage() === 1"
+            (click)="previousPage()"
+          >
+            <i class="ri-arrow-left-line"></i>
+          </button>
+
+          <div class="pagination-pages">
+            <button
+              *ngFor="let page of visiblePages()"
+              class="pagination-page"
+              [class.active]="page === currentPage()"
+              (click)="goToPage(page)"
+            >
+              {{ page }}
+            </button>
+          </div>
+
+          <button
+            class="pagination-btn"
+            [disabled]="currentPage() === totalPages()"
+            (click)="nextPage()"
+          >
+            <i class="ri-arrow-right-line"></i>
+          </button>
+
+          <button
+            class="pagination-btn"
+            [disabled]="currentPage() === totalPages()"
+            (click)="goToPage(totalPages())"
+          >
+            <i class="ri-skip-right-line"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Client Form Modal -->
+  <client-form-modal
+    *ngIf="isModalOpen()"
+    [clientToEdit]="clientToEdit()"
+    [accountManagerNames]="accountManagerNames()"
+    [crmNames]="crmNames()"
+    (close)="closeModal()"
+    (submit)="submitForm($event)"
+  ></client-form-modal>
+
+  <!-- Client Details Modal -->
+  <div
+    *ngIf="isViewModalOpen()"
+    class="modal-backdrop"
+    (click)="closeViewModal()"
+  ></div>
+
+  <div
+    *ngIf="isViewModalOpen()"
+    class="modal view-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Client details"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- View Modal Content (تأكد إنك شايل منه أي سطر بيعرض clientType أو company لو موجود) -->
+  </div>
+</section>

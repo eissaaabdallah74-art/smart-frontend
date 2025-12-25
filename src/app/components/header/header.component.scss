@@ -1,0 +1,327 @@
+/* src/app/components/header/header.component.scss */
+
+:host {
+  /* Tokens */
+  --brand: #ef7f1a;     /* Gold */
+  --ink: #112535;       /* Dark navy */
+  --muted: #6b7280;     /* Gray */
+  --border: #e5e7eb;    /* Border gray */
+  --shadow: 0 10px 30px rgba(2, 6, 23, 0.10);
+}
+
+.app-header {
+  height: 72px;
+  padding: 0 16px;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow);
+  position: relative;
+  z-index: 20;
+}
+
+/* اليسار: برجر + براند */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ====== البراند ====== */
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(224, 179, 79, 0.10); /* brand 10% */
+  color: var(--brand);
+  font-weight: 700;
+  font-size: 14px;
+  user-select: none;
+}
+
+.brand-text {
+  line-height: 1.1;
+}
+
+.brand-title {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.brand-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ====== أزرار عامة ====== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    filter .15s ease,
+    transform .02s ease,
+    box-shadow .15s ease,
+    background-color .15s ease;
+}
+
+.btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(224, 179, 79, 0.28);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn--primary {
+  color: #fff;
+  background: var(--brand);
+}
+
+.btn--primary:hover {
+  filter: brightness(0.98);
+}
+
+/* ====== أزرار الـ Logout – أحمر ====== */
+.header-logout,
+.mobile-logout {
+  background: #dc2626; /* Red */
+  color: #fff;
+}
+
+.header-logout:hover,
+.mobile-logout:hover {
+  filter: brightness(0.95);
+}
+
+.header-logout:focus,
+.mobile-logout:focus {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.35);
+}
+
+/* ====== زر البرجر ====== */
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  padding: 0;
+  font-size: 18px;
+  transition:
+    background-color .15s ease,
+    box-shadow .15s ease,
+    transform .02s ease;
+}
+
+.icon-btn:hover {
+  background: #f9fafb;
+}
+
+.icon-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(224, 179, 79, 0.28);
+}
+
+/* افتراضيًا: البرجر مخفي (يظهر بس على الموبايل) */
+.header-burger {
+  display: none;
+}
+
+/* ====== الناف الأفقية (مش محتاجينها الآن) ====== */
+.main-nav {
+  display: none;
+}
+
+/* ====== ستايل اللينكات (مستخدم في الموبايل) ====== */
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: #374151; /* gray-700 */
+  text-decoration: none;
+  font-size: 13px;
+  border: 1px solid transparent;
+  background: transparent;
+  width: 100%;
+  cursor: pointer;
+  transition:
+    background-color .15s ease,
+    color .15s ease,
+    border-color .15s ease,
+    box-shadow .15s ease;
+}
+
+.nav-icon {
+  font-size: 16px;
+}
+
+.nav-link:hover {
+  background: #f5f5f5;
+}
+
+.nav-link.is-active {
+  background: #fff7e6;
+  border-color: #f1e3bf;
+  color: #111827; /* gray-900 */
+}
+
+/* ====== مجموعة Drivers في الموبايل ====== */
+
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.nav-link--parent {
+  justify-content: flex-start;
+  position: relative;
+}
+
+.caret {
+  margin-left: auto;
+  font-size: 18px;
+  transition: transform .15s ease;
+}
+
+.nav-link--parent.is-open .caret {
+  transform: rotate(180deg);
+}
+
+.sub-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+  padding-left: 8px;
+}
+
+.nav-sublink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px 8px 24px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #4b5563; /* gray-600 */
+  text-decoration: none;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color .15s ease,
+    color .15s ease,
+    border-color .15s ease;
+}
+
+.nav-sublink .nav-icon {
+  font-size: 16px;
+}
+
+.nav-sublink:hover {
+  background: #f9fafb;
+}
+
+.nav-sublink.is-active {
+  background: #fff7e6;
+  border-color: #f1e3bf;
+  color: #111827;
+}
+
+/* منيو الموبايل – هتظهر بس على الموبايل */
+.mobile-nav {
+  display: none;
+}
+
+/* ====== موبايل ====== */
+
+@media (max-width: 768px) {
+  .app-header {
+    height: 56px;
+    padding: 0 12px;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  /* إظهار البرجر على الموبايل */
+  .header-burger {
+    display: inline-flex;
+  }
+
+  /* إخفاء زر اللوج آوت من الهيدر في الموبايل */
+  .header-logout {
+    display: none;
+  }
+
+  /* إخفاء Welcome على الموبايل لتقليل العرض */
+  .brand-sub {
+    display: none;
+  }
+
+  .avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+  }
+
+  .brand-title {
+    font-size: 14px;
+  }
+
+  /* منيو الموبايل تحت الهيدر */
+  .mobile-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 8px 12px 12px;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+  }
+
+  .mobile-nav .nav-link {
+    border-radius: 10px;
+    justify-content: flex-start;
+  }
+
+  .mobile-logout {
+    margin-top: 4px;
+    align-self: flex-start;
+  }
+}

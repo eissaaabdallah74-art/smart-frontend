@@ -1,0 +1,77 @@
+<div class="client-detail-container">
+  <div class="client-detail-header">
+    <h1>{{ clientName }}</h1>
+    <a routerLink="/clients" class="back-link">
+      &larr; Back to Clients List
+    </a>
+  </div>
+
+  <nav class="tabs-nav">
+    <button
+      type="button"
+      class="tab-link"
+      [class.is-active]="activeTab === 'Master'"
+      (click)="setTab('Master')"
+    >
+      Master
+    </button>
+    <button
+      type="button"
+      class="tab-link"
+      [class.is-active]="activeTab === 'Loans'"
+      (click)="setTab('Loans')"
+    >
+      Loans
+    </button>
+    <button
+      type="button"
+      class="tab-link"
+      [class.is-active]="activeTab === 'Breakdown'"
+      (click)="setTab('Breakdown')"
+    >
+      Breakdown
+    </button>
+
+    <button
+      type="button"
+      class="tab-link"
+      [class.is-active]="activeTab === 'HubsAndZones'"
+      (click)="setTab('HubsAndZones')"
+    >
+      Hubs & Zones
+    </button>
+  </nav>
+
+  <div class="tabs-content">
+<div *ngIf="activeTab === 'Master'" class="tab-panel">
+  <app-master
+    [clientId]="clientNumericId"
+    [clientName]="clientName"
+  ></app-master>
+</div>
+
+
+    <div *ngIf="activeTab === 'Loans'" class="tab-panel">
+      <h3>Loans Details</h3>
+      <p>Content for loans for client {{ clientNumericId }}...</p>
+    </div>
+
+    <div *ngIf="activeTab === 'Breakdown'" class="tab-panel">
+      <h3>Breakdown Details</h3>
+      <p>Content for breakdown for client {{ clientNumericId }}...</p>
+    </div>
+
+    <div *ngIf="activeTab === 'HubsAndZones'" class="tab-panel">
+      <h3>Hubs & Zones</h3>
+
+      <app-hubs-and-zones
+        *ngIf="clientNumericId !== null"
+        [clientId]="clientNumericId">
+      </app-hubs-and-zones>
+
+      <p *ngIf="clientNumericId === null">
+        Invalid client id in URL.
+      </p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,155 @@
+<section class="drivers-page">
+  <div class="drivers-card">
+    <!-- Header -->
+    <div class="drivers-header">
+      <div class="drivers-header-main">
+        <h1 class="drivers-title">
+          Drivers
+          <span class="drivers-count">({{ filtered().length }})</span>
+        </h1>
+        <p class="drivers-subtitle">
+          Track your drivers, their assignments, and hiring status.
+        </p>
+      </div>
+
+      <div class="drivers-header-actions">
+        <!-- 🔹 Import drivers -->
+        <import-button
+          class="import-btn"
+          (fileSelected)="onDriversImport($event)"
+        ></import-button>
+
+        <!-- Export -->
+        <export-button
+          class="export-btn"
+          [data]="filtered()"
+          filename="drivers_export.xlsx"
+        ></export-button>
+
+        <!-- Add Driver -->
+        <button
+          *ngIf="isAdmin"
+          type="button"
+          class="btn btn--primary"
+          (click)="openAddModal()"
+        >
+          <i class="ri-steering-2-line" aria-hidden="true"></i>
+          <span>Add Driver</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="drivers-search">
+      <label for="driverSearch" class="field-label">Search Drivers</label>
+      <input
+        id="driverSearch"
+        type="text"
+        class="field-input"
+        placeholder="Search by name, phone, client..."
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+      />
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper">
+      <table class="drivers-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Client</th>
+            <th>Area</th>
+            <th>Hiring Status</th>
+            <th>Contract Status</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr
+            *ngFor="let d of filtered(); trackBy: trackById"
+            class="row"
+          >
+            <td class="cell-primary">{{ d.name }}</td>
+            <td>{{ d.courierPhone }}</td>
+            <td>{{ d.clientName }}</td>
+            <td>{{ d.area }}</td>
+
+            <!-- Hiring Status badge -->
+            <td>
+              <span
+                class="badge"
+                [ngClass]="getBadgeClass(d.hiringStatus)"
+              >
+                {{ d.hiringStatus || 'N/A' }}
+              </span>
+            </td>
+
+            <!-- Contract Status badge -->
+            <td>
+              <span
+                class="badge"
+                [ngClass]="getBadgeClass(d.contractStatus)"
+              >
+                {{ d.contractStatus || 'N/A' }}
+              </span>
+            </td>
+
+            <td class="cell-actions">
+              <button
+                type="button"
+                class="icon-action icon-action--view"
+                (click)="viewDetails(d)"
+                title="View driver"
+              >
+                <i class="ri-eye-line" aria-hidden="true"></i>
+                <span class="sr-only">View driver</span>
+              </button>
+
+              <button
+                *ngIf="isAdmin"
+                type="button"
+                class="icon-action icon-action--edit"
+                (click)="openEditModal(d)"
+                title="Edit driver"
+              >
+                <i class="ri-edit-line" aria-hidden="true"></i>
+                <span class="sr-only">Edit driver</span>
+              </button>
+
+              <button
+                *ngIf="isAdmin"
+                type="button"
+                class="icon-action icon-action--delete"
+                (click)="deleteDriver(d.id)"
+                title="Delete driver"
+              >
+                <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
+                <span class="sr-only">Delete driver</span>
+              </button>
+            </td>
+          </tr>
+
+          <tr *ngIf="filtered().length === 0">
+            <td class="empty-cell" colspan="7">
+              No drivers match your search.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal Add/Edit -->
+  <app-drivers-form-modal
+    *ngIf="isModalOpen()"
+    [driverToEdit]="driverToEdit()"
+    [clientNames]="clientNames()"
+    [operationNames]="operationNames()"
+    [hrNames]="hrNames()"
+    (close)="closeModal()"
+    (submit)="submitForm($event)"
+  ></app-drivers-form-modal>
+</section>

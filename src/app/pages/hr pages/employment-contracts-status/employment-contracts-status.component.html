@@ -1,0 +1,248 @@
+<section class="contracts-page">
+  <div class="contracts-card">
+    <div class="contracts-header">
+      <div class="contracts-header-main">
+        <h1 class="contracts-title">
+          Employment Contracts Status
+          <span class="contracts-count"> ({{ filteredRows().length }}) </span>
+        </h1>
+        <p class="contracts-subtitle">
+          Track HR feedback and manage courier details.
+        </p>
+      </div>
+    </div>
+
+    <div class="contracts-toolbar">
+      <div class="toolbar-search">
+        <label for="contractsSearch" class="field-label">Search</label>
+        <input
+          id="contractsSearch"
+          type="text"
+          class="field-input"
+          placeholder="Search by name, ID, phone..."
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event); onFilterChange()"
+        />
+      </div>
+
+      <div class="toolbar-filter">
+        <label for="statusFilter" class="field-label">Filter by Decision</label>
+        <select
+          id="statusFilter"
+          class="field-input"
+          [ngModel]="statusFilter()"
+          (ngModelChange)="statusFilter.set($event); onFilterChange()"
+        >
+          <option value="All">All Statuses</option>
+          <option *ngFor="let s of statusOptions" [value]="s">{{ s }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="contracts-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Courier</th>
+            <th>National ID</th>
+            <th>Phone</th>
+            <th>Residence</th>
+            <th>Vehicle</th>
+            <th>Hub</th>
+            <th>Area</th>
+            <th>Company</th>
+            <th>HR feedback</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr
+            *ngFor="let row of paginatedRows(); trackBy: trackById"
+            class="row"
+          >
+            <td>{{ row.date || '—' }}</td>
+            <td class="cell-primary">{{ row.courierName || '—' }}</td>
+            <td>{{ row.nationalId || '—' }}</td>
+            <td>{{ row.phoneNumber || '—' }}</td>
+            <td>{{ row.residence || '—' }}</td>
+            <td>{{ row.vehicleType || '—' }}</td>
+            <td>{{ row.hub || '—' }}</td>
+            <td>{{ row.area || '—' }}</td>
+            <td>{{ row.account || '—' }}</td>
+
+            <td>
+              <span class="status-pill" [ngClass]="statusPillClass(row.status)">
+                {{ row.status || '—' }}
+              </span>
+            </td>
+
+
+            <td class="cell-actions">
+              <button
+                type="button"
+                class="icon-action icon-action--edit"
+                title="Edit Details"
+                (click)="openEditModal(row)"
+              >
+                <i class="ri-edit-line" aria-hidden="true"></i>
+              </button>
+            </td>
+          </tr>
+
+          <tr *ngIf="filteredRows().length === 0">
+            <td class="empty-cell" colspan="12">
+              No records match your search.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-footer" *ngIf="filteredRows().length > 0">
+      <div class="pagination-info">
+        Showing {{ (currentPage() - 1) * pageSize() + 1 }} to
+        {{
+          (currentPage() * pageSize() > filteredRows().length)
+            ? filteredRows().length
+            : currentPage() * pageSize()
+        }}
+        of {{ filteredRows().length }} entries
+      </div>
+      <div class="pagination-controls">
+        <button
+          class="pagination-btn"
+          [disabled]="currentPage() === 1"
+          (click)="prevPage()"
+        >
+          Previous
+        </button>
+        <span class="pagination-page">Page {{ currentPage() }}</span>
+        <button
+          class="pagination-btn"
+          [disabled]="currentPage() >= totalPages()"
+          (click)="nextPage()"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="modal-backdrop"
+    *ngIf="isModalOpen && editingRow"
+    (click)="closeModal()"
+  >
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Update Interview Details</h2>
+          <p class="modal-subtitle">
+            Update personal info and HR decision for this courier.
+          </p>
+        </div>
+
+        <button type="button" class="modal-close" (click)="closeModal()">
+          <i class="ri-close-line" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <form #f="ngForm" class="modal-body" (ngSubmit)="onSave(f)" novalidate>
+        
+        <h3 class="section-label">HR Decision</h3>
+        <div class="modal-grid modal-grid--single">
+            <div class="field">
+                <label class="field-label" for="statusField">HR Feedback</label>
+                <select
+                  id="statusField"
+                  class="field-input"
+                  name="status"
+                  [(ngModel)]="editingRow.status"
+                  required
+                >
+                  <option value="" disabled hidden>Select HR feedback</option>
+                  <option *ngFor="let s of statusOptions" [ngValue]="s">
+                    {{ s }}
+                  </option>
+                </select>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <h3 class="section-label">Courier Details</h3>
+        <div class="modal-grid modal-grid--double">
+          <div class="field">
+            <label class="field-label">Courier Name</label>
+            <input type="text" class="field-input" name="courierName" [(ngModel)]="editingRow.courierName" required>
+          </div>
+          <div class="field">
+            <label class="field-label">National ID</label>
+            <input type="text" class="field-input" name="nationalId" [(ngModel)]="editingRow.nationalId" required>
+          </div>
+          <div class="field">
+            <label class="field-label">Phone Number</label>
+            <input type="text" class="field-input" name="phoneNumber" [(ngModel)]="editingRow.phoneNumber" required>
+          </div>
+          <div class="field">
+            <label class="field-label">Residence</label>
+            <input type="text" class="field-input" name="residence" [(ngModel)]="editingRow.residence">
+          </div>
+          <div class="field">
+            <label class="field-label">Vehicle Type</label>
+            <input type="text" class="field-input" name="vehicleType" [(ngModel)]="editingRow.vehicleType">
+          </div>
+          <div class="field">
+             <label class="field-label">Hub</label>
+            <input type="text" class="field-input" name="hub" [(ngModel)]="editingRow.hub">
+          </div>
+           <div class="field">
+            <label class="field-label">Area</label>
+            <input type="text" class="field-input" name="area" [(ngModel)]="editingRow.area">
+          </div>
+           <div class="field">
+            <label class="field-label">Account (Company)</label>
+            <input type="text" class="field-input" name="account" [(ngModel)]="editingRow.account">
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <h3 class="section-label">Notes</h3>
+        <div class="modal-grid modal-grid--single">
+          <div class="field">
+            <label class="field-label" for="notesField">Additional Notes</label>
+            <textarea
+              id="notesField"
+              class="field-input field-textarea"
+              name="notes"
+              [(ngModel)]="editingRow.notes"
+              rows="3"
+            ></textarea>
+          </div>
+        </div>
+
+        <p class="error-text" *ngIf="errorMessage">
+          {{ errorMessage }}
+        </p>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn--ghost"
+            (click)="closeModal()"
+            [disabled]="saving"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="btn btn--primary" [disabled]="saving">
+            <span *ngIf="!saving">Save All Changes</span>
+            <span *ngIf="saving">Saving...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>

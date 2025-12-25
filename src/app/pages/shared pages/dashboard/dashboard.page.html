@@ -1,0 +1,350 @@
+<section class="dashboard">
+  <div class="page-card">
+    <!-- Header -->
+    <header class="dashboard-header">
+      <div class="header-content">
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">
+          Live overview of drivers, clients & document expiries.
+        </p>
+
+        <div class="header-meta" *ngIf="lastUpdated()">
+          <span class="status-dot"></span>
+          <span class="header-meta-text">
+            Last updated
+            <time [attr.datetime]="lastUpdated()!.toISOString()">
+              {{ lastUpdated() | date: 'short' }}
+            </time>
+          </span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+
+        <button
+          class="btn btn--secondary"
+          (click)="refreshData()"
+          [disabled]="loading()"
+        >
+          <i class="icon-refresh" [class.spinning]="loading()"></i>
+          Refresh
+        </button>
+      </div>
+    </header>
+
+    <!-- Loading / error states -->
+    <div class="state-row" *ngIf="loading() || error()">
+      <div class="state-card state-card--loading" *ngIf="loading()">
+        <i class="icon-loading spinning"></i>
+        Loading dashboard data…
+      </div>
+      <div class="state-card state-card--error" *ngIf="!loading() && error()">
+        <i class="icon-error"></i>
+        {{ error() }}
+        <button class="btn-retry" (click)="loadAll()">Retry</button>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="dashboard-grid" *ngIf="!loading() && !error()">
+      <!-- KPI cards row (full width) -->
+      <section class="kpi-row">
+        <article
+          class="kpi-card kpi-card--drivers"
+          (click)="navigateToDrivers()"
+        >
+          <div class="kpi-content">
+            <div class="kpi-label">TOTAL DRIVERS</div>
+            <div class="kpi-value">{{ totalDrivers() | number }}</div>
+            <div class="kpi-meta">
+              <span class="meta-item">
+                <i class="icon-tracked"></i>
+                {{ trackedDriversCount() }} tracked
+              </span>
+              <span class="meta-item" *ngIf="driversWithoutTracking() > 0">
+                <i class="icon-untracked"></i>
+                {{ driversWithoutTracking() }} without tracking
+              </span>
+            </div>
+          </div>
+          <div class="kpi-icon"></div>
+          <i class="kpi-arrow icon-arrow-right"></i>
+        </article>
+
+        <article
+          class="kpi-card kpi-card--clients"
+          (click)="navigateToClients()"
+        >
+          <div class="kpi-content">
+            <div class="kpi-label">TOTAL CLIENTS</div>
+            <div class="kpi-value">{{ totalClients() | number }}</div>
+            <div class="kpi-meta">
+              <span class="meta-item">
+                <i class="icon-linked"></i>
+                Linked to {{ driversByClient().length }} clients in drivers
+              </span>
+            </div>
+          </div>
+          <div class="kpi-icon"></div>
+          <i class="kpi-arrow icon-arrow-right"></i>
+        </article>
+
+        <article
+          class="kpi-card kpi-card--expiries"
+          (click)="showExpiryModal()"
+        >
+          <div class="kpi-content">
+            <div class="kpi-label">URGENT EXPIRIES</div>
+            <div class="kpi-value">{{ urgentExpiries() | number }}</div>
+            <div class="kpi-meta">
+              <span class="meta-item">
+                <i class="icon-warning"></i>
+                Docs expiring in 30 days or already expired
+              </span>
+            </div>
+          </div>
+          <div class="kpi-icon"></div>
+          <i class="kpi-arrow icon-arrow-right"></i>
+        </article>
+
+        <article
+          class="kpi-card kpi-card--tracking"
+          (click)="navigateToTracking()"
+        >
+          <div class="kpi-content">
+            <div class="kpi-label">TRACKING RECORDS</div>
+            <div class="kpi-value">{{ totalTrackingRows() | number }}</div>
+            <div class="kpi-meta">
+              <span class="meta-item">
+                <i class="icon-drivers"></i>
+                {{ trackedDriversCount() }} drivers with tracking
+              </span>
+            </div>
+          </div>
+          <div class="kpi-icon"></div>
+          <i class="kpi-arrow icon-arrow-right"></i>
+        </article>
+      </section>
+
+      <!-- Right column: main document expiry chart + soonest expiries -->
+      <section class="column column--side">
+        <!-- Document expiry chart -->
+        <article class="card card--chart card--primary-chart">
+          <header class="card-header">
+            <div class="card-title-group">
+              <h2 class="card-title">Document expiry overview</h2>
+              <span class="card-chip">
+                {{ totalTrackingRows() | number }} records
+              </span>
+            </div>
+            <div class="card-actions">
+              <button
+                class="btn-icon"
+                (click)="exportExpiryData()"
+                title="Export data"
+              >
+                <i class="icon-export"></i>
+              </button>
+            </div>
+          </header>
+
+          <div class="chart-container">
+            <canvas #expiryChart></canvas>
+          </div>
+
+          <div class="chart-legend">
+            <div
+              class="legend-item"
+              *ngFor="let item of expiryLegendItems()"
+            >
+              <span
+                class="legend-color"
+                [style.background]="item.color"
+              ></span>
+              <span class="legend-label">{{ item.label }}</span>
+              <span class="legend-value">{{ item.value }}</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- Soonest expiries list -->
+        <article class="card card--list">
+          <header class="card-header">
+            <div class="card-title-group">
+              <h2 class="card-title">Soonest expiries</h2>
+              <span class="card-subtitle">
+                Next {{ expiringSoon().length }} documents to follow up
+              </span>
+            </div>
+            <div class="card-actions">
+              <button class="btn-text" (click)="viewAllExpiries()">
+                View all
+              </button>
+            </div>
+          </header>
+
+          <ul class="list list--expiries">
+            <li
+              *ngFor="let item of expiringSoon()"
+              class="list-item"
+              (click)="viewDriverDetails(item.row.driverId)"
+            >
+              <div class="list-main">
+                <div class="list-primary">
+                  {{
+                    item.row.driver?.name || ('Driver #' + item.row.driverId)
+                  }}
+                </div>
+                <div class="list-secondary">
+                  <i class="icon-client"></i>
+                  {{ item.row.driver?.clientName || 'No client' }}
+                </div>
+              </div>
+
+              <div class="list-meta">
+                <span class="meta-label">{{ item.kindLabel }}</span>
+                <span
+                  class="badge"
+                  [ngClass]="badgeClassForDays(item.date)"
+                >
+                  <i
+                    class="badge-icon"
+                    [ngClass]="badgeIconClassForDays(item.date)"
+                  ></i>
+                  {{ expiryText(item.date) }}
+                </span>
+              </div>
+
+              <i class="list-arrow icon-chevron-right"></i>
+            </li>
+
+            <li *ngIf="expiringSoon().length === 0" class="list-empty">
+              <i class="icon-empty"></i>
+              No upcoming expiries with dates yet.
+            </li>
+          </ul>
+        </article>
+      </section>
+
+      <!-- Left column: clients charts & breakdowns -->
+      <section class="column column--main">
+        <!-- Drivers by client doughnut chart -->
+        <article class="card card--chart card--small">
+          <header class="card-header">
+            <div class="card-title-group">
+              <h2 class="card-title">Drivers by client</h2>
+              <span class="card-subtitle">
+                Top {{ driversByClient().length }} clients
+              </span>
+            </div>
+          </header>
+
+          <div class="chart-container chart-container--small">
+            <canvas #clientsChart></canvas>
+          </div>
+
+          <div class="chart-summary">
+            <div class="summary-item">
+              <span class="summary-label">Total drivers</span>
+              <span class="summary-value">
+                {{ totalDrivers() | number }}
+              </span>
+            </div>
+          </div>
+        </article>
+
+        <!-- Clients by CRM -->
+        <article class="card card--list">
+          <header class="card-header">
+            <div class="card-title-group">
+              <h2 class="card-title">Clients by CRM</h2>
+              <span class="card-subtitle">
+                Top {{ clientsByCrm().length }} CRMs
+              </span>
+            </div>
+          </header>
+
+          <ul class="list">
+            <li
+              *ngFor="let item of clientsByCrm(); let i = index"
+              class="list-item"
+            >
+              <div class="list-rank">{{ i + 1 }}</div>
+              <div class="list-main">
+                <div class="list-primary">{{ item.label }}</div>
+                <div class="list-progress">
+                  <div class="progress-bar">
+                    <div
+                      class="progress-fill"
+                      [style.width.%]="
+                        (item.value / maxCrmValue()) * 100
+                      "
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              <div class="list-meta">
+                <span class="pill">{{ item.value }} clients</span>
+              </div>
+            </li>
+
+            <li *ngIf="clientsByCrm().length === 0" class="list-empty">
+              <i class="icon-empty"></i>
+              No CRM data yet.
+            </li>
+          </ul>
+        </article>
+
+        <!-- Clients by Account Manager -->
+        <article class="card card--list">
+          <header class="card-header">
+            <div class="card-title-group">
+              <h2 class="card-title">Clients by Account Manager</h2>
+              <span class="card-subtitle">
+                Top {{ clientsByAccountManager().length }} managers
+              </span>
+            </div>
+          </header>
+
+          <ul class="list">
+            <li
+              *ngFor="let item of clientsByAccountManager(); let i = index"
+              class="list-item"
+            >
+              <div class="list-avatar">
+                <img
+                  [src]="getManagerAvatar(item.label)"
+                  [alt]="item.label"
+                />
+              </div>
+              <div class="list-main">
+                <div class="list-primary">{{ item.label }}</div>
+                <div class="list-progress">
+                  <div class="progress-bar">
+                    <div
+                      class="progress-fill"
+                      [style.width.%]="
+                        (item.value / maxManagerValue()) * 100
+                      "
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              <div class="list-meta">
+                <span class="pill">{{ item.value }} clients</span>
+              </div>
+            </li>
+
+            <li
+              *ngIf="clientsByAccountManager().length === 0"
+              class="list-empty"
+            >
+              <i class="icon-empty"></i>
+              No account manager data yet.
+            </li>
+          </ul>
+        </article>
+      </section>
+    </div>
+  </div>
+</section>

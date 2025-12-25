@@ -1,0 +1,328 @@
+<section class="users-page">
+  <div class="users-card">
+    <!-- Status Message -->
+    <app-status-msg
+      *ngIf="status"
+      [type]="status.type"
+      [message]="status.message"
+      (close)="clearStatus()"
+    ></app-status-msg>
+
+    <!-- Header -->
+    <div class="users-header">
+      <div class="users-header-main">
+        <h1 class="users-title">
+          Users
+          <span class="users-count">({{ paginationStats().totalUsers }})</span>
+        </h1>
+        <p class="users-subtitle">
+          Manage system users, departments, positions, and activation status in one place.
+        </p>
+      </div>
+
+      <div class="users-header-actions">
+        <export-button
+          class="export-btn"
+          [data]="filtered()"
+          filename="users_export.xlsx"
+        ></export-button>
+
+        <button
+          *ngIf="isAdmin"
+          type="button"
+          class="btn btn--primary"
+          (click)="openAddModal()"
+        >
+          <i class="ri-user-add-line" aria-hidden="true"></i>
+          <span>Add User</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="users-search">
+      <label for="userSearch" class="field-label">Search Users</label>
+      <input
+        id="userSearch"
+        type="text"
+        class="field-input"
+        placeholder="Search by name, email, department, position..."
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+      />
+    </div>
+
+    <!-- Filters -->
+    <div class="users-filters">
+      <div class="filter-group">
+        <label for="departmentFilter" class="field-label">Department</label>
+        <select
+          id="departmentFilter"
+          class="field-input"
+          [(ngModel)]="departmentFilter"
+          (ngModelChange)="applyFilters()"
+        >
+          <option value="">All Departments</option>
+          <option *ngFor="let role of roles" [value]="role">
+            {{ formatRole(role) }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="statusFilter" class="field-label">Status</label>
+        <select
+          id="statusFilter"
+          class="field-input"
+          [(ngModel)]="statusFilter"
+          (ngModelChange)="applyFilters()"
+        >
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="positionFilter" class="field-label">Position</label>
+        <select
+          id="positionFilter"
+          class="field-input"
+          [(ngModel)]="positionFilter"
+          (ngModelChange)="applyFilters()"
+        >
+          <option value="">All Positions</option>
+          <option value="manager">Manager</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="senior">Senior</option>
+          <option value="junior">Junior</option>
+        </select>
+      </div>
+
+      <div class="filter-group clear-filters">
+        <button
+          type="button"
+          class="btn btn--secondary"
+          (click)="clearFilters()"
+        >
+          Clear Filters
+        </button>
+      </div>
+    </div>
+
+    <!-- Table Info & Page Size -->
+    <div class="table-controls">
+      <div class="table-info">
+        Showing {{ paginationStats().startItem }} to {{ paginationStats().endItem }} of {{ paginationStats().totalUsers }} users
+      </div>
+      
+      <div class="page-size-control">
+        <label for="pageSize" class="page-size-label">Show:</label>
+        <select
+          id="pageSize"
+          class="page-size-select"
+          [ngModel]="pageSize()"
+          (ngModelChange)="onPageSizeChange($event)"
+        >
+          <option *ngFor="let size of pageSizes()" [value]="size">
+            {{ size }}
+          </option>
+        </select>
+        <span class="page-size-text">per page</span>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>Full Name</th>
+            <th>Email</th>
+            <th>Department</th>
+            <th>Position</th>
+            <th>Hire Date</th>
+            <th>Status</th>
+            <th *ngIf="isAdmin" class="th-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let user of paginatedUsers(); trackBy: trackById"
+            class="row"
+            [class.row--inactive]="!user.isActive"
+          >
+            <td class="cell-primary" data-label="Full Name">
+              <div class="user-info">
+                <div class="user-name">{{ user.fullName }}</div>
+                <div class="user-email-mobile">{{ user.email }}</div>
+              </div>
+            </td>
+            <td class="cell-email" data-label="Email">
+              {{ user.email }}
+            </td>
+            <td class="cell-role" data-label="Department">
+              <span class="department-badge" [class]="'department-' + user.role">
+                {{ formatRole(user.role) }}
+              </span>
+            </td>
+            <td class="cell-position" data-label="Position">
+              <span class="position-tag" *ngIf="user.position; else noPosition">
+                {{ user.position | titlecase }}
+              </span>
+              <ng-template #noPosition>
+                <span class="no-position">—</span>
+              </ng-template>
+            </td>
+            <td class="cell-date" data-label="Hire Date">
+              <div class="date-info">
+                <div class="date-main">{{ formatDate(user.hireDate) }}</div>
+                <div class="date-duration" *ngIf="user.hireDate">
+                  {{ calculateDuration(user.hireDate) }}
+                </div>
+              </div>
+            </td>
+            <td class="cell-status" data-label="Status">
+              <span
+                class="status-badge"
+                [class.status-badge--active]="user.isActive"
+                [class.status-badge--inactive]="!user.isActive"
+              >
+                <i class="status-icon" [class]="user.isActive ? 'ri-check-line' : 'ri-close-line'"></i>
+                {{ user.isActive ? 'Active' : 'Inactive' }}
+              </span>
+              <div class="termination-date" *ngIf="!user.isActive && user.terminationDate">
+                Since {{ formatDate(user.terminationDate) }}
+              </div>
+            </td>
+            <td *ngIf="isAdmin" class="cell-actions" data-label="Actions">
+              <div class="actions-group">
+                <button
+                  type="button"
+                  class="icon-action icon-action--edit"
+                  (click)="openEditModal(user)"
+                  title="Edit user"
+                >
+                  <i class="ri-edit-line" aria-hidden="true"></i>
+                  <span class="sr-only">Edit user</span>
+                </button>
+                <button
+                  type="button"
+                  class="icon-action icon-action--delete"
+                  (click)="deleteUser(user.id)"
+                  title="Delete user"
+                >
+                  <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
+                  <span class="sr-only">Delete user</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="filtered().length === 0">
+            <td class="empty-cell" [attr.colspan]="isAdmin ? 7 : 6">
+              <div class="empty-state">
+                <i class="ri-user-search-line empty-icon"></i>
+                <h3>No users found</h3>
+                <p>No users match your search criteria. Try adjusting your filters.</p>
+                <button
+                  *ngIf="isAdmin"
+                  class="btn btn--primary"
+                  (click)="openAddModal()"
+                >
+                  <i class="ri-user-add-line"></i>
+                  Add First User
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+<!-- Pagination -->
+<div class="pagination" *ngIf="paginationStats().totalPages > 1">
+  <div class="pagination-info">
+    Page {{ paginationStats().currentPage }} of {{ paginationStats().totalPages }}
+  </div>
+  
+  <div class="pagination-controls">
+    <button
+      class="pagination-btn pagination-btn--prev"
+      [disabled]="!paginationStats().hasPrevious"
+      (click)="previousPage()"
+    >
+      <i class="ri-arrow-left-line"></i>
+      Previous
+    </button>
+
+    <div class="pagination-pages">
+      <!-- الصفحة الأولى -->
+      <button
+        class="pagination-page"
+        [class.pagination-page--active]="1 === paginationStats().currentPage"
+        (click)="goToPage(1)"
+      >
+        1
+      </button>
+
+      <!-- Ellipsis بعد الصفحة الأولى إذا لزم -->
+      <span 
+        class="pagination-ellipsis" 
+        *ngIf="paginationStats().currentPage > 3 && paginationStats().totalPages > 5"
+      >
+        ...
+      </span>
+
+      <!-- الصفحات الوسطى -->
+      <ng-container *ngFor="let page of numberPages()">
+        <button
+          *ngIf="page > 1 && page < paginationStats().totalPages"
+          class="pagination-page"
+          [class.pagination-page--active]="page === paginationStats().currentPage"
+          (click)="goToPage(page)"
+        >
+          {{ page }}
+        </button>
+      </ng-container>
+
+      <!-- Ellipsis قبل الصفحة الأخيرة إذا لزم -->
+      <span 
+        class="pagination-ellipsis" 
+        *ngIf="paginationStats().currentPage < paginationStats().totalPages - 2 && paginationStats().totalPages > 5"
+      >
+        ...
+      </span>
+
+      <!-- الصفحة الأخيرة -->
+      <button
+        *ngIf="paginationStats().totalPages > 1"
+        class="pagination-page"
+        [class.pagination-page--active]="paginationStats().totalPages === paginationStats().currentPage"
+        (click)="goToPage(paginationStats().totalPages)"
+      >
+        {{ paginationStats().totalPages }}
+      </button>
+    </div>
+
+    <button
+      class="pagination-btn pagination-btn--next"
+      [disabled]="!paginationStats().hasNext"
+      (click)="nextPage()"
+    >
+      Next
+      <i class="ri-arrow-right-line"></i>
+    </button>
+  </div>
+</div>
+  </div>
+
+  <!-- Modal -->
+  <app-users-form-modal
+    *ngIf="isModalOpen()"
+    [userToEdit]="userToEdit()"
+    [roles]="roles"
+    (close)="closeModal()"
+    (submit)="submitForm($event)"
+  ></app-users-form-modal>
+</section>

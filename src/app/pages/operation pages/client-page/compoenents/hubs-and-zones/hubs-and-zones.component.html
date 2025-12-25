@@ -1,0 +1,128 @@
+<div class="hz-container">
+  <div class="hz-header">
+    <p>hubs and zones list</p>
+
+    <div class="hz-header-actions">
+        <button type="button" class="btn btn--outline" (click)="downloadTemplate()">
+    <i class="ri-file-download-line" aria-hidden="true"></i>
+    <span>Template</span>
+  </button>
+      <import-button (fileSelected)="onImportFile($event)"></import-button>
+      <export-button [data]="exportRows" [filename]="exportFilename"></export-button>
+    </div>
+  </div>
+
+  <div *ngIf="importing" class="hz-status hz-status--info">
+    Importing...
+  </div>
+
+  <div *ngIf="successMsg" class="hz-status hz-status--success">
+    {{ successMsg }}
+  </div>
+
+  <div *ngIf="errorMsg" class="hz-status hz-status--error">
+    {{ errorMsg }}
+  </div>
+
+  <div *ngIf="importSummary" class="hz-status hz-status--summary">
+    <b>Summary:</b>
+    created hubs: {{ importSummary.createdHubs }},
+    created zones: {{ importSummary.createdZones }},
+    skipped duplicate zones: {{ importSummary.skippedZones }}
+  </div>
+
+  <div class="hz-grid">
+    <!-- Left: Hubs -->
+    <section class="hz-card">
+      <header class="hz-card-head">
+        <h3 class="hz-card-title">Hubs</h3>
+        <span class="hz-count" *ngIf="hubs.length > 0">({{ hubs.length }})</span>
+      </header>
+
+      <div class="hz-form">
+        <label class="hz-label" for="newHub">Add new hub</label>
+        <div class="hz-input-row">
+          <input
+            id="newHub"
+            type="text"
+            class="hz-input"
+            placeholder="e.g. October, Katameya..."
+            [(ngModel)]="newHubName"
+          />
+          <button type="button" class="btn btn--primary" (click)="addHub()" [disabled]="!newHubName.trim()">
+            <i class="ri-add-line" aria-hidden="true"></i>
+            <span>Add Hub</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="hz-list" *ngIf="!loadingHubs; else hubsLoading">
+        <div *ngIf="hubs.length === 0" class="hz-empty">
+          No hubs for this client yet. Add one above.
+        </div>
+
+        <div
+          *ngFor="let hub of hubs"
+          class="hz-hub-row"
+          [class.is-active]="hub.id === selectedHubId"
+          (click)="onHubChange(hub.id.toString())"
+        >
+          <div class="hz-hub-name">{{ hub.name }}</div>
+          <div class="hz-hub-meta">ID: {{ hub.id }}</div>
+        </div>
+      </div>
+
+      <ng-template #hubsLoading>
+        <div class="hz-loading">Loading hubs...</div>
+      </ng-template>
+    </section>
+
+    <!-- Right: Zones -->
+    <section class="hz-card">
+      <header class="hz-card-head">
+        <h3 class="hz-card-title">Zones</h3>
+        <span class="hz-count" *ngIf="zones.length > 0 && selectedHubId">
+          ({{ zones.length }}) for hub #{{ selectedHubId }}
+        </span>
+      </header>
+
+      <div class="hz-form">
+        <label class="hz-label" for="newZone">Add new zone</label>
+        <div class="hz-input-row">
+          <input
+            id="newZone"
+            type="text"
+            class="hz-input"
+            placeholder="e.g. حدائق الأهرام، التجمع..."
+            [(ngModel)]="newZoneName"
+            [disabled]="!selectedHubId"
+          />
+          <button type="button" class="btn btn--primary" (click)="addZone()" [disabled]="!newZoneName.trim() || !selectedHubId">
+            <i class="ri-add-line" aria-hidden="true"></i>
+            <span>Add Zone</span>
+          </button>
+        </div>
+
+        <p class="hz-hint" *ngIf="!selectedHubId">Select a hub from the left first.</p>
+      </div>
+
+      <div class="hz-list" *ngIf="!loadingZones; else zonesLoading">
+        <div *ngIf="zones.length === 0 && selectedHubId" class="hz-empty">
+          No zones for this hub yet. Add one above.
+        </div>
+        <div *ngIf="!selectedHubId" class="hz-empty">
+          No hub selected.
+        </div>
+
+        <div *ngFor="let z of zones" class="hz-zone-row">
+          <div class="hz-zone-name">{{ z.name }}</div>
+          <div class="hz-zone-meta">ID: {{ z.id }}</div>
+        </div>
+      </div>
+
+      <ng-template #zonesLoading>
+        <div class="hz-loading">Loading zones...</div>
+      </ng-template>
+    </section>
+  </div>
+</div>

@@ -1,0 +1,187 @@
+<!-- client-form-modal.html -->
+<div class="modal-backdrop" (click)="close.emit()"></div>
+
+<div
+  class="modal"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Client form"
+  (click)="$event.stopPropagation()"
+>
+  <header class="modal-head">
+    <h3 class="modal-title">
+      <i
+        class="ri-user-add-line modal-title-icon"
+        *ngIf="!clientToEdit"
+        aria-hidden="true"
+      ></i>
+      <i
+        class="ri-edit-line modal-title-icon"
+        *ngIf="clientToEdit"
+        aria-hidden="true"
+      ></i>
+      {{ clientToEdit ? 'Edit Client' : 'Add New Client' }}
+    </h3>
+    <button
+      class="icon-btn"
+      type="button"
+      (click)="close.emit()"
+      aria-label="Close"
+    >
+      <i class="ri-close-line" aria-hidden="true"></i>
+    </button>
+  </header>
+
+  <form #f="ngForm" (ngSubmit)="onSubmit(f)" class="modal-body" novalidate>
+    <div class="form-grid">
+      <!-- Client Name -->
+      <div class="form-group">
+        <label class="form-label" for="name">Client Name</label>
+        <input
+          id="name"
+          name="name"
+          class="form-input"
+          [(ngModel)]="model.name"
+          required
+        />
+      </div>
+
+      <!-- Status -->
+      <div class="form-group">
+        <label class="form-label" for="isActive">Status</label>
+        <select
+          id="isActive"
+          name="isActive"
+          class="form-input"
+          [(ngModel)]="model.isActive"
+          (ngModelChange)="onStatusChange()"
+        >
+          <option [ngValue]="true">Active</option>
+          <option [ngValue]="false">Inactive</option>
+        </select>
+      </div>
+
+      <!-- Contract Date -->
+      <div class="form-group">
+        <label class="form-label" for="contractDate">Contract Date</label>
+        <input
+          id="contractDate"
+          name="contractDate"
+          type="date"
+          class="form-input"
+          [(ngModel)]="model.contractDate"
+        />
+      </div>
+
+      <!-- Contract Termination Date - يظهر فقط للعملاء الـ Inactive -->
+      <div class="form-group" *ngIf="!model.isActive">
+        <label class="form-label" for="contractTerminationDate">
+          Contract Termination Date
+        </label>
+        <input
+          id="contractTerminationDate"
+          name="contractTerminationDate"
+          type="date"
+          class="form-input"
+          [(ngModel)]="model.contractTerminationDate"
+          [required]="!model.isActive"
+        />
+        <small class="help-text" *ngIf="!model.isActive">
+          Required for inactive clients
+        </small>
+      </div>
+
+      <!-- CRM -->
+      <div class="form-group">
+        <label class="form-label" for="crm">CRM</label>
+        <select
+          id="crm"
+          name="crm"
+          class="form-input"
+          [(ngModel)]="model.crm"
+        >
+          <option value="">Select...</option>
+          <option *ngFor="let n of crmNames" [value]="n">
+            {{ n }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Point of Contact -->
+      <div class="form-group">
+        <label class="form-label" for="poc">Point of Contact</label>
+        <input
+          id="poc"
+          name="pointOfContact"
+          class="form-input"
+          [(ngModel)]="model.pointOfContact"
+          required
+        />
+      </div>
+
+      <!-- Phone Number -->
+      <div class="form-group">
+        <label class="form-label" for="phone">Phone Number</label>
+        <input
+          id="phone"
+          name="phoneNumber"
+          class="form-input"
+          [(ngModel)]="model.phoneNumber"
+        />
+      </div>
+
+      <!-- Contact Email -->
+      <div class="form-group">
+        <label class="form-label" for="email">Contact Email</label>
+        <input
+          id="email"
+          name="contactEmail"
+          type="email"
+          class="form-input"
+          [(ngModel)]="model.contactEmail"
+        />
+      </div>
+
+      <!-- Account Manager -->
+      <div class="form-group">
+        <label class="form-label" for="am">Account Manager</label>
+        <select
+          id="am"
+          name="accountManager"
+          class="form-input"
+          [(ngModel)]="model.accountManager"
+          required
+        >
+          <option value="" disabled>Select...</option>
+          <option *ngFor="let n of accountManagerNames" [value]="n">
+            {{ n }}
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <footer class="modal-foot">
+      <button
+        type="button"
+        class="btn btn--secondary"
+        (click)="close.emit()"
+      >
+        <i class="ri-close-circle-line" aria-hidden="true"></i>
+        <span>Cancel</span>
+      </button>
+      <button type="submit" class="btn btn--primary">
+        <i
+          class="ri-save-3-line"
+          *ngIf="clientToEdit"
+          aria-hidden="true"
+        ></i>
+        <i
+          class="ri-user-add-line"
+          *ngIf="!clientToEdit"
+          aria-hidden="true"
+        ></i>
+        <span>{{ clientToEdit ? 'Save Changes' : 'Add Client' }}</span>
+      </button>
+    </footer>
+  </form>
+</div>

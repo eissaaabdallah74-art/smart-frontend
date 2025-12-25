@@ -1,0 +1,316 @@
+<section class="driver-details-page">
+  <!-- Page header -->
+  <header class="page-header">
+    <div class="page-header__inner">
+      <button
+        type="button"
+        class="page-header__back"
+        (click)="goBack()"
+      >
+        <i class="ri-arrow-left-line" aria-hidden="true"></i>
+        <span>Back to drivers</span>
+      </button>
+
+      <div class="page-header__title-block">
+        <h1 class="page-header__title">
+          <i class="ri-steering-2-line" aria-hidden="true"></i>
+          <span>Driver details</span>
+        </h1>
+        <p class="page-header__subtitle">
+          Review full profile, assignment, and compliance for this driver.
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Loading / error states -->
+  <div class="card card--state" *ngIf="loading()">
+    <p>Loading driver details…</p>
+  </div>
+
+  <div class="card card--state card--error" *ngIf="!loading() && error()">
+    <p class="card__error-text">{{ error() }}</p>
+    <button type="button" class="btn btn--secondary" (click)="goBack()">
+      Back to drivers
+    </button>
+  </div>
+
+  <!-- Main card -->
+  <article class="card" *ngIf="!loading() && !error() && driver() as d">
+    <!-- Top strip -->
+    <div class="card__top">
+      <div class="card__identity">
+        <div class="avatar">
+          {{ getInitials(d.name) }}
+        </div>
+
+        <div class="card__identity-text">
+          <div class="card__name-row">
+            <h2 class="card__name">
+              {{ d.name || 'Unnamed driver' }}
+            </h2>
+            <span class="chip chip--primary" *ngIf="d.clientName">
+              <i class="ri-briefcase-4-line" aria-hidden="true"></i>
+              <span>{{ d.clientName }}</span>
+            </span>
+          </div>
+
+          <div class="card__meta">
+            <span *ngIf="d.courierId">
+              <i class="ri-fingerprint-line" aria-hidden="true"></i>
+              ID: {{ d.courierId }}
+            </span>
+            <span *ngIf="d.courierCode">
+              · <i class="ri-hashtag" aria-hidden="true"></i>
+              Code: {{ d.courierCode }}
+            </span>
+            <span *ngIf="d.area">
+              · <i class="ri-map-pin-2-line" aria-hidden="true"></i>
+              {{ d.area }}
+            </span>
+          </div>
+
+          <div class="card__contact">
+            <span *ngIf="d.courierPhone">
+              <i class="ri-phone-line" aria-hidden="true"></i>
+              {{ d.courierPhone }}
+            </span>
+            <span *ngIf="d.email">
+              · <i class="ri-mail-line" aria-hidden="true"></i>
+              {{ d.email }}
+            </span>
+            <span *ngIf="d.residence">
+              · <i class="ri-home-4-line" aria-hidden="true"></i>
+              {{ d.residence }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Body layout -->
+    <div class="card__body">
+      <div class="layout-grid">
+        <!-- Profile -->
+        <section class="section">
+          <h2 class="section__title">
+            <i class="ri-user-3-line" aria-hidden="true"></i>
+            <span>Profile</span>
+          </h2>
+          <dl class="field-grid">
+            <div class="field">
+              <dt class="field__label">Name (EN)</dt>
+              <dd class="field__value">{{ d.name || '—' }}</dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">Name (AR)</dt>
+              <dd class="field__value">{{ d.fullNameArabic || '—' }}</dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">Email</dt>
+              <dd class="field__value">{{ d.email || '—' }}</dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">Phone</dt>
+              <dd class="field__value">{{ d.courierPhone || '—' }}</dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">Residence</dt>
+              <dd class="field__value">{{ d.residence || '—' }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <!-- Assignment -->
+        <section class="section">
+          <h2 class="section__title">
+            <i class="ri-route-line" aria-hidden="true"></i>
+            <span>Assignment</span>
+          </h2>
+          <dl class="field-grid">
+            <div class="field">
+              <dt class="field__label">Client</dt>
+              <dd class="field__value">{{ d.clientName || '—' }}</dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">Hub</dt>
+              <dd class="field__value">{{ d.hub || '—' }}</dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">Area</dt>
+              <dd class="field__value">{{ d.area || '—' }}</dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">Module</dt>
+              <dd class="field__value">{{ d.module || '—' }}</dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">Vehicle type</dt>
+              <dd class="field__value">{{ d.vehicleType || '—' }}</dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">Contractor</dt>
+              <dd class="field__value">{{ d.contractor || '—' }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <!-- Contacts -->
+        <section class="section">
+          <h2 class="section__title">
+            <i class="ri-contacts-book-2-line" aria-hidden="true"></i>
+            <span>Contacts</span>
+          </h2>
+          <dl class="field-grid">
+            <div class="field">
+              <dt class="field__label">Point of contact</dt>
+              <dd class="field__value">{{ d.pointOfContact || '—' }}</dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">Account manager</dt>
+              <dd class="field__value">{{ d.accountManager || '—' }}</dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">Interviewer</dt>
+              <dd class="field__value">{{ d.interviewer || '—' }}</dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">HR representative</dt>
+              <dd class="field__value">{{ d.hrRepresentative || '—' }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <!-- Dates & documents -->
+        <section class="section">
+          <h2 class="section__title">
+            <i class="ri-calendar-event-line" aria-hidden="true"></i>
+            <span>Dates & documents</span>
+          </h2>
+          <dl class="field-grid">
+            <div class="field">
+              <dt class="field__label">Hiring date</dt>
+              <dd class="field__value">{{ d.hiringDate || '—' }}</dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">Day 1 date</dt>
+              <dd class="field__value">{{ d.day1Date || '—' }}</dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">V-license expiry</dt>
+              <dd class="field__value">{{ d.vLicenseExpiryDate || '—' }}</dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">D-license expiry</dt>
+              <dd class="field__value">{{ d.dLicenseExpiryDate || '—' }}</dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">ID expiry</dt>
+              <dd class="field__value">{{ d.idExpiryDate || '—' }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <!-- Status & security -->
+        <section class="section">
+          <h2 class="section__title">
+            <i class="ri-shield-check-line" aria-hidden="true"></i>
+            <span>Status & security</span>
+          </h2>
+          <dl class="field-grid">
+            <div class="field">
+              <dt class="field__label">Liability amount</dt>
+              <dd class="field__value">
+                {{
+                  d.liabilityAmount !== null && d.liabilityAmount !== undefined
+                    ? d.liabilityAmount
+                    : '—'
+                }}
+              </dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">Signed</dt>
+              <dd class="field__value">
+                {{ d.signed ? 'Yes' : 'No' }}
+              </dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">Contract status</dt>
+              <dd class="field__value">
+                <span class="badge" [ngClass]="getBadgeClass(d.contractStatus)">
+                  {{ d.contractStatus || 'N/A' }}
+                </span>
+              </dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">Hiring status</dt>
+              <dd class="field__value">
+                <span class="badge" [ngClass]="getBadgeClass(d.hiringStatus)">
+                  {{ d.hiringStatus || 'N/A' }}
+                </span>
+              </dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">Security status</dt>
+              <dd class="field__value">
+                <span
+                  class="badge"
+                  [ngClass]="getBadgeClass(d.securityQueryStatus)">
+                  {{ d.securityQueryStatus || 'N/A' }}
+                </span>
+              </dd>
+            </div>
+
+            <div class="field">
+              <dt class="field__label">Exception by</dt>
+              <dd class="field__value">{{ d.exceptionBy || '—' }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <!-- Remarks -->
+        <section class="section section--full">
+          <h2 class="section__title">
+            <i class="ri-chat-3-line" aria-hidden="true"></i>
+            <span>Remarks</span>
+          </h2>
+          <div class="remarks">
+            <div class="remarks__block">
+              <div class="field__label">Security comment</div>
+              <div class="remarks__value">
+                {{ d.securityQueryComment || '—' }}
+              </div>
+            </div>
+            <div class="remarks__block">
+              <div class="field__label">Notes</div>
+              <div class="remarks__value">
+                {{ d.notes || '—' }}
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </article>
+</section>

@@ -1,0 +1,238 @@
+<!-- src/app/pages/.../client-page/components/master/master.component.html -->
+<section class="master-root">
+  <header class="master-header">
+    <div class="header-main">
+      <div>
+        <p class="kicker">CLIENT • MASTER</p>
+        <h3 class="master-title">Master</h3>
+        <p class="master-subtitle">
+          Drivers linked to <strong>{{ clientName || '—' }}</strong>
+        </p>
+      </div>
+
+      <div class="header-meta" *ngIf="lastUpdatedAt() as t">
+        <span class="meta-chip">Last update: {{ t | date: 'yyyy-MM-dd HH:mm' }}</span>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="searchbox">
+        <i class="ri-search-line" aria-hidden="true"></i>
+        <input
+          type="text"
+          [value]="search()"
+          (input)="search.set(($any($event.target).value || '').toString())"
+          placeholder="Search by name, phone, hub, area, vehicle, status..."
+        />
+        <button
+          type="button"
+          class="icon-btn"
+          *ngIf="search()"
+          (click)="clearSearch()"
+          aria-label="Clear search"
+        >
+          <i class="ri-close-line" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <button type="button" class="btn ghost" (click)="refresh()">
+        <i class="ri-refresh-line" aria-hidden="true"></i>
+        Refresh
+      </button>
+    </div>
+
+    <div class="summary" *ngIf="!loading()">
+      <div class="summary-card">
+        <div class="summary-label">Total drivers</div>
+        <div class="summary-value">{{ totalDrivers() }}</div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-label">Active</div>
+        <div class="summary-value">{{ activeDrivers() }}</div>
+      </div>
+    </div>
+  </header>
+
+  <div *ngIf="loading()" class="master-loading">
+    <div class="skeleton-line w-60"></div>
+    <div class="skeleton-line w-40"></div>
+    <div class="skeleton-table">
+      <div class="skeleton-row" *ngFor="let i of [1,2,3,4,5]"></div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading() && loadError()" class="alert alert--error">
+    <div class="alert-title">Error</div>
+    <div class="alert-text">{{ loadError() }}</div>
+    <button type="button" class="btn danger" (click)="refresh()">Try again</button>
+  </div>
+
+  <ng-container *ngIf="!loading() && !loadError()">
+    <ng-container *ngIf="viewDrivers().length; else emptyState">
+      <!-- Desktop / Tablet Table -->
+      <div class="table-wrap" aria-label="drivers table">
+        <table class="table">
+          <thead>
+            <tr>
+              <th class="sortable" (click)="setSort('name')">
+                Driver
+                <span class="sort-ind" *ngIf="sortKey() === 'name'">
+                  {{ sortDir() === 'asc' ? '▲' : '▼' }}
+                </span>
+              </th>
+
+              <th class="sortable" (click)="setSort('courierPhone')">
+                Phone
+                <span class="sort-ind" *ngIf="sortKey() === 'courierPhone'">
+                  {{ sortDir() === 'asc' ? '▲' : '▼' }}
+                </span>
+              </th>
+
+              <th class="hide-sm sortable" (click)="setSort('clientName')">
+                Client
+                <span class="sort-ind" *ngIf="sortKey() === 'clientName'">
+                  {{ sortDir() === 'asc' ? '▲' : '▼' }}
+                </span>
+              </th>
+
+              <th class="sortable" (click)="setSort('hub')">
+                Hub
+                <span class="sort-ind" *ngIf="sortKey() === 'hub'">
+                  {{ sortDir() === 'asc' ? '▲' : '▼' }}
+                </span>
+              </th>
+
+              <th class="sortable" (click)="setSort('area')">
+                Area
+                <span class="sort-ind" *ngIf="sortKey() === 'area'">
+                  {{ sortDir() === 'asc' ? '▲' : '▼' }}
+                </span>
+              </th>
+
+              <th class="hide-sm sortable" (click)="setSort('vehicleType')">
+                Vehicle
+                <span class="sort-ind" *ngIf="sortKey() === 'vehicleType'">
+                  {{ sortDir() === 'asc' ? '▲' : '▼' }}
+                </span>
+              </th>
+
+              <th class="hide-sm sortable" (click)="setSort('day1Date')">
+                Day 1
+                <span class="sort-ind" *ngIf="sortKey() === 'day1Date'">
+                  {{ sortDir() === 'asc' ? '▲' : '▼' }}
+                </span>
+              </th>
+
+              <th class="sortable" (click)="setSort('hiringStatus')">
+                Hiring Status
+                <span class="sort-ind" *ngIf="sortKey() === 'hiringStatus'">
+                  {{ sortDir() === 'asc' ? '▲' : '▼' }}
+                </span>
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let d of viewDrivers(); trackBy: trackById">
+              <td class="cell-strong">{{ safeText($any(d).name) }}</td>
+
+              <td>
+                <ng-container *ngIf="$any(d).courierPhone as ph; else noPhone">
+                  <a class="link" [href]="'tel:' + ph">{{ ph }}</a>
+                </ng-container>
+                <ng-template #noPhone>—</ng-template>
+              </td>
+
+              <td class="hide-sm">{{ safeText($any(d).clientName) }}</td>
+
+              <td>{{ hubLabel($any(d).hub) }}</td>
+
+              <td>{{ safeText($any(d).area) }}</td>
+
+              <td class="hide-sm">{{ vehicleLabel($any(d).vehicleType) }}</td>
+
+              <td class="hide-sm">
+                {{
+                  $any(d).day1Date
+                    ? ($any(d).day1Date | date: 'yyyy-MM-dd')
+                    : '—'
+                }}
+              </td>
+
+              <td>
+                <span [class]="statusPillClass($any(d).hiringStatus)">
+                  {{ safeText($any(d).hiringStatus) }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile Cards -->
+      <div class="cards">
+        <article class="card" *ngFor="let d of viewDrivers(); trackBy: trackById">
+          <div class="card-top">
+            <div class="card-title">{{ safeText($any(d).name) }}</div>
+            <span [class]="statusPillClass($any(d).hiringStatus)">
+              {{ safeText($any(d).hiringStatus) }}
+            </span>
+          </div>
+
+          <div class="card-grid">
+            <div class="kv">
+              <div class="k">Phone</div>
+              <div class="v">
+                <ng-container *ngIf="$any(d).courierPhone as ph; else noPhone2">
+                  <a class="link" [href]="'tel:' + ph">{{ ph }}</a>
+                </ng-container>
+                <ng-template #noPhone2>—</ng-template>
+              </div>
+            </div>
+
+            <div class="kv">
+              <div class="k">Client</div>
+              <div class="v">{{ safeText($any(d).clientName) }}</div>
+            </div>
+
+            <div class="kv">
+              <div class="k">Hub</div>
+              <div class="v">{{ hubLabel($any(d).hub) }}</div>
+            </div>
+
+            <div class="kv">
+              <div class="k">Area</div>
+              <div class="v">{{ safeText($any(d).area) }}</div>
+            </div>
+
+            <div class="kv">
+              <div class="k">Vehicle</div>
+              <div class="v">{{ vehicleLabel($any(d).vehicleType) }}</div>
+            </div>
+
+            <div class="kv">
+              <div class="k">Day 1</div>
+              <div class="v">
+                {{
+                  $any(d).day1Date
+                    ? ($any(d).day1Date | date: 'yyyy-MM-dd')
+                    : '—'
+                }}
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </ng-container>
+
+    <ng-template #emptyState>
+      <div class="empty">
+        <div class="empty-title">No drivers linked yet</div>
+        <div class="empty-text">
+          No drivers matched this client (by clientId/clientName).
+        </div>
+      </div>
+    </ng-template>
+  </ng-container>
+</section>

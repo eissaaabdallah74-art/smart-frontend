@@ -1,0 +1,187 @@
+<div class="modal-backdrop" (click)="close.emit()"></div>
+
+<div
+  class="modal"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Tracking form"
+  (click)="$event.stopPropagation()">
+  <header class="modal-head">
+    <h3 class="modal-title">
+      {{ row ? 'Edit tracking row' : 'Add tracking row' }}
+    </h3>
+    <button
+      class="icon-btn"
+      type="button"
+      (click)="close.emit()"
+      aria-label="Close">
+      ×
+    </button>
+  </header>
+
+  <form #f="ngForm" (ngSubmit)="onSubmit(f)" class="modal-body" novalidate>
+    <div class="grid">
+      <div class="group">
+        <h4 class="group-title">Driver & DSP</h4>
+
+        <div class="field">
+          <label for="driver">Driver</label>
+          <select
+            id="driver"
+            name="driverId"
+            class="field-input"
+            required
+            [(ngModel)]="form.driverId"
+            (ngModelChange)="onDriverChange()">
+            <option [ngValue]="null" disabled>Select driver…</option>
+            <option *ngFor="let d of drivers" [ngValue]="d.id">
+              {{ d.name }} ({{ d.clientName || 'No client' }})
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>DSP Name</label>
+          <input
+            class="field-input field-input--readonly"
+            [value]="selectedDriver?.name || ''"
+            readonly />
+        </div>
+
+        <div class="field">
+          <label for="dspCode">DSP Shortcode</label>
+          <input
+            id="dspCode"
+            name="dspShortcode"
+            class="field-input"
+            [(ngModel)]="form.dspShortcode" />
+        </div>
+
+        <div class="field-inline">
+          <div class="field">
+            <label for="firstName">DAs First Name</label>
+            <input
+              id="firstName"
+              name="dasFirstName"
+              class="field-input"
+              [(ngModel)]="form.dasFirstName" />
+          </div>
+
+          <div class="field">
+            <label for="lastName">DAs Last Name</label>
+            <input
+              id="lastName"
+              name="dasLastName"
+              class="field-input"
+              [(ngModel)]="form.dasLastName" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="username">DAs Username</label>
+          <input
+            id="username"
+            name="dasUsername"
+            class="field-input"
+            [(ngModel)]="form.dasUsername" />
+        </div>
+
+        <div class="field">
+          <label for="visa">Visa sponsorship on DSP?</label>
+          <select
+            id="visa"
+            name="visaSponsorshipOnDsp"
+            class="field-input"
+            [(ngModel)]="form.visaSponsorshipOnDsp">
+            <option [ngValue]="null">—</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="birth">Birth date</label>
+          <input
+            id="birth"
+            name="birthDate"
+            type="date"
+            class="field-input"
+            [(ngModel)]="form.birthDate" />
+        </div>
+
+        <div class="field">
+          <label for="plate">Vehicle plate</label>
+          <input
+            id="plate"
+            name="vehiclePlateNumber"
+            class="field-input"
+            [(ngModel)]="form.vehiclePlateNumber" />
+        </div>
+
+        <div class="field">
+          <label for="criminal">Criminal record issue date</label>
+          <input
+            id="criminal"
+            name="criminalRecordIssueDate"
+            type="date"
+            class="field-input"
+            [(ngModel)]="form.criminalRecordIssueDate" />
+        </div>
+      </div>
+
+      <div class="group">
+        <h4 class="group-title">Expiry dates</h4>
+
+        <div class="field">
+          <label for="idExpiry">EGY National ID expiry</label>
+          <input
+            id="idExpiry"
+            name="idExpiryDate"
+            type="date"
+            class="field-input"
+            [(ngModel)]="form.idExpiryDate" />
+        </div>
+
+        <div class="field">
+          <label for="dlExpiry">Driving licence (DL) expiry</label>
+          <input
+            id="dlExpiry"
+            name="dLicenseExpiryDate"
+            type="date"
+            class="field-input"
+            [(ngModel)]="form.dLicenseExpiryDate" />
+        </div>
+
+        <div class="field">
+          <label for="vExpiry">Vehicle licence expiry</label>
+          <input
+            id="vExpiry"
+            name="vLicenseExpiryDate"
+            type="date"
+            class="field-input"
+            [(ngModel)]="form.vLicenseExpiryDate" />
+        </div>
+
+        <div class="field">
+          <label for="notes">Notes</label>
+          <textarea
+            id="notes"
+            name="notes"
+            rows="5"
+            class="field-input field-input--textarea"
+            [(ngModel)]="form.notes">
+          </textarea>
+        </div>
+      </div>
+    </div>
+
+    <footer class="modal-foot">
+      <button type="button" class="btn btn--secondary" (click)="close.emit()">
+        Cancel
+      </button>
+      <button type="submit" class="btn btn--primary">
+        {{ row ? 'Save changes' : 'Add row' }}
+      </button>
+    </footer>
+  </form>
+</div>

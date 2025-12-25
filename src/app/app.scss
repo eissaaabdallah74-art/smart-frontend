@@ -1,0 +1,78 @@
+/* src/app/app.component.scss */
+
+/* ثوابت الواجهة */
+:host {
+  --header-h: 72px;     /* ارتفاع الهيدر */
+  --sidebar-w: 256px;   /* عرض الشريط الجانبي */
+  --bg: #f5f7fb;        /* خلفية المحتوى */
+  --ink: #112535;       /* لون النص */
+  --border: #e5e7eb;
+  display: block;
+}
+
+/* الحاوية الرئيسية: Sidebar + Main column */
+.app-shell {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg);
+}
+
+/* عنصر <app-sidebar> */
+.sidenav {
+  flex: 0 0 var(--sidebar-w);
+}
+
+/* عمود الهيدر + المحتوى */
+.main-column {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+/* منطقة المحتوى */
+.content {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  padding: 16px;
+  background: var(--bg);
+  color: var(--ink);
+  overflow: auto; /* سكرول داخلي للمحتوى فقط */
+  height: calc(100vh - var(--header-h));
+}
+
+@media (min-width: 768px) {
+  .content {
+    padding: 32px;
+  }
+}
+
+/* ====== موبايل: إخفاء السايدبار ====== */
+@media (max-width: 768px) {
+  .sidenav {
+    display: none; /* اختفاء تام للسايدبار على الموبايل */
+  }
+
+  .content {
+    padding: 16px; /* padding مناسب للموبايل */
+  }
+}
+
+/* global custom styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+/* لون خلفية الجسم الأساسي (البراند) */
+body {
+  background: #FFF7ED; // brand-light
+}

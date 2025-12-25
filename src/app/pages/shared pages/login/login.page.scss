@@ -1,0 +1,154 @@
+/* ========= Tokens (داخل المكوّن فقط) ========= */
+:host {
+  --brand: #ef7f1a;   /* Gold */
+  --ink: #112535;     /* Dark Navy */
+  --cream: #FAF8E6;   /* Light Bg */
+  --bg-gray-50: #f9fafb;
+  --muted: #6b7280;
+  --border: #d1d5db;
+  --placeholder: #9ca3af;
+  --ring: rgba(224, 179, 79, 0.28);
+  --shadow-lg: 0 20px 45px rgba(2,6,23,0.15);
+}
+
+/* ========= Layout ========= */
+.screen {
+  min-height: 100vh;
+  background: var(--bg-gray-50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.container {
+  width: 100%;
+  max-width: 480px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  padding: 32px;
+}
+.card > * + * { margin-top: 24px; }
+
+/* ========= Header ========= */
+.header {
+  text-align: center;
+}
+.logo {
+  width: 48px; height: 48px;
+  margin: 0 auto 12px;
+  color: var(--brand);
+}
+.title {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--ink);
+}
+.subtitle {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* ========= Form ========= */
+.form { margin-top: 8px; }
+.form-group { margin-bottom: 18px; }
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151; /* gray-700 */
+  margin-bottom: 6px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: #111827; /* gray-900 */
+  font-size: 14px;
+  line-height: 1.4;
+  outline: none;
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+.form-input::placeholder { color: var(--placeholder); }
+.form-input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.form-error {
+  text-align: center;
+  color: #dc2626; /* red-600 */
+  font-size: 14px;
+  margin: -4px 0 10px;
+}
+
+/* ========= Button ========= */
+.btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter .15s ease, transform .02s ease;
+  user-select: none;
+}
+.btn-primary {
+  color: #fff;
+  background: var(--brand);
+  box-shadow: 0 6px 20px rgba(224,179,79,.28);
+}
+.btn-primary:hover { filter: brightness(0.98); }
+.btn-primary:active { transform: translateY(1px); }
+.btn[disabled] {
+  background: #9ca3af; /* gray-400 */
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ========= Spinner ========= */
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid #fff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ========= Hint ========= */
+.hint {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.hint code {
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+  background: rgba(0,0,0,0.05);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-size: 0.84em;
+}
+
+/* ========= Small screens polish ========= */
+@media (max-width: 360px) {
+  .card { padding: 24px; }
+  .title { font-size: 24px; }
+}

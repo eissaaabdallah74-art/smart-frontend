@@ -1,0 +1,404 @@
+<div class="modal-backdrop" (click)="close.emit()"></div>
+
+<div
+  class="modal"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Driver form"
+  (click)="$event.stopPropagation()"
+>
+  <header class="modal-head">
+    <h3 class="modal-title">
+      {{ driverToEdit ? 'Edit Driver' : 'Add New Driver' }}
+    </h3>
+    <button
+      class="icon-btn"
+      type="button"
+      (click)="close.emit()"
+      aria-label="Close"
+    >
+      ×
+    </button>
+  </header>
+
+  <form #f="ngForm" (ngSubmit)="onSubmit(f)" class="modal-body" novalidate>
+    <div class="form-grid">
+      <!-- Name EN -->
+      <div class="form-group">
+        <label class="form-label" for="name">Name (EN)</label>
+        <input
+          id="name"
+          name="name"
+          class="form-input"
+          [(ngModel)]="model.name"
+          required
+        />
+      </div>
+
+      <!-- Name AR -->
+      <div class="form-group">
+        <label class="form-label" for="nameAr">Name (AR)</label>
+        <input
+          id="nameAr"
+          name="fullNameArabic"
+          class="form-input"
+          [(ngModel)]="model.fullNameArabic"
+        />
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label class="form-label" for="email">Email</label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          class="form-input"
+          [(ngModel)]="model.email"
+        />
+      </div>
+
+      <!-- Phone -->
+      <div class="form-group">
+        <label class="form-label" for="phone">Courier Phone</label>
+        <input
+          id="phone"
+          name="courierPhone"
+          class="form-input"
+          [(ngModel)]="model.courierPhone"
+        />
+      </div>
+
+      <!-- Courier ID -->
+      <div class="form-group">
+        <label class="form-label" for="cid">Courier ID</label>
+        <input
+          id="cid"
+          name="courierId"
+          class="form-input"
+          [(ngModel)]="model.courierId"
+        />
+      </div>
+
+      <!-- Residence -->
+      <div class="form-group">
+        <label class="form-label" for="res">Residence</label>
+        <input
+          id="res"
+          name="residence"
+          class="form-input"
+          [(ngModel)]="model.residence"
+        />
+      </div>
+
+      <!-- Courier Code -->
+      <div class="form-group">
+        <label class="form-label" for="ccode">Courier Code</label>
+        <input
+          id="ccode"
+          name="courierCode"
+          class="form-input"
+          [(ngModel)]="model.courierCode"
+        />
+      </div>
+
+      <!-- Client -->
+      <div class="form-group">
+        <label class="form-label" for="client">Client</label>
+        <select
+          id="client"
+          name="clientName"
+          class="form-input"
+          [(ngModel)]="model.clientName"
+        >
+          <option value="">Select...</option>
+          <option *ngFor="let c of clientNames" [value]="c">
+            {{ c }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Hub -->
+      <div class="form-group">
+        <label class="form-label" for="hub">Hub</label>
+        <input
+          id="hub"
+          name="hub"
+          class="form-input"
+          [(ngModel)]="model.hub"
+        />
+      </div>
+
+      <!-- Area -->
+      <div class="form-group">
+        <label class="form-label" for="area">Area</label>
+        <input
+          id="area"
+          name="area"
+          class="form-input"
+          [(ngModel)]="model.area"
+        />
+      </div>
+
+      <!-- Module -->
+      <div class="form-group">
+        <label class="form-label" for="module">Module</label>
+        <input
+          id="module"
+          name="module"
+          class="form-input"
+          [(ngModel)]="model.module"
+        />
+      </div>
+
+      <!-- Vehicle Type -->
+      <div class="form-group">
+        <label class="form-label" for="vt">Vehicle Type</label>
+        <input
+          id="vt"
+          name="vehicleType"
+          class="form-input"
+          [(ngModel)]="model.vehicleType"
+        />
+      </div>
+
+      <!-- Contractor -->
+      <div class="form-group">
+        <label class="form-label" for="contractor">Contractor</label>
+        <input
+          id="contractor"
+          name="contractor"
+          class="form-input"
+          [(ngModel)]="model.contractor"
+        />
+      </div>
+
+      <!-- Point of Contact -->
+      <div class="form-group">
+        <label class="form-label" for="poc">Point of Contact</label>
+        <select
+          id="poc"
+          name="pointOfContact"
+          class="form-input"
+          [(ngModel)]="model.pointOfContact"
+        >
+          <option value="">Select...</option>
+          <option *ngFor="let n of operationNames" [value]="n">
+            {{ n }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Account Manager -->
+      <div class="form-group">
+        <label class="form-label" for="am">Account Manager</label>
+        <select
+          id="am"
+          name="accountManager"
+          class="form-input"
+          [(ngModel)]="model.accountManager"
+        >
+          <option value="">Select...</option>
+          <option *ngFor="let n of operationNames" [value]="n">
+            {{ n }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Interviewer -->
+      <div class="form-group">
+        <label class="form-label" for="interviewer">Interviewer</label>
+        <select
+          id="interviewer"
+          name="interviewer"
+          class="form-input"
+          [(ngModel)]="model.interviewer"
+        >
+          <option value="">Select...</option>
+          <option *ngFor="let n of operationNames" [value]="n">
+            {{ n }}
+          </option>
+        </select>
+      </div>
+
+      <!-- HR Representative -->
+      <div class="form-group">
+        <label class="form-label" for="hr">HR Representative</label>
+        <select
+          id="hr"
+          name="hrRepresentative"
+          class="form-input"
+          [(ngModel)]="model.hrRepresentative"
+        >
+          <option value="">Select...</option>
+          <option *ngFor="let n of hrNames" [value]="n">
+            {{ n }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Hiring Date -->
+      <div class="form-group">
+        <label class="form-label" for="hiring">Hiring Date</label>
+        <input
+          id="hiring"
+          name="hiringDate"
+          type="date"
+          class="form-input"
+          [(ngModel)]="model.hiringDate"
+        />
+      </div>
+
+      <!-- Day 1 Date -->
+      <div class="form-group">
+        <label class="form-label" for="day1">Day 1 Date</label>
+        <input
+          id="day1"
+          name="day1Date"
+          type="date"
+          class="form-input"
+          [(ngModel)]="model.day1Date"
+        />
+      </div>
+
+      <!-- V-License Expiry -->
+      <div class="form-group">
+        <label class="form-label" for="vexp">V-License Expiry</label>
+        <input
+          id="vexp"
+          name="vLicenseExpiryDate"
+          type="date"
+          class="form-input"
+          [(ngModel)]="model.vLicenseExpiryDate"
+        />
+      </div>
+
+      <!-- D-License Expiry -->
+      <div class="form-group">
+        <label class="form-label" for="dexp">D-License Expiry</label>
+        <input
+          id="dexp"
+          name="dLicenseExpiryDate"
+          type="date"
+          class="form-input"
+          [(ngModel)]="model.dLicenseExpiryDate"
+        />
+      </div>
+
+      <!-- ID Expiry -->
+      <div class="form-group">
+        <label class="form-label" for="idexp">ID Expiry</label>
+        <input
+          id="idexp"
+          name="idExpiryDate"
+          type="date"
+          class="form-input"
+          [(ngModel)]="model.idExpiryDate"
+        />
+      </div>
+
+      <!-- Liability Amount -->
+      <div class="form-group">
+        <label class="form-label" for="liab">Liability Amount</label>
+        <input
+          id="liab"
+          name="liabilityAmount"
+          type="number"
+          step="0.01"
+          class="form-input"
+          [(ngModel)]="model.liabilityAmount"
+        />
+      </div>
+
+      <!-- Signed -->
+      <div class="form-group">
+        <label class="form-label" for="signed">Signed</label>
+        <input
+          id="signed"
+          type="checkbox"
+          name="signed"
+          [(ngModel)]="model.signed"
+        />
+      </div>
+
+      <!-- Contract Status -->
+      <div class="form-group">
+        <label class="form-label" for="cstatus">Contract Status</label>
+        <input
+          id="cstatus"
+          name="contractStatus"
+          class="form-input"
+          [(ngModel)]="model.contractStatus"
+        />
+      </div>
+
+      <!-- Hiring Status -->
+      <div class="form-group">
+        <label class="form-label" for="hstatus">Hiring Status</label>
+        <input
+          id="hstatus"
+          name="hiringStatus"
+          class="form-input"
+          [(ngModel)]="model.hiringStatus"
+        />
+      </div>
+
+      <!-- Security Query Status -->
+      <div class="form-group">
+        <label class="form-label" for="sqstatus">Security Query Status</label>
+        <input
+          id="sqstatus"
+          name="securityQueryStatus"
+          class="form-input"
+          [(ngModel)]="model.securityQueryStatus"
+        />
+      </div>
+
+      <!-- Security Query Comment -->
+      <div class="form-group form-group--full">
+        <label class="form-label" for="sqcomment">Security Query Comment</label>
+        <textarea
+          id="sqcomment"
+          name="securityQueryComment"
+          class="form-input form-input--textarea"
+          [(ngModel)]="model.securityQueryComment"
+        ></textarea>
+      </div>
+
+      <!-- Exception By -->
+      <div class="form-group">
+        <label class="form-label" for="exc">Exception By</label>
+        <input
+          id="exc"
+          name="exceptionBy"
+          class="form-input"
+          [(ngModel)]="model.exceptionBy"
+        />
+      </div>
+
+      <!-- Notes -->
+      <div class="form-group form-group--full">
+        <label class="form-label" for="notes">Notes</label>
+        <textarea
+          id="notes"
+          name="notes"
+          class="form-input form-input--textarea"
+          [(ngModel)]="model.notes"
+        ></textarea>
+      </div>
+    </div>
+
+    <footer class="modal-foot">
+      <button
+        type="button"
+        class="btn btn--secondary"
+        (click)="close.emit()"
+      >
+        Cancel
+      </button>
+      <button type="submit" class="btn btn--primary">
+        {{ driverToEdit ? 'Save Changes' : 'Add Driver' }}
+      </button>
+    </footer>
+  </form>
+</div>

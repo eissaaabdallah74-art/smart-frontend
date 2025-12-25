@@ -1,0 +1,569 @@
+<!-- src/app/pages/operation pages/background-follow-up/background-follow-up.component.html -->
+<section class="fu-page">
+  <div class="fu-card">
+    <!-- Header -->
+    <div class="fu-header">
+      <div class="fu-header-main">
+        <h1 class="fu-title">
+          Background follow-up
+          <span class="fu-count">({{ filtered().length }})</span>
+        </h1>
+        <p class="fu-subtitle">
+          Security = Negative and not Active. Track follow-ups, view details, and update status.
+        </p>
+      </div>
+
+      <div class="fu-header-actions">
+        <export-button
+          class="export-btn"
+          [data]="exportData()"
+          filename="background_followup.xlsx"
+        ></export-button>
+
+        <button
+          type="button"
+          class="btn btn--secondary"
+          (click)="clearFilters()"
+          [disabled]="!hasActiveFilters()"
+        >
+          <i class="ri-close-line" aria-hidden="true"></i>
+          <span>Clear</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="fu-filters">
+      <div class="filter-row">
+        <div class="filter-group filter-group--wide">
+          <label class="filter-label" for="fuSearch">Search</label>
+          <input
+            id="fuSearch"
+            type="text"
+            class="filter-input"
+            placeholder="Search by name, phone, national id, account, hub, area, feedback, notes..."
+            [ngModel]="search()"
+            (ngModelChange)="search.set($event); currentPage.set(1)"
+          />
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label" for="accFilter">Account</label>
+          <select
+            id="accFilter"
+            class="filter-input"
+            [ngModel]="accountFilter()"
+            (ngModelChange)="accountFilter.set($event); currentPage.set(1)"
+          >
+            <option value="">All</option>
+            <option *ngFor="let a of accounts()" [value]="a">{{ a }}</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label" for="hubFilter">Hub</label>
+          <select
+            id="hubFilter"
+            class="filter-input"
+            [ngModel]="hubFilter()"
+            (ngModelChange)="hubFilter.set($event); currentPage.set(1)"
+          >
+            <option value="">All</option>
+            <option *ngFor="let h of hubs()" [value]="h">{{ h }}</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label" for="areaFilter">Area</label>
+          <select
+            id="areaFilter"
+            class="filter-input"
+            [ngModel]="areaFilter()"
+            (ngModelChange)="areaFilter.set($event); currentPage.set(1)"
+          >
+            <option value="">All</option>
+            <option *ngFor="let z of areas()" [value]="z">{{ z }}</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label" for="statusFilter">Status</label>
+          <select
+            id="statusFilter"
+            class="filter-input"
+            [ngModel]="statusFilter()"
+            (ngModelChange)="statusFilter.set($event); currentPage.set(1)"
+          >
+            <option value="">All</option>
+            <option *ngFor="let s of statuses()" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label" for="hrFilter">HR feedback contains</label>
+          <input
+            id="hrFilter"
+            type="text"
+            class="filter-input"
+            placeholder="signed, hold, missing..."
+            [ngModel]="hrFilter()"
+            (ngModelChange)="hrFilter.set($event); currentPage.set(1)"
+          />
+        </div>
+      </div>
+
+      <!-- Active Filters + Page size -->
+      <div class="active-filters" *ngIf="hasActiveFilters()">
+        <div class="active-filters-list">
+          <span class="active-filter" *ngIf="search().trim()">
+            Search: “{{ search() }}”
+            <button type="button" class="filter-remove" (click)="search.set(''); currentPage.set(1)">
+              <i class="ri-close-line"></i>
+            </button>
+          </span>
+
+          <span class="active-filter" *ngIf="accountFilter()">
+            Account: {{ accountFilter() }}
+            <button type="button" class="filter-remove" (click)="accountFilter.set(''); currentPage.set(1)">
+              <i class="ri-close-line"></i>
+            </button>
+          </span>
+
+          <span class="active-filter" *ngIf="hubFilter()">
+            Hub: {{ hubFilter() }}
+            <button type="button" class="filter-remove" (click)="hubFilter.set(''); currentPage.set(1)">
+              <i class="ri-close-line"></i>
+            </button>
+          </span>
+
+          <span class="active-filter" *ngIf="areaFilter()">
+            Area: {{ areaFilter() }}
+            <button type="button" class="filter-remove" (click)="areaFilter.set(''); currentPage.set(1)">
+              <i class="ri-close-line"></i>
+            </button>
+          </span>
+
+          <span class="active-filter" *ngIf="statusFilter()">
+            Status: {{ statusFilter() }}
+            <button type="button" class="filter-remove" (click)="statusFilter.set(''); currentPage.set(1)">
+              <i class="ri-close-line"></i>
+            </button>
+          </span>
+
+          <span class="active-filter" *ngIf="hrFilter().trim()">
+            HR: “{{ hrFilter() }}”
+            <button type="button" class="filter-remove" (click)="hrFilter.set(''); currentPage.set(1)">
+              <i class="ri-close-line"></i>
+            </button>
+          </span>
+        </div>
+
+        <div class="right-actions">
+          <div class="page-size-selector">
+            <label for="pageSize" class="page-size-label">Show:</label>
+            <select
+              id="pageSize"
+              class="page-size-select"
+              [ngModel]="pageSize()"
+              (ngModelChange)="onPageSizeChange($event)"
+            >
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table Header -->
+    <div class="table-header">
+      <div class="table-info">
+        Showing
+        <ng-container *ngIf="filtered().length > 0; else emptyRange">
+          {{ startIndex() + 1 }}-{{ endIndex() }}
+        </ng-container>
+        <ng-template #emptyRange>0-0</ng-template>
+        of {{ filtered().length }} rows
+      </div>
+
+      <div class="table-actions" *ngIf="!hasActiveFilters()">
+        <div class="page-size-selector">
+          <label for="pageSize2" class="page-size-label">Show:</label>
+          <select
+            id="pageSize2"
+            class="page-size-select"
+            [ngModel]="pageSize()"
+            (ngModelChange)="onPageSizeChange($event)"
+          >
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop table -->
+    <div class="table-wrapper table-wrapper--desktop">
+      <table class="fu-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Courier</th>
+            <th>Phone</th>
+            <th>Account</th>
+            <th>Hub</th>
+            <th>Area</th>
+            <th>Security</th>
+            <th>Status</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let row of paginated(); trackBy: trackById" class="row">
+            <td>{{ row.date || '—' }}</td>
+
+            <td class="cell-primary">
+              <div class="primary-name">{{ row.courierName || '—' }}</div>
+              <div class="primary-sub">
+                <span class="mono">{{ row.nationalId || 'No ID' }}</span>
+                <span class="sep">•</span>
+                <span>{{ row.vehicleType || '—' }}</span>
+              </div>
+            </td>
+
+            <td class="mono">{{ row.phoneNumber || '—' }}</td>
+            <td>{{ row.account || '—' }}</td>
+            <td>{{ row.hub || '—' }}</td>
+            <td>{{ row.area || '—' }}</td>
+
+            <td>
+              <span [ngClass]="pillClass(row.securityResult)">
+                {{ row.securityResult || '—' }}
+              </span>
+            </td>
+
+            <td>
+              <span class="pill pill--neutral">
+                {{ row.courierStatus || '—' }}
+              </span>
+            </td>
+
+            <td class="cell-actions">
+              <button
+                type="button"
+                class="icon-action icon-action--view"
+                title="View full details"
+                (click)="openDetails(row)"
+              >
+                <i class="ri-eye-line" aria-hidden="true"></i>
+              </button>
+
+              <button
+                type="button"
+                class="icon-action icon-action--edit"
+                title="Edit follow-up"
+                (click)="openEdit(row)"
+              >
+                <i class="ri-edit-line" aria-hidden="true"></i>
+              </button>
+            </td>
+          </tr>
+
+          <tr *ngIf="filtered().length === 0">
+            <td class="empty-cell" colspan="9">
+              <ng-container *ngIf="!loading(); else loadingTpl">
+                No rows match your filters.
+              </ng-container>
+              <ng-template #loadingTpl>Loading...</ng-template>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile cards -->
+    <div class="cards-wrapper">
+      <article class="fu-item" *ngFor="let row of paginated(); trackBy: trackById">
+        <header class="fu-item-header">
+          <div class="left">
+            <div class="name">{{ row.courierName || '—' }}</div>
+            <div class="meta">
+              <span class="date">{{ row.date || '—' }}</span>
+              <span class="dot">•</span>
+              <span class="phone mono">{{ row.phoneNumber || '—' }}</span>
+            </div>
+          </div>
+
+          <div class="right">
+            <button
+              type="button"
+              class="icon-action icon-action--view"
+              title="View full details"
+              (click)="openDetails(row)"
+            >
+              <i class="ri-eye-line" aria-hidden="true"></i>
+            </button>
+
+            <button
+              type="button"
+              class="icon-action icon-action--edit"
+              title="Edit follow-up"
+              (click)="openEdit(row)"
+            >
+              <i class="ri-edit-line" aria-hidden="true"></i>
+            </button>
+          </div>
+        </header>
+
+        <div class="fu-item-body">
+          <div class="chips">
+            <span [ngClass]="pillClass(row.securityResult)">
+              {{ row.securityResult || 'Security —' }}
+            </span>
+            <span class="pill pill--neutral">{{ row.courierStatus || 'Status —' }}</span>
+          </div>
+
+          <div class="kv">
+            <div class="kv-item">
+              <span class="k">National ID</span>
+              <span class="v mono">{{ row.nationalId || '—' }}</span>
+            </div>
+
+            <div class="kv-item">
+              <span class="k">Account</span>
+              <span class="v">{{ row.account || '—' }}</span>
+            </div>
+
+            <div class="kv-item">
+              <span class="k">Hub</span>
+              <span class="v">{{ row.hub || '—' }}</span>
+            </div>
+
+            <div class="kv-item">
+              <span class="k">Area</span>
+              <span class="v">{{ row.area || '—' }}</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <div *ngIf="filtered().length === 0" class="empty-cell empty-cell--card">
+        <ng-container *ngIf="!loading(); else loadingTpl2">
+          No rows match your filters.
+        </ng-container>
+        <ng-template #loadingTpl2>Loading...</ng-template>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="totalPages() > 1">
+      <div class="pagination-info">
+        Page {{ currentPage() }} of {{ totalPages() }}
+      </div>
+
+      <div class="pagination-controls">
+        <button class="pagination-btn" [disabled]="currentPage() === 1" (click)="goToPage(1)">
+          <i class="ri-skip-left-line"></i>
+        </button>
+
+        <button class="pagination-btn" [disabled]="currentPage() === 1" (click)="previousPage()">
+          <i class="ri-arrow-left-line"></i>
+        </button>
+
+        <div class="pagination-pages">
+          <button
+            *ngFor="let page of visiblePages()"
+            class="pagination-page"
+            [class.active]="page === currentPage()"
+            (click)="goToPage(page)"
+          >
+            {{ page }}
+          </button>
+        </div>
+
+        <button class="pagination-btn" [disabled]="currentPage() === totalPages()" (click)="nextPage()">
+          <i class="ri-arrow-right-line"></i>
+        </button>
+
+        <button class="pagination-btn" [disabled]="currentPage() === totalPages()" (click)="goToPage(totalPages())">
+          <i class="ri-skip-right-line"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Details Modal -->
+  <div class="modal-backdrop" *ngIf="isDetailsOpen() && detailsRow()" (click)="closeDetails()">
+    <div class="modal modal--wide" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Full details</h2>
+          <p class="modal-subtitle">
+            {{ detailsRow()?.courierName }} — {{ detailsRow()?.nationalId || 'No ID' }}
+          </p>
+        </div>
+
+        <button type="button" class="modal-close" (click)="closeDetails()">
+          <i class="ri-close-line" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="details-grid">
+          <!-- Summary -->
+          <div class="detail-card">
+            <div class="detail-title">Summary</div>
+
+            <div class="detail-row"><span class="k">Date</span><span class="v">{{ detailsRow()?.date || '—' }}</span></div>
+            <div class="detail-row"><span class="k">Phone</span><span class="v mono">{{ detailsRow()?.phoneNumber || '—' }}</span></div>
+            <div class="detail-row"><span class="k">Account</span><span class="v">{{ detailsRow()?.account || '—' }}</span></div>
+            <div class="detail-row"><span class="k">Hub / Area</span><span class="v">{{ detailsRow()?.hub || '—' }} / {{ detailsRow()?.area || '—' }}</span></div>
+            <div class="detail-row"><span class="k">Residence</span><span class="v">{{ detailsRow()?.residence || '—' }}</span></div>
+            <div class="detail-row"><span class="k">Vehicle</span><span class="v">{{ detailsRow()?.vehicleType || '—' }}</span></div>
+
+            <div class="detail-row">
+              <span class="k">Status</span>
+              <span class="v"><span class="pill pill--neutral">{{ detailsRow()?.courierStatus || '—' }}</span></span>
+            </div>
+
+            <div class="detail-row">
+              <span class="k">Security</span>
+              <span class="v"><span [ngClass]="pillClass(detailsRow()?.securityResult || null)">{{ detailsRow()?.securityResult || '—' }}</span></span>
+            </div>
+
+            <div class="detail-row">
+              <span class="k">HR feedback</span>
+              <span class="v"><span [ngClass]="pillClass(detailsRow()?.hrFeedback || null)">{{ detailsRow()?.hrFeedback || '—' }}</span></span>
+            </div>
+
+            <div class="detail-row"><span class="k">Signed with HR</span><span class="v">{{ detailsRow()?.signedWithHr || '—' }}</span></div>
+            <div class="detail-row"><span class="k">Account manager</span><span class="v">{{ detailsRow()?.accountManager || '—' }}</span></div>
+            <div class="detail-row"><span class="k">Interviewer</span><span class="v">{{ detailsRow()?.interviewer || '—' }}</span></div>
+          </div>
+
+          <!-- Feedbacks -->
+          <div class="detail-card">
+            <div class="detail-title">Feedbacks</div>
+
+            <div class="block">
+              <div class="block-title">Feedback</div>
+              <div class="block-body">{{ detailsRow()?.feedback || '—' }}</div>
+            </div>
+
+            <div class="block">
+              <div class="block-title">HR feedback</div>
+              <div class="block-body">{{ detailsRow()?.hrFeedback || '—' }}</div>
+            </div>
+
+            <div class="block">
+              <div class="block-title">CRM feedback</div>
+              <div class="block-body">{{ detailsRow()?.crmFeedback || '—' }}</div>
+            </div>
+          </div>
+
+          <!-- Follow ups -->
+          <div class="detail-card">
+            <div class="detail-title">Follow-ups</div>
+
+            <div class="block"><div class="block-title">Follow up 1</div><div class="block-body">{{ detailsRow()?.followUp1 || '—' }}</div></div>
+            <div class="block"><div class="block-title">Follow up 2</div><div class="block-body">{{ detailsRow()?.followUp2 || '—' }}</div></div>
+            <div class="block"><div class="block-title">Follow up 3</div><div class="block-body">{{ detailsRow()?.followUp3 || '—' }}</div></div>
+          </div>
+
+          <!-- Notes -->
+          <div class="detail-card">
+            <div class="detail-title">Notes</div>
+            <div class="block-body block-body--notes">{{ detailsRow()?.notes || '—' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn--ghost" (click)="closeDetails()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal-backdrop" *ngIf="isEditOpen() && editRow()" (click)="closeEdit()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Edit follow-up</h2>
+          <p class="modal-subtitle">
+            {{ editRow()?.courierName }} — {{ editRow()?.nationalId || 'No ID' }}
+          </p>
+        </div>
+
+        <button type="button" class="modal-close" (click)="closeEdit()">
+          <i class="ri-close-line" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <form class="modal-body" #f="ngForm" (ngSubmit)="saveEdit(f)" novalidate>
+        <div class="modal-grid">
+          <div class="field">
+            <label class="filter-label" for="statusEdit">Courier status</label>
+            <select
+              id="statusEdit"
+              class="filter-input"
+              name="courierStatus"
+              [(ngModel)]="editRow()!.courierStatus"
+              required
+            >
+              <option [ngValue]="null" disabled hidden>Select status</option>
+              <option *ngFor="let s of statusOptions" [ngValue]="s">{{ s }}</option>
+            </select>
+            <div class="hint">
+              لو اخترت <b>ACTIVE</b> الصف هيتشال تلقائيًا من صفحة المتابعة.
+            </div>
+          </div>
+
+          <div class="field field--full">
+            <label class="filter-label" for="fu1">Follow up 1</label>
+            <textarea id="fu1" class="filter-input field-textarea" rows="3"
+              name="followUp1" [(ngModel)]="editRow()!.followUp1"></textarea>
+          </div>
+
+          <div class="field field--full">
+            <label class="filter-label" for="fu2">Follow up 2</label>
+            <textarea id="fu2" class="filter-input field-textarea" rows="3"
+              name="followUp2" [(ngModel)]="editRow()!.followUp2"></textarea>
+          </div>
+
+          <div class="field field--full">
+            <label class="filter-label" for="fu3">Follow up 3</label>
+            <textarea id="fu3" class="filter-input field-textarea" rows="3"
+              name="followUp3" [(ngModel)]="editRow()!.followUp3"></textarea>
+          </div>
+
+          <div class="field field--full">
+            <label class="filter-label" for="notesEdit">Notes</label>
+            <textarea id="notesEdit" class="filter-input field-textarea" rows="4"
+              name="notes" [(ngModel)]="editRow()!.notes"></textarea>
+          </div>
+
+          <p class="error-text" *ngIf="errorMessage()">
+            {{ errorMessage() }}
+          </p>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn--ghost" (click)="closeEdit()" [disabled]="saving()">
+            Cancel
+          </button>
+
+          <button type="submit" class="btn btn--primary" [disabled]="saving()">
+            <span *ngIf="!saving()">Save</span>
+            <span *ngIf="saving()">Saving...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>

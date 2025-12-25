@@ -1,0 +1,228 @@
+<!-- src/app/pages/operation pages/smv-calls/smv-calls.component.html -->
+<section class="calls-admin-page">
+  <div class="calls-card">
+    <!-- Header -->
+    <header class="calls-header">
+      <div class="calls-header-main">
+        <h1 class="calls-title">
+          Operation Calls
+        </h1>
+        <p class="calls-subtitle">
+          Assign and review operation calls for Seniors & Juniors. Import from Excel, filter by date, and monitor performance.
+        </p>
+      </div>
+
+      <div class="calls-header-actions">
+        <!-- Template export (sheet header ready) -->
+        <export-button
+          class="btn btn--secondary"
+          [data]="templateExportData"
+          filename="calls_template.xlsx"
+        ></export-button>
+      </div>
+    </header>
+
+    <!-- Error -->
+    <div *ngIf="errorMsg" class="banner banner-error">
+      {{ errorMsg }}
+    </div>
+
+    <div *ngIf="loading" class="loading-block">
+      Loading...
+    </div>
+
+    <div class="layout" *ngIf="!loading">
+      <!-- ===== Staff list ===== -->
+      <aside class="staff-list">
+        <h2>Operation Staff (Senior / Junior)</h2>
+        <p class="small-hint">
+          Select a staff member to view calls.
+          Use the checkbox to include them in the next import.
+        </p>
+
+        <ul>
+          <li
+            *ngFor="let u of operationStaff"
+            [class.active]="u.id === selectedAssignee?.id"
+          >
+            <div class="staff-row" (click)="onSelectAssignee(u)">
+              <div class="name">{{ u.fullName }}</div>
+              <div class="meta">
+                <span class="pos">
+                  {{ u.position ? (u.position | titlecase) : '—' }}
+                </span>
+                <span
+                  class="status"
+                  [class.inactive]="!u.isActive"
+                >
+                  {{ u.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </div>
+            </div>
+
+            <label
+              class="staff-checkbox"
+              (click)="$event.stopPropagation()"
+            >
+              <input
+                type="checkbox"
+                [checked]="checkedStaffIds.has(u.id)"
+                (change)="onToggleStaff(u, $event.target.checked)"
+              />
+              <span>Include in import</span>
+            </label>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- ===== Calls area ===== -->
+      <main class="calls-main">
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <div class="info">
+            <h2 *ngIf="selectedAssignee; else noAssigneeTpl">
+              Calls for {{ selectedAssignee.fullName }}
+            </h2>
+            <ng-template #noAssigneeTpl>
+              <h2>Select a staff member to view calls</h2>
+            </ng-template>
+
+            <p class="import-info">
+              Import will distribute calls across
+              <strong>{{ selectedImportCount }}</strong>
+              selected staff.
+            </p>
+          </div>
+
+          <div class="actions">
+            <import-button (fileSelected)="onImportFile($event)"></import-button>
+
+            <export-button
+              *ngIf="selectedAssignee && assigneeCalls.length"
+              [data]="exportData"
+              filename="calls-{{ selectedAssignee.fullName || 'staff' }}.xlsx"
+            ></export-button>
+          </div>
+        </div>
+
+        <!-- Filters (date) -->
+        <div class="calls-filters" *ngIf="selectedAssignee">
+          <div class="filter-group">
+            <label for="fromDate" class="field-label">From date</label>
+            <input
+              id="fromDate"
+              type="date"
+              class="field-input"
+              [(ngModel)]="filterFromDate"
+              (ngModelChange)="onFilterChanged()"
+            />
+          </div>
+
+          <div class="filter-group">
+            <label for="toDate" class="field-label">To date</label>
+            <input
+              id="toDate"
+              type="date"
+              class="field-input"
+              [(ngModel)]="filterToDate"
+              (ngModelChange)="onFilterChanged()"
+            />
+          </div>
+
+          <div class="filter-group clear-filters">
+            <button
+              type="button"
+              class="btn btn--secondary"
+              (click)="clearFilters()"
+            >
+              Clear filters
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row" *ngIf="selectedAssignee">
+          <div class="stat-card">
+            <div class="stat-label">Total calls</div>
+            <div class="stat-value">{{ stats.total }}</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-label">Interview</div>
+            <div class="stat-value">{{ stats.interview }}</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-label">No feedback yet</div>
+            <div class="stat-value">{{ stats.emptyFeedback }}</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-label">No answer</div>
+            <div class="stat-value">{{ stats.noAnswer }}</div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrapper" *ngIf="selectedAssignee">
+          <table class="calls-table" *ngIf="assigneeCalls.length; else noCallsTpl">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Vehicle</th>
+                <th>Government</th>
+                <th>Call Feedback</th>
+                <th>WhatsApp message</th>
+                <th>Comment</th>
+                <th>Smart / SMV</th>
+                <th>Second call Comment</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of assigneeCalls">
+                <td>{{ c.date | date: 'shortDate' }}</td>
+                <td>{{ c.name || '-' }}</td>
+                <td>{{ c.phone || '-' }}</td>
+                <td>{{ c.vehicle_type || '-' }}</td>
+                <td>{{ c.government || '-' }}</td>
+                <td>{{ c.call_feedback || '-' }}</td>
+                <td>{{ c.whatsapp_status || '-' }}</td>
+                <td>{{ c.comment || '-' }}</td>
+                <td>{{ c.smart_or_smv || '-' }}</td>
+                <td>{{ c.second_call_comment || '-' }}</td>
+                <td>
+                  <span
+                    class="status-badge"
+                    [class.status-badge--pending]="c.status === 'pending'"
+                    [class.status-badge--completed]="c.status === 'completed'"
+                    [class.status-badge--cancelled]="c.status === 'cancelled'"
+                    [class.status-badge--rescheduled]="c.status === 'rescheduled'"
+                  >
+                    {{ c.status }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <ng-template #noCallsTpl>
+            <div class="empty-state">
+              <h3>No calls found</h3>
+              <p>
+                This staff member does not have any calls within the selected date
+                range.
+              </p>
+            </div>
+          </ng-template>
+        </div>
+
+        <p *ngIf="!selectedAssignee" class="hint-text">
+          Choose a staff member from the left to see their calls.
+        </p>
+      </main>
+    </div>
+  </div>
+</section>

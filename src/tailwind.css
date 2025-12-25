@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@theme {
+  --color-brand-primary: #F97316;
+  --color-brand-secondary: #FB923C;
+  --color-brand-light: #FFF7ED;
+  --color-brand-dark: #1E293B;
+}

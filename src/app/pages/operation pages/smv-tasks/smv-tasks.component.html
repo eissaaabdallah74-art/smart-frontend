@@ -1,0 +1,382 @@
+<!-- src/app/pages/operation pages/smv-tasks/smv-tasks.component.html -->
+<section class="tasks-admin-page">
+  <header class="head">
+    <h1>Operation Taskboard – Manager / Supervisor</h1>
+  </header>
+
+  <div *ngIf="errorMsg" class="error">{{ errorMsg }}</div>
+  <div *ngIf="loading" class="loading">Loading...</div>
+
+  <div class="layout" *ngIf="!loading">
+    <!-- Staff list -->
+    <aside class="staff-list">
+      <h2>Operation Staff</h2>
+      <p class="small-hint">
+        Select a Senior / Junior to view and manage their tasks.
+      </p>
+
+      <ul>
+        <li
+          *ngFor="let u of operationStaff"
+          [class.active]="u.id === selectedAssignee?.id"
+          (click)="onSelectAssignee(u)"
+        >
+          <div class="staff-row">
+            <div class="name">{{ u.fullName }}</div>
+            <div class="meta">
+              <span class="pos">{{ u.position || 'n/a' }}</span>
+              <span class="status" [class.inactive]="!u.isActive">
+                {{ u.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Tasks board -->
+    <main class="tasks-main">
+      <div class="toolbar">
+        <div class="info">
+          <h2 *ngIf="selectedAssignee; else noAssigneeTpl">
+            Tasks for {{ selectedAssignee.fullName }}
+          </h2>
+          <ng-template #noAssigneeTpl>
+            <h2>Select a staff member to view tasks</h2>
+          </ng-template>
+
+          <div class="stats" *ngIf="selectedAssignee">
+            <span class="chip">
+              Total: <strong>{{ stats.total }}</strong>
+            </span>
+            <span class="chip">
+              To do: <strong>{{ stats.todo }}</strong>
+            </span>
+            <span class="chip">
+              In progress: <strong>{{ stats.inProgress }}</strong>
+            </span>
+            <span class="chip">
+              Completed: <strong>{{ stats.completed }}</strong>
+            </span>
+            <span class="chip chip-warning">
+              Overdue: <strong>{{ stats.overdue }}</strong>
+            </span>
+            <span class="chip chip-subtle" *ngIf="stats.completedLate > 0">
+              Completed late: <strong>{{ stats.completedLate }}</strong>
+            </span>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="openCreateModal()"
+            [disabled]="!selectedAssignee"
+          >
+            + Add Task
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters" *ngIf="selectedAssignee">
+        <div class="filter-group">
+          <label for="statusFilter">Status</label>
+          <select
+            id="statusFilter"
+            [(ngModel)]="statusFilter"
+            (ngModelChange)="onFiltersChange()"
+          >
+            <option value="all">All</option>
+            <option value="todo">To do</option>
+            <option value="in_progress">In progress</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="fromDate">From</label>
+          <input
+            id="fromDate"
+            type="date"
+            [(ngModel)]="fromDateFilter"
+            (ngModelChange)="onFiltersChange()"
+          />
+        </div>
+
+        <div class="filter-group">
+          <label for="toDate">To</label>
+          <input
+            id="toDate"
+            type="date"
+            [(ngModel)]="toDateFilter"
+            (ngModelChange)="onFiltersChange()"
+          />
+        </div>
+
+        <div class="filter-group search-group">
+          <label for="searchTasks">Search</label>
+          <input
+            id="searchTasks"
+            type="text"
+            placeholder="Search by title or description..."
+            [(ngModel)]="searchQuery"
+            (ngModelChange)="onFiltersChange()"
+          />
+        </div>
+      </div>
+
+      <!-- Tasks table -->
+      <div class="table-wrapper" *ngIf="selectedAssignee && assigneeTasks.length">
+        <table>
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Deadline</th>
+              <th>Timing</th>
+              <th>Status</th>
+              <th>Priority</th>
+              <th class="th-actions"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let t of pagedTasks">
+              <td class="cell-task">
+                <div class="task-title">
+                  {{ t.title || 'Untitled task' }}
+                </div>
+                <div class="task-desc" *ngIf="t.description">
+                  {{ t.description }}
+                </div>
+              </td>
+
+              <td class="cell-deadline">
+                <div class="date-main">
+                  {{ t.due_at ? (t.due_at | date: 'short') : 'No deadline' }}
+                </div>
+              </td>
+
+              <td class="cell-timing">
+                <span [class]="getTimingClass(t)">
+                  {{ getTimingLabel(t) }}
+                </span>
+              </td>
+
+              <td class="cell-status">
+                <span class="status-pill" [ngClass]="t.status">
+                  {{ t.status === 'todo'
+                    ? 'To do'
+                    : t.status === 'in_progress'
+                      ? 'In progress'
+                      : 'Completed' }}
+                </span>
+              </td>
+
+              <td class="cell-priority">
+                <span class="priority-pill" [ngClass]="t.priority || 'medium'">
+                  {{ (t.priority || 'medium') | titlecase }}
+                </span>
+              </td>
+
+              <td class="cell-actions">
+                <button
+                  type="button"
+                  class="icon-btn"
+                  (click)="openEditModal(t)"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  class="icon-btn icon-btn-danger"
+                  (click)="deleteTask(t)"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="pagination" *ngIf="totalPages > 1">
+          <div class="page-info">
+            Showing
+            <strong>
+              {{ (currentPage - 1) * pageSize + 1 }}
+              –
+              {{ Math.min(currentPage * pageSize, assigneeTasks.length) }}
+            </strong>
+            of <strong>{{ assigneeTasks.length }}</strong> tasks
+          </div>
+
+          <div class="page-controls">
+            <button
+              type="button"
+              (click)="goToPage(currentPage - 1)"
+              [disabled]="currentPage === 1"
+            >
+              Prev
+            </button>
+
+            <span class="page-label">
+              Page {{ currentPage }} / {{ totalPages }}
+            </span>
+
+            <button
+              type="button"
+              (click)="goToPage(currentPage + 1)"
+              [disabled]="currentPage === totalPages"
+            >
+              Next
+            </button>
+
+            <select
+              [(ngModel)]="pageSize"
+              (ngModelChange)="onPageSizeChange($event)"
+            >
+              <option *ngFor="let size of pageSizeOptions" [ngValue]="size">
+                {{ size }} / page
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <p *ngIf="selectedAssignee && !assigneeTasks.length" class="hint-text">
+        No tasks for this assignee yet. Use "Add Task" to create one.
+      </p>
+
+      <p *ngIf="!selectedAssignee" class="hint-text">
+        Choose a staff member from the left to see their tasks.
+      </p>
+    </main>
+  </div>
+
+  <!-- ===== Modal ===== -->
+  <div class="modal-backdrop" *ngIf="isModalOpen">
+    <div class="modal">
+      <header class="modal-header">
+        <h3>
+          {{ modalMode === 'create' ? 'Add Task' : 'Edit Task' }}
+        </h3>
+        <button
+          type="button"
+          class="close-btn"
+          (click)="closeModal()"
+          [disabled]="formSaving"
+        >
+          ✕
+        </button>
+      </header>
+
+      <form (ngSubmit)="submitForm()" class="modal-body">
+        <div class="modal-grid">
+          <div class="field-group full">
+            <label>Title <span class="required">*</span></label>
+            <input
+              type="text"
+              [(ngModel)]="formState.title"
+              name="title"
+              required
+              placeholder="Short task title..."
+            />
+          </div>
+
+          <div class="field-group full">
+            <label>Description</label>
+            <textarea
+              rows="3"
+              [(ngModel)]="formState.description"
+              name="description"
+              placeholder="What should be done exactly?"
+            ></textarea>
+          </div>
+
+          <div class="field-group">
+            <label>Assignee <span class="required">*</span></label>
+            <select
+              [(ngModel)]="formState.assigneeId"
+              name="assigneeId"
+              required
+            >
+              <option [ngValue]="null" disabled>Select staff</option>
+              <option
+                *ngFor="let u of operationStaff"
+                [ngValue]="u.id"
+              >
+                {{ u.fullName }} ({{ u.position || 'n/a' }})
+              </option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label>Status</label>
+            <select
+              [(ngModel)]="formState.status"
+              name="status"
+            >
+              <option
+                *ngFor="let opt of statusOptions"
+                [ngValue]="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label>Priority</label>
+            <select
+              [(ngModel)]="formState.priority"
+              name="priority"
+            >
+              <option
+                *ngFor="let opt of priorityOptions"
+                [ngValue]="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label>Deadline (optional)</label>
+            <div class="deadline-row">
+              <input
+                type="date"
+                [(ngModel)]="formState.dueDate"
+                name="dueDate"
+              />
+              <input
+                type="time"
+                [(ngModel)]="formState.dueTime"
+                name="dueTime"
+              />
+            </div>
+          </div>
+        </div>
+
+        <footer class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="closeModal()"
+            [disabled]="formSaving"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="formSaving"
+          >
+            {{ formSaving ? 'Saving…' : 'Save Task' }}
+          </button>
+        </footer>
+      </form>
+    </div>
+  </div>
+</section>

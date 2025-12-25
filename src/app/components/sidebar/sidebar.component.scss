@@ -1,0 +1,295 @@
+/* src/app/components/sidebar/sidebar.component.scss */
+
+:host {
+  /* Tokens */
+  --brand: #e0b34f;      /* Gold */
+  --ink: #112535;        /* Dark navy */
+  --muted: #6b7280;      /* Gray */
+  --border: #e5e7eb;     /* Border gray */
+  --hover: #f5f5f5;      /* Hover bg */
+  --active-bg: #fff7e6;
+  --active-border: #f1e3bf;
+  --shadow: 0 12px 28px rgba(2, 6, 23, 0.08);
+}
+
+.sidebar {
+  width: 256px;
+  background: #fff;
+  border-inline-end: 1px solid var(--border);
+  padding: 16px 14px;
+  box-shadow: var(--shadow);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* هيدر السايدبار (اللوجو + الاسم) */
+.sidebar-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.sidebar-logo {
+  max-width: 40px;
+  object-fit: contain;
+  margin-bottom: 10px;
+}
+
+.sidebar-app-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: center;
+}
+
+/* قائمة الروابط */
+.nav {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* الرابط/الزر الأساسي */
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #374151; /* gray-700 */
+  text-decoration: none;
+  font-size: 14px;
+  border: 1px solid transparent;
+  background: transparent;
+  width: 100%;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.nav-link--parent {
+  justify-content: flex-start;
+  position: relative;
+}
+
+.nav-icon {
+  font-size: 18px;
+}
+
+/* تثبيت محاذاة الأيقونات داخل sublinks (اختياري لكنه بيحسن شكل الاصطفاف) */
+.nav-sublink .nav-icon {
+  width: 18px;
+  flex: 0 0 18px;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.caret {
+  margin-inline-start: auto;
+  font-size: 18px;
+  transition: transform 0.15s ease;
+}
+
+.nav-link--parent.is-open .caret {
+  transform: rotate(180deg);
+}
+
+/* Hover */
+.nav-link:hover {
+  background: var(--hover);
+}
+
+/* Active */
+.nav-link.is-active {
+  background: var(--active-bg);
+  border-color: var(--active-border);
+  color: #111827; /* gray-900 */
+}
+
+/* Focus */
+.nav-link:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(224, 179, 79, 0.28); /* brand ring */
+}
+
+/* ====== الساب لينكات ====== */
+
+/* أكورديون عام للـ sub-nav */
+.sub-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+
+  padding-inline-start: 8px;
+  border-inline-start: 1px solid #e5e7eb;
+
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-2px);
+  transition:
+    max-height 0.22s ease,
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.sub-nav--open {
+  max-height: 600px; /* رقم كبير يكفي كل المحتوى */
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+/* الساب لينك */
+.nav-sublink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding-block: 8px;
+  padding-inline-start: 24px;
+  padding-inline-end: 10px;
+
+  border-radius: 6px;
+  font-size: 13px;
+  color: #4b5563;
+  text-decoration: none;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.nav-sublink .nav-icon {
+  font-size: 16px;
+}
+
+/* Hover / Active للساب لينك */
+.nav-sublink:hover {
+  background: #f9fafb;
+}
+
+.nav-sublink.is-active {
+  background: #fff7e6;
+  border-color: #f1e3bf;
+  color: #111827;
+}
+
+/* ====== nested groups (Contracts تحت HR مثلاً) ====== */
+
+.nav-group--nested {
+  margin-top: 4px;
+}
+
+.nav-link--sub {
+  font-size: 13px;
+  padding-inline-start: 16px;
+}
+
+.sub-nav--inner {
+  margin-top: 2px;
+  margin-inline-start: 8px;
+  border-inline-start-color: #f3f4f6;
+}
+
+.nav-sublink--inner {
+  padding-inline-start: 20px;
+  font-size: 12px;
+}
+
+/* (الكلاسات دي كانت للـ dynamic clients اللي شيلناها، ممكن تسيبها أو تشيلها) */
+.nav-group--nested-client {
+  margin-top: 2px;
+}
+
+.nav-link--client {
+  padding-inline-start: 22px;
+  font-size: 12px;
+}
+
+/* حالة الـ loading / error للـ clients */
+.clients-state {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.clients-state--error {
+  color: #b91c1c;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== Badge (dot + number) for follow-up link ===== */
+
+/* IMPORTANT FIX:
+   كان space-between بيبوّظ اصطفاف اللينك مقارنة بباقي الساب لينكات
+   لأن فيه (icon + text + badge)، فالنص بيتزقّ ويبان كأنه واخد padding/margin */
+.nav-sublink--with-badge {
+  justify-content: flex-start;  /* بدل space-between */
+}
+
+.nav-sublink--with-badge .nav-badge {
+  margin-inline-start: auto;    /* يخلي الـ badge في آخر السطر بشكل طبيعي */
+  flex: 0 0 auto;
+}
+
+/* لو النص طويل وحابب تمنع تكسير غريب (اختياري) */
+.nav-sublink--with-badge > span:not(.nav-badge) {
+  min-width: 0;
+}
+
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--active-border);
+  background: var(--active-bg);
+  color: #111827;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.nav-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.nav-badge-text {
+  line-height: 1;
+}

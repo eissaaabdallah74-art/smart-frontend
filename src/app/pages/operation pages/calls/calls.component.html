@@ -1,0 +1,275 @@
+<section class="my-calls-page">
+  <header class="head">
+    <div class="head-main">
+      <h1>My Calls</h1>
+      <p class="sub">
+        Review the calls assigned to you and update Status, Call Feedback,
+        WhatsApp status, and Comment.
+      </p>
+    </div>
+
+    <div class="head-filters">
+      <label for="statusFilter">Status:</label>
+      <select
+        id="statusFilter"
+        [(ngModel)]="selectedStatusFilter"
+        (ngModelChange)="onStatusFilterChange($event)"
+      >
+        <option value="all">All</option>
+        <option value="pending">Pending</option>
+        <option value="completed">Completed</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="rescheduled">Rescheduled</option>
+      </select>
+    </div>
+  </header>
+
+  <div *ngIf="errorMsg" class="banner banner-error">
+    {{ errorMsg }}
+  </div>
+
+  <ng-container *ngIf="!loading; else loadingTpl">
+    <div class="card" *ngIf="calls.length; else emptyTpl">
+      <div class="table-view">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Vehicle</th>
+                <th>Government</th>
+                <th>Status</th>
+                <th>Call Feedback</th>
+                <th>WhatsApp message</th>
+                <th>Comment</th>
+                <th></th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr *ngFor="let c of pagedCalls">
+                <td>{{ c.name || '-' }}</td>
+                <td>{{ c.phone || '-' }}</td>
+                <td>{{ c.vehicle_type || '-' }}</td>
+                <td>{{ c.government || '-' }}</td>
+
+                <td class="cell-input">
+                  <select
+                    [(ngModel)]="rowState[c.id].status"
+                    (ngModelChange)="onRowChanged(c.id)"
+                  >
+                    <option
+                      *ngFor="let opt of statusOptions"
+                      [ngValue]="opt.value"
+                    >
+                      {{ opt.label }}
+                    </option>
+                  </select>
+                </td>
+
+                <td class="cell-input">
+                  <select
+                    [(ngModel)]="rowState[c.id].callFeedback"
+                    (ngModelChange)="onRowChanged(c.id)"
+                  >
+                    <option
+                      *ngFor="let opt of callFeedbackOptions"
+                      [ngValue]="opt.value"
+                    >
+                      {{ opt.label }}
+                    </option>
+                  </select>
+                </td>
+
+                <td class="cell-input">
+                  <select
+                    [(ngModel)]="rowState[c.id].whatsappStatus"
+                    (ngModelChange)="onRowChanged(c.id)"
+                  >
+                    <option
+                      *ngFor="let opt of whatsappOptions"
+                      [ngValue]="opt.value"
+                    >
+                      {{ opt.label }}
+                    </option>
+                  </select>
+                </td>
+
+                <td class="cell-input">
+                  <input
+                    type="text"
+                    [(ngModel)]="rowState[c.id].comment"
+                    (ngModelChange)="onRowChanged(c.id)"
+                    placeholder="Comment..."
+                  />
+                </td>
+
+                <td class="cell-actions">
+                  <button
+                    type="button"
+                    [disabled]="
+                      !rowState[c.id]?.dirty || rowState[c.id]?.saving
+                    "
+                    (click)="saveRow(c)"
+                  >
+                    {{ rowState[c.id]?.saving ? 'Saving...' : 'Save' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="cards-view">
+        <article class="call-card" *ngFor="let c of pagedCalls">
+          <header class="card-header">
+            <div class="candidate">
+              {{ c.name || '-' }}
+            </div>
+            <span
+              class="status-pill"
+              [ngClass]="rowState[c.id]?.status || c.status"
+            >
+              {{ rowState[c.id]?.status || c.status }}
+            </span>
+          </header>
+
+          <div class="card-row">
+            <span class="label">Phone</span>
+            <span class="value">{{ c.phone || '-' }}</span>
+          </div>
+
+          <div class="card-row">
+            <span class="label">Vehicle</span>
+            <span class="value">{{ c.vehicle_type || '-' }}</span>
+          </div>
+
+          <div class="card-row">
+            <span class="label">Government</span>
+            <span class="value">{{ c.government || '-' }}</span>
+          </div>
+
+          <div class="card-row">
+            <span class="label">Status</span>
+            <select
+              [(ngModel)]="rowState[c.id].status"
+              (ngModelChange)="onRowChanged(c.id)"
+            >
+              <option
+                *ngFor="let opt of statusOptions"
+                [ngValue]="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="card-row">
+            <span class="label">Call Feedback</span>
+            <select
+              [(ngModel)]="rowState[c.id].callFeedback"
+              (ngModelChange)="onRowChanged(c.id)"
+            >
+              <option
+                *ngFor="let opt of callFeedbackOptions"
+                [ngValue]="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="card-row">
+            <span class="label">WhatsApp</span>
+            <select
+              [(ngModel)]="rowState[c.id].whatsappStatus"
+              (ngModelChange)="onRowChanged(c.id)"
+            >
+              <option
+                *ngFor="let opt of whatsappOptions"
+                [ngValue]="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="card-row">
+            <span class="label">Comment</span>
+            <textarea
+              rows="2"
+              [(ngModel)]="rowState[c.id].comment"
+              (ngModelChange)="onRowChanged(c.id)"
+              placeholder="Comment..."
+            ></textarea>
+          </div>
+
+          <footer class="card-actions">
+            <button
+              type="button"
+              [disabled]="
+                !rowState[c.id]?.dirty || rowState[c.id]?.saving
+              "
+              (click)="saveRow(c)"
+            >
+              {{ rowState[c.id]?.saving ? 'Saving...' : 'Save' }}
+            </button>
+          </footer>
+        </article>
+      </div>
+
+      <div class="pagination" *ngIf="totalPages > 1">
+        <div class="page-info">
+          Showing
+          <strong>
+            {{ (currentPage - 1) * pageSize + 1 }}
+            –
+            {{ Math.min(currentPage * pageSize, calls.length) }}
+          </strong>
+          of <strong>{{ calls.length }}</strong> calls
+        </div>
+
+        <div class="page-controls">
+          <button
+            type="button"
+            (click)="goToPage(currentPage - 1)"
+            [disabled]="currentPage === 1"
+          >
+            Prev
+          </button>
+
+          <span class="page-label">
+            Page {{ currentPage }} / {{ totalPages }}
+          </span>
+
+          <button
+            type="button"
+            (click)="goToPage(currentPage + 1)"
+            [disabled]="currentPage === totalPages"
+          >
+            Next
+          </button>
+
+          <select
+            [(ngModel)]="pageSize"
+            (ngModelChange)="onPageSizeChange($event)"
+          >
+            <option *ngFor="let size of pageSizeOptions" [ngValue]="size">
+              {{ size }} / page
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-template #loadingTpl>
+    <div class="loading-block">Loading calls...</div>
+  </ng-template>
+
+  <ng-template #emptyTpl>
+    <p class="empty-text">No calls found.</p>
+  </ng-template>
+</section>

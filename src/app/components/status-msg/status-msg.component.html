@@ -1,0 +1,27 @@
+<div
+  class="status-msg"
+  [ngClass]="{
+    'status-msg--success': type === 'success',
+    'status-msg--error': type === 'error',
+    'status-msg--info': type === 'info'
+  }"
+>
+  <div class="status-msg__icon" aria-hidden="true">
+    {{ icon }}
+  </div>
+
+  <div class="status-msg__content">
+    <p class="status-msg__text">
+      {{ message }}
+    </p>
+  </div>
+
+  <button
+    type="button"
+    class="status-msg__close"
+    (click)="onClose()"
+    aria-label="Close status"
+  >
+    ×
+  </button>
+</div>

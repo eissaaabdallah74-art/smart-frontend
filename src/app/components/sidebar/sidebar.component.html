@@ -1,0 +1,288 @@
+<!-- src/app/components/sidebar/sidebar.component.html -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <img
+      src="assets/images/logo.png"
+      alt="Smart Man & Van logo"
+      class="sidebar-logo"
+    />
+    <div class="sidebar-app-title">Smart Man & Van</div>
+  </div>
+
+  <nav class="nav">
+    <!-- Dashboard: Admin فقط -->
+    <a
+      *ngIf="isAdmin"
+      routerLink="/"
+      [routerLinkActive]="['is-active']"
+      [routerLinkActiveOptions]="{ exact: true }"
+      class="nav-link"
+    >
+      <i class="ri-dashboard-line nav-icon" aria-hidden="true"></i>
+      <span>Dashboard</span>
+    </a>
+
+    <div class="nav-group" *ngIf="isOperations || isAdmin">
+      <button
+        type="button"
+        class="nav-link nav-link--parent"
+        (click)="toggleGroup('operations')"
+        [class.is-open]="openGroup === 'operations'"
+      >
+        <i class="ri-briefcase-line nav-icon" aria-hidden="true"></i>
+        <span>Operations</span>
+        <i class="ri-arrow-down-s-line caret" aria-hidden="true"></i>
+      </button>
+
+      <div class="sub-nav" [class.sub-nav--open]="openGroup === 'operations'">
+        <a
+          routerLink="/pending-requests"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+          *ngIf="isOperations || isHr || isAdmin || isCrm || isFinance"
+        >
+          <i class="ri-user-voice-line nav-icon" aria-hidden="true"></i>
+          <span>Pending requests</span>
+        </a>
+
+        <a
+          routerLink="/interviews"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+          *ngIf="isHr || isAdmin || isOperations"
+        >
+          <i class="ri-user-voice-line nav-icon" aria-hidden="true"></i>
+          <span>Interview</span>
+        </a>
+
+        <a
+          routerLink="/security-background-check"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+          *ngIf="isOperations || isHr || isAdmin"
+        >
+          <i class="ri-file-search-line nav-icon" aria-hidden="true"></i>
+          <span>Background sheets</span>
+        </a>
+
+        <!-- NEW: Background Follow-up (Operations) -->
+        <a
+          routerLink="/operations/background-follow-up"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink nav-sublink--with-badge"
+          *ngIf="isOperations || isAdmin"
+        >
+          <i class="ri-shield-check-line nav-icon" aria-hidden="true"></i>
+          <span>Background follow-up</span>
+
+          <span class="nav-badge" *ngIf="bgFollowUpCount() > 0">
+            <span class="nav-dot" aria-hidden="true"></span>
+            <span class="nav-badge-text">{{ bgFollowUpCount() }}</span>
+          </span>
+        </a>
+
+        <a
+          routerLink="/clients"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+          *ngIf="isOperations || isCrm || isFinance || isAdmin"
+        >
+          <i class="ri-user-3-line nav-icon" aria-hidden="true"></i>
+          <span>Clients list</span>
+        </a>
+
+        <!-- Taskboard (Manager/Supervisor فقط) -->
+        <a
+          routerLink="/operations/tasks-board"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+          *ngIf="isOperationManagerOrSupervisor || isAdmin"
+        >
+          <i class="ri-task-line nav-icon" aria-hidden="true"></i>
+          <span>Task board</span>
+        </a>
+
+        <!-- My Tasks -->
+        <a
+          routerLink="/operations/my-tasks"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+          *ngIf="isOperationStaffWithCalls"
+        >
+          <i class="ri-task-line nav-icon" aria-hidden="true"></i>
+          <span>My tasks</span>
+        </a>
+
+        <!-- Calls sheet -->
+        <a
+          routerLink="/calls"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+          *ngIf="isOperationManagerOrSupervisor || isAdmin"
+        >
+          <i class="ri-phone-line nav-icon" aria-hidden="true"></i>
+          <span>Calls sheet</span>
+        </a>
+
+        <!-- My Calls -->
+        <a
+          routerLink="/my-calls"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+          *ngIf="isOperationStaffWithCalls"
+        >
+          <i class="ri-phone-line nav-icon" aria-hidden="true"></i>
+          <span>My calls</span>
+        </a>
+
+        <a
+          routerLink="/operations/team-reports"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+          *ngIf="isOperations || isAdmin"
+        >
+          <i class="ri-bar-chart-2-line nav-icon" aria-hidden="true"></i>
+          <span>Reports (Team Leader)</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- ========== HR group ========== -->
+    <div class="nav-group" *ngIf="isHr || isAdmin">
+      <button
+        type="button"
+        class="nav-link nav-link--parent"
+        (click)="toggleGroup('hr')"
+        [class.is-open]="openGroup === 'hr'"
+      >
+        <i class="ri-user-settings-line nav-icon" aria-hidden="true"></i>
+        <span>HR</span>
+        <i class="ri-arrow-down-s-line caret" aria-hidden="true"></i>
+      </button>
+
+      <div class="sub-nav" [class.sub-nav--open]="openGroup === 'hr'">
+        <a
+          routerLink="/interviews"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+        >
+          <i class="ri-user-voice-line nav-icon" aria-hidden="true"></i>
+          <span>Interview sheet</span>
+        </a>
+
+        <a
+          routerLink="/employment-contracts-status"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+        >
+          <i class="ri-user-2-line nav-icon" aria-hidden="true"></i>
+          <span>Employment Contracts Status</span>
+        </a>
+
+        <a
+          routerLink="/security-background-check"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+        >
+          <i class="ri-file-search-line nav-icon" aria-hidden="true"></i>
+          <span>Background check</span>
+        </a>
+
+        <a
+          routerLink="/hr/clients"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+        >
+          <i class="ri-user-3-line nav-icon" aria-hidden="true"></i>
+          <span>Clients</span>
+        </a>
+
+        <div class="nav-group nav-group--nested">
+          <button
+            type="button"
+            class="nav-link nav-link--parent nav-link--sub"
+            (click)="toggleHrContracts()"
+            [class.is-open]="hrContractsOpen"
+          >
+            <i class="ri-file-text-line nav-icon" aria-hidden="true"></i>
+            <span>Contracts</span>
+            <i class="ri-arrow-down-s-line caret" aria-hidden="true"></i>
+          </button>
+
+          <div class="sub-nav sub-nav--inner" [class.sub-nav--open]="hrContractsOpen">
+            <a
+              routerLink="/hr/contracts/drivers"
+              [routerLinkActive]="['is-active']"
+              class="nav-sublink nav-sublink--inner"
+            >
+              <span>Drivers</span>
+            </a>
+            <a
+              routerLink="/hr/contracts/employees"
+              [routerLinkActive]="['is-active']"
+              class="nav-sublink nav-sublink--inner"
+            >
+              <span>Employees</span>
+            </a>
+          </div>
+        </div>
+
+        <a
+          routerLink="/hr/deductions"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+        >
+          <i class="ri-scales-2-line nav-icon" aria-hidden="true"></i>
+          <span>Deductions</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- ========== Finance group ========== -->
+    <div class="nav-group" *ngIf="isFinance || isAdmin">
+      <button
+        type="button"
+        class="nav-link nav-link--parent"
+        (click)="toggleGroup('finance')"
+        [class.is-open]="openGroup === 'finance'"
+      >
+        <i class="ri-money-pound-circle-line nav-icon" aria-hidden="true"></i>
+        <span>Finance</span>
+        <i class="ri-arrow-down-s-line caret" aria-hidden="true"></i>
+      </button>
+
+      <div class="sub-nav" [class.sub-nav--open]="openGroup === 'finance'">
+        <!-- finance links هنا بعدين -->
+      </div>
+    </div>
+
+    <!-- ========== CRM group ========== -->
+    <div class="nav-group" *ngIf="isCrm || isAdmin">
+      <button
+        type="button"
+        class="nav-link nav-link--parent"
+        (click)="toggleGroup('crm')"
+        [class.is-open]="openGroup === 'crm'"
+      >
+        <i class="ri-customer-service-2-line nav-icon" aria-hidden="true"></i>
+        <span>CRM</span>
+        <i class="ri-arrow-down-s-line caret" aria-hidden="true"></i>
+      </button>
+
+      <div class="sub-nav" [class.sub-nav--open]="openGroup === 'crm'">
+        <!-- crm links بعدين -->
+      </div>
+    </div>
+
+    <!-- Users -->
+    <a
+      *ngIf="perms.canViewUsers || perms.isAdmin"
+      routerLink="/users"
+      [routerLinkActive]="['is-active']"
+      class="nav-link"
+    >
+      <i class="ri-team-line nav-icon" aria-hidden="true"></i>
+      <span>Users</span>
+    </a>
+  </nav>
+</aside>

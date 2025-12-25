@@ -1,0 +1,165 @@
+<header class="app-header">
+  <!-- الجزء الأيسر: برجر + البراند -->
+  <div class="header-left">
+    <!-- زر البرجر (موبايل) -->
+    <button
+      type="button"
+      class="icon-btn header-burger"
+      aria-label="Toggle navigation"
+      (click)="toggleMobileMenu()"
+    >
+      <i class="ri-menu-line" aria-hidden="true"></i>
+    </button>
+
+    <!-- البراند / الاسم -->
+    <div class="brand">
+      <div class="avatar">
+        {{ (user?.fullName || 'S')[0] }}
+      </div>
+
+      <div class="brand-text">
+        <div class="brand-title">Smart Man & Van</div>
+        <div class="brand-sub">
+          Welcome, {{ user?.fullName || 'User' }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- nav أفقي (ممكن تستخدمه لو حبيت) -->
+  <nav class="main-nav">
+    <a
+      routerLink="/"
+      [routerLinkActive]="['is-active']"
+      [routerLinkActiveOptions]="{ exact: true }"
+      class="nav-link"
+      (click)="closeMobileMenu()"
+    >
+      <i class="ri-dashboard-line nav-icon" aria-hidden="true"></i>
+      <span>Dashboard</span>
+    </a>
+
+    <a
+      routerLink="/drivers"
+      [routerLinkActive]="['is-active']"
+      class="nav-link"
+      (click)="closeMobileMenu()"
+    >
+      <i class="ri-truck-line nav-icon" aria-hidden="true"></i>
+      <span>Drivers</span>
+    </a>
+
+    <a
+      routerLink="/clients"
+      [routerLinkActive]="['is-active']"
+      class="nav-link"
+      (click)="closeMobileMenu()"
+    >
+      <i class="ri-user-3-line nav-icon" aria-hidden="true"></i>
+      <span>Clients</span>
+    </a>
+
+    <a
+      *ngIf="perms?.canViewUsers || perms?.isAdmin"
+      routerLink="/users"
+      [routerLinkActive]="['is-active']"
+      class="nav-link"
+      (click)="closeMobileMenu()"
+    >
+      <i class="ri-team-line nav-icon" aria-hidden="true"></i>
+      <span>Users</span>
+    </a>
+  </nav>
+
+  <!-- زر اللوج آوت (ديسكتوب) -->
+  <button
+    (click)="logout.emit()"
+    class="btn header-logout"
+  >
+    <i class="ri-logout-box-r-line" aria-hidden="true"></i>
+    <span>Logout</span>
+  </button>
+
+  <!-- منيو الموبايل -->
+  <nav class="mobile-nav" *ngIf="mobileMenuOpen">
+    <a
+      routerLink="/"
+      [routerLinkActive]="['is-active']"
+      [routerLinkActiveOptions]="{ exact: true }"
+      class="nav-link"
+      (click)="closeMobileMenu()"
+    >
+      <i class="ri-dashboard-line nav-icon" aria-hidden="true"></i>
+      <span>Dashboard</span>
+    </a>
+
+    <!-- Drivers group -->
+    <div class="nav-group">
+      <button
+        type="button"
+        class="nav-link nav-link--parent"
+        (click)="toggleDriversMobile()"
+        [class.is-open]="driversMobileOpen"
+      >
+        <i class="ri-truck-line nav-icon" aria-hidden="true"></i>
+        <span>Drivers</span>
+        <i class="ri-arrow-down-s-line caret" aria-hidden="true"></i>
+      </button>
+
+      <div class="sub-nav" *ngIf="driversMobileOpen">
+        <a
+          routerLink="/drivers"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+          (click)="closeMobileMenu()"
+        >
+          <i class="ri-database-2-line nav-icon" aria-hidden="true"></i>
+          <span>Drivers data</span>
+        </a>
+
+        <a
+          routerLink="/drivers-tracking"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+          (click)="closeMobileMenu()"
+        >
+          <i class="ri-route-line nav-icon" aria-hidden="true"></i>
+          <span>Drivers tracking</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Clients -->
+    <a
+      routerLink="/clients"
+      [routerLinkActive]="['is-active']"
+      class="nav-link"
+      (click)="closeMobileMenu()"
+    >
+      <i class="ri-user-3-line nav-icon" aria-hidden="true"></i>
+      <span>Clients</span>
+    </a>
+
+    <!-- Users -->
+    <a
+      *ngIf="perms?.canViewUsers || perms?.isAdmin"
+      routerLink="/users"
+      [routerLinkActive]="['is-active']"
+      class="nav-link"
+      (click)="closeMobileMenu()"
+    >
+      <i class="ri-team-line nav-icon" aria-hidden="true"></i>
+      <span>Users</span>
+    </a>
+
+    <!-- Logout في آخر القائمة -->
+    <button
+      type="button"
+      class="btn btn--primary mobile-logout"
+      (click)="logout.emit(); closeMobileMenu()"
+    >
+      <i class="ri-logout-box-r-line" aria-hidden="true"></i>
+      <span>Logout</span>
+    </button>
+  </nav>
+</header>

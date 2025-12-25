@@ -1,0 +1,502 @@
+<!-- src/app/pages/.../interview/interview.component.html -->
+<section class="interviews-page">
+  <div class="interviews-card">
+    <!-- Header -->
+    <div class="interviews-header">
+      <div class="interviews-header-main">
+        <h1 class="interviews-title">
+          Interviews
+          <span class="interviews-count">({{ filtered().length }})</span>
+        </h1>
+        <p class="interviews-subtitle">
+          Manage courier interview pipeline, follow-ups, and status in one
+          place.
+        </p>
+      </div>
+
+      <div class="interviews-header-actions">
+        <!-- Import -->
+        <import-button
+          class="import-btn"
+          (fileSelected)="onInterviewsImport($event)"
+        ></import-button>
+
+        <!-- Export -->
+        <export-button
+          class="export-btn"
+          [data]="exportData()"
+          filename="interviews_export.xlsx"
+        ></export-button>
+
+        <!-- Add -->
+        <button
+          type="button"
+          class="btn btn--primary"
+          (click)="openAddModal()"
+        >
+          <i class="ri-user-add-line" aria-hidden="true"></i>
+          <span>Add Interview</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters + Search -->
+    <div class="interviews-filters">
+      <div class="filter-row">
+        <!-- Search -->
+        <div class="filter-group filter-group--wide">
+          <label for="interviewSearch" class="filter-label">
+            Search Interviews
+          </label>
+          <input
+            id="interviewSearch"
+            type="text"
+            class="filter-input"
+            placeholder="Search by courier name, phone, account, hub, zone, status..."
+            [ngModel]="search()"
+            (ngModelChange)="onSearchChange($event)"
+          />
+        </div>
+
+        <!-- Account filter -->
+        <div class="filter-group">
+          <label for="accountFilter" class="filter-label">Account</label>
+          <select
+            id="accountFilter"
+            class="filter-input"
+            [ngModel]="accountFilter()"
+            (ngModelChange)="onAccountFilterChange($event)"
+          >
+            <option value="">All Accounts</option>
+            <option *ngFor="let acc of accounts()" [value]="acc">
+              {{ acc }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Status filter -->
+        <div class="filter-group">
+          <label for="statusFilter" class="filter-label">Status</label>
+          <select
+            id="statusFilter"
+            class="filter-input"
+            [ngModel]="statusFilter()"
+            (ngModelChange)="onStatusFilterChange($event)"
+          >
+            <option value="">All Status</option>
+            <option *ngFor="let st of statusOptions" [value]="st">
+              {{ st }}
+            </option>
+          </select>
+        </div>
+
+        <!-- HR Contract filter -->
+        <div class="filter-group">
+          <label for="hrFilter" class="filter-label">HR Contract</label>
+          <select
+            id="hrFilter"
+            class="filter-input"
+            [ngModel]="signedWithHrFilter()"
+            (ngModelChange)="onSignedWithHrFilterChange($event)"
+          >
+            <option value="">All HR States</option>
+            <option value="signed">Signed with HR</option>
+            <option value="not_signed">Not signed</option>
+            <option value="other">Other statuses</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Active Filters badges -->
+      <div class="active-filters" *ngIf="hasActiveFilters()">
+        <div class="active-filters-list">
+          <span class="active-filter" *ngIf="search().trim()">
+            Search: “{{ search() }}”
+            <button
+              type="button"
+              class="filter-remove"
+              (click)="onSearchChange('')"
+            >
+              <i class="ri-close-line"></i>
+            </button>
+          </span>
+
+          <span class="active-filter" *ngIf="accountFilter()">
+            Account: {{ accountFilter() }}
+            <button
+              type="button"
+              class="filter-remove"
+              (click)="onAccountFilterChange('')"
+            >
+              <i class="ri-close-line"></i>
+            </button>
+          </span>
+
+          <span class="active-filter" *ngIf="statusFilter()">
+            Status: {{ statusFilter() }}
+            <button
+              type="button"
+              class="filter-remove"
+              (click)="onStatusFilterChange('')"
+            >
+              <i class="ri-close-line"></i>
+            </button>
+          </span>
+
+          <span class="active-filter" *ngIf="signedWithHrFilter()">
+            HR:
+            {{
+              signedWithHrFilter() === 'signed with hr'
+                ? 'Signed with HR'
+                : signedWithHrFilter() === 'not_signed'
+                ? 'Not signed'
+                : 'Other'
+            }}
+            <button
+              type="button"
+              class="filter-remove"
+              (click)="onSignedWithHrFilterChange('')"
+            >
+              <i class="ri-close-line"></i>
+            </button>
+          </span>
+        </div>
+
+        <button
+          type="button"
+          class="btn btn--secondary btn--sm"
+          (click)="clearFilters()"
+        >
+          <i class="ri-close-line" aria-hidden="true"></i>
+          <span>Clear filters</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Table Section + pagination header -->
+    <div class="table-section">
+      <div class="table-header">
+        <div class="table-info">
+          Showing
+          <ng-container *ngIf="filtered().length > 0; else emptyRange">
+            {{ startIndex() + 1 }}-{{ endIndex() }}
+          </ng-container>
+          <ng-template #emptyRange>0-0</ng-template>
+          of {{ filtered().length }} interviews
+        </div>
+
+        <div class="table-actions">
+          <div class="page-size-selector">
+            <label for="pageSize" class="page-size-label">Show:</label>
+            <select
+              id="pageSize"
+              class="page-size-select"
+              [ngModel]="pageSize()"
+              (ngModelChange)="onPageSizeChange($event)"
+            >
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Desktop table -->
+      <div class="table-wrapper table-wrapper--desktop">
+        <table class="interviews-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <!-- <th>Ticket NO#</th> -->
+              <th>Courier</th>
+              <th>Phone</th>
+
+              <!-- ✅ replaced Residence with National ID -->
+              <th>National ID</th>
+
+              <th>Account</th>
+              <th>Hub</th>
+              <th>Zone</th>
+              <th>Vehicle</th>
+              <th>Interviewer</th>
+              <th>Contract</th>
+              <th>Status</th>
+              <th class="th-actions">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr
+              *ngFor="let row of paginated(); trackBy: trackById"
+              class="row"
+            >
+              <td>{{ row.date }}</td>
+              <!-- <td>{{ row.ticketNo }}</td> -->
+
+              <td class="cell-primary">
+                <span class="cell-primary-name">
+                  {{ row.courierName || 'Unnamed courier' }}
+                </span>
+              </td>
+
+              <td>{{ row.phoneNumber }}</td>
+
+              <!-- ✅ National ID cell -->
+              <td class="cell-mono">
+                {{ row.nationalId || '-' }}
+              </td>
+
+              <td>{{ row.account || '-' }}</td>
+              <td>{{ row.hub || '-' }}</td>
+              <td>{{ row.zone || '-' }}</td>
+              <td>{{ row.vehicleType || '-' }}</td>
+              <td>{{ row.interviewer || '-' }}</td>
+
+              <!-- HR Contract UX -->
+              <td>
+                <span
+                  class="status-chip"
+                  [ngClass]="getSignedWithHrClass(row)"
+                >
+                  {{ getSignedWithHrLabel(row) }}
+                </span>
+              </td>
+
+              <!-- ✅ Status UX improved -->
+              <td>
+                <span
+                  class="status-chip status-chip--strong"
+                  [ngClass]="'status-chip--status ' + (row.courierStatus || 'unknown')"
+                >
+                  {{ row.courierStatus || 'Unknown' }}
+                </span>
+              </td>
+
+              <td class="cell-actions">
+                <!-- View / Details -->
+                <button
+                  type="button"
+                  class="icon-action icon-action--view"
+                  (click)="openDetails(row)"
+                  title="View details"
+                >
+                  <i class="ri-eye-line" aria-hidden="true"></i>
+                  <span class="sr-only">View interview details</span>
+                </button>
+
+                <!-- Edit -->
+                <button
+                  type="button"
+                  class="icon-action icon-action--edit"
+                  (click)="openEditModal(row)"
+                  title="Edit interview"
+                >
+                  <i class="ri-edit-line" aria-hidden="true"></i>
+                  <span class="sr-only">Edit interview</span>
+                </button>
+
+                <!-- Delete -->
+                <button
+                  type="button"
+                  class="icon-action icon-action--delete"
+                  (click)="deleteInterview(row.id)"
+                  title="Delete interview"
+                >
+                  <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
+                  <span class="sr-only">Delete interview</span>
+                </button>
+              </td>
+            </tr>
+
+            <tr *ngIf="filtered().length === 0">
+              <td class="empty-cell" colspan="12">
+                No interviews match your search.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile cards -->
+      <div class="cards-wrapper">
+        <article
+          class="interview-card"
+          *ngFor="let row of paginated(); trackBy: trackById"
+        >
+          <header class="interview-card-header">
+            <div class="card-date">
+              {{ row.date || '-' }}
+            </div>
+
+            <div class="card-status">
+              <span
+                class="status-chip"
+                [ngClass]="getSignedWithHrClass(row)"
+              >
+                {{ getSignedWithHrLabel(row) }}
+              </span>
+
+              <!-- ✅ Status UX improved on cards too -->
+              <span
+                class="status-chip status-chip--strong"
+                [ngClass]="'status-chip--status ' + (row.courierStatus || 'unknown')"
+              >
+                {{ row.courierStatus || 'Unknown' }}
+              </span>
+            </div>
+          </header>
+
+          <button
+            type="button"
+            class="interview-card-main"
+          >
+            <div class="card-name">
+              {{ row.courierName || 'Unnamed courier' }}
+            </div>
+
+            <div class="card-phone" *ngIf="row.phoneNumber">
+              {{ row.phoneNumber }}
+            </div>
+
+            <div class="card-account">
+              <span *ngIf="row.account">{{ row.account }}</span>
+              <span
+                class="card-location"
+                *ngIf="row.hub || row.zone"
+              >
+                • {{ row.hub || '-' }}
+                <ng-container *ngIf="row.zone">
+                  - {{ row.zone }}
+                </ng-container>
+              </span>
+            </div>
+          </button>
+
+          <div class="interview-card-meta">
+            <!-- ✅ show National ID instead of residence -->
+            <div class="meta-item" *ngIf="row.nationalId">
+              <span class="meta-label">National ID</span>
+              <span class="meta-value meta-value--mono">{{ row.nationalId }}</span>
+            </div>
+
+            <div class="meta-item" *ngIf="row.vehicleType">
+              <span class="meta-label">Vehicle</span>
+              <span class="meta-value">{{ row.vehicleType }}</span>
+            </div>
+
+            <div class="meta-item" *ngIf="row.interviewer">
+              <span class="meta-label">Interviewer</span>
+              <span class="meta-value">{{ row.interviewer }}</span>
+            </div>
+          </div>
+
+          <footer class="interview-card-footer">
+            <!-- View / Details -->
+            <button
+              type="button"
+              class="icon-action icon-action--view"
+              (click)="openDetails(row)"
+              title="View details"
+            >
+              <i class="ri-eye-line" aria-hidden="true"></i>
+              <span class="sr-only">View interview details</span>
+            </button>
+
+            <!-- Edit -->
+            <button
+              type="button"
+              class="icon-action icon-action--edit"
+              (click)="openEditModal(row)"
+              title="Edit interview"
+            >
+              <i class="ri-edit-line" aria-hidden="true"></i>
+              <span class="sr-only">Edit interview</span>
+            </button>
+
+            <!-- Delete -->
+            <button
+              type="button"
+              class="icon-action icon-action--delete"
+              (click)="deleteInterview(row.id)"
+              title="Delete interview"
+            >
+              <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
+              <span class="sr-only">Delete interview</span>
+            </button>
+          </footer>
+        </article>
+
+        <div
+          *ngIf="filtered().length === 0"
+          class="empty-cell empty-cell--card"
+        >
+          No interviews match your search.
+        </div>
+      </div>
+
+      <!-- Pagination footer -->
+      <div class="pagination" *ngIf="totalPages() > 1">
+        <div class="pagination-info">
+          Page {{ currentPage() }} of {{ totalPages() }}
+        </div>
+
+        <div class="pagination-controls">
+          <button
+            class="pagination-btn"
+            [disabled]="currentPage() === 1"
+            (click)="goToPage(1)"
+          >
+            <i class="ri-skip-left-line"></i>
+          </button>
+
+          <button
+            class="pagination-btn"
+            [disabled]="currentPage() === 1"
+            (click)="previousPage()"
+          >
+            <i class="ri-arrow-left-line"></i>
+          </button>
+
+          <div class="pagination-pages">
+            <button
+              *ngFor="let page of visiblePages()"
+              class="pagination-page"
+              [class.active]="page === currentPage()"
+              (click)="goToPage(page)"
+            >
+              {{ page }}
+            </button>
+          </div>
+
+          <button
+            class="pagination-btn"
+            [disabled]="currentPage() === totalPages()"
+            (click)="nextPage()"
+          >
+            <i class="ri-arrow-right-line"></i>
+          </button>
+
+          <button
+            class="pagination-btn"
+            [disabled]="currentPage() === totalPages()"
+            (click)="goToPage(totalPages())"
+          >
+            <i class="ri-skip-right-line"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Modal -->
+  <app-interview-form-modal
+    *ngIf="isModalOpen()"
+    [interviewToEdit]="interviewToEdit()"
+    [clients]="clients()"
+    [operationUsers]="operationUsers()"
+    (close)="closeModal()"
+    (submit)="onFormSubmit($event)"
+  ></app-interview-form-modal>
+</section>

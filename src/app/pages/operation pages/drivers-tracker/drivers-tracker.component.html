@@ -1,0 +1,205 @@
+<section class="tracker-page">
+  <div class="tracker-card">
+    <!-- Status Message -->
+    <app-status-msg
+      *ngIf="status()"
+      [type]="status()!.type"
+      [message]="status()!.message"
+      (close)="clearStatus()"
+    ></app-status-msg>
+
+    <!-- Header -->
+    <div class="tracker-header">
+      <div class="tracker-header-main">
+        <h1 class="tracker-title">
+          DSP & Licence Tracker
+          <span class="tracker-count">({{ filtered().length }})</span>
+        </h1>
+        <p class="tracker-subtitle">
+          Monitor ID, driving and vehicle licence expiry by driver.
+        </p>
+      </div>
+
+      <div class="tracker-header-actions">
+        <!-- Export -->
+        <export-button
+          class="export-btn"
+          [data]="filtered()"
+          filename="drivers_tracking_export.xlsx"
+        ></export-button>
+
+        <!-- 🔹 Import button الحقيقي (يفتح file picker) -->
+        <import-button
+          class="import-btn"
+          (fileSelected)="onTrackingImport($event)"
+        ></import-button>
+
+        <!-- Add row -->
+        <button
+          type="button"
+          class="btn btn--primary"
+          (click)="openCreate()"
+        >
+          <i class="ri-add-line" aria-hidden="true"></i>
+          <span>Add tracking row</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="tracker-search">
+      <label for="trackerSearch" class="field-label">Search</label>
+      <input
+        id="trackerSearch"
+        type="text"
+        class="field-input"
+        placeholder="Search by DSP, name, client, phone..."
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+      />
+    </div>
+
+    <!-- Loading / error inline -->
+    <div class="card-inline card-inline--state" *ngIf="loading()">
+      Loading tracking data…
+    </div>
+
+    <div
+      class="card-inline card-inline--state card-inline--error"
+      *ngIf="!loading() && error()"
+    >
+      {{ error() }}
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper" *ngIf="!loading() && !error()">
+      <table class="tracker-table">
+        <thead>
+          <tr>
+            <th class="col-dsp">DSP Code</th>
+            <th>Driver / Client</th>
+            <th>ID</th>
+            <th>DL</th>
+            <th>Vehicle</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr
+            *ngFor="let row of filtered(); trackBy: trackById"
+            class="row"
+          >
+            <!-- DSP Shortcode -->
+            <td class="col-dsp">
+              {{ row.dspShortcode || '—' }}
+            </td>
+
+            <!-- Driver / Client -->
+            <td>
+              <div class="cell-main">
+                <div class="cell-main__name">
+                  {{ row.driver?.name || '—' }}
+                </div>
+                <div class="cell-main__meta" *ngIf="row.driver">
+                  <span *ngIf="row.driver.clientName">
+                    {{ row.driver.clientName }}
+                  </span>
+                  <span
+                    *ngIf="row.driver.clientName && row.driver.courierPhone"
+                    class="dot"
+                  ></span>
+                  <span *ngIf="row.driver.courierPhone">
+                    {{ row.driver.courierPhone }}
+                  </span>
+                </div>
+              </div>
+            </td>
+
+            <!-- ID expiry status -->
+            <td>
+              <span
+                class="expiry-pill"
+                [ngClass]="expiryClass(row.idExpiryDate)"
+                [title]="expiryTooltip(row.idExpiryDate)"
+              >
+                {{ expiryShort(row.idExpiryDate) }}
+              </span>
+            </td>
+
+            <!-- Driving licence expiry status -->
+            <td>
+              <span
+                class="expiry-pill"
+                [ngClass]="expiryClass(row.dLicenseExpiryDate)"
+                [title]="expiryTooltip(row.dLicenseExpiryDate)"
+              >
+                {{ expiryShort(row.dLicenseExpiryDate) }}
+              </span>
+            </td>
+
+            <!-- Vehicle licence expiry status -->
+            <td>
+              <span
+                class="expiry-pill"
+                [ngClass]="expiryClass(row.vLicenseExpiryDate)"
+                [title]="expiryTooltip(row.vLicenseExpiryDate)"
+              >
+                {{ expiryShort(row.vLicenseExpiryDate) }}
+              </span>
+            </td>
+
+            <!-- Actions -->
+            <td class="cell-actions">
+              <button
+                type="button"
+                class="icon-action icon-action--view"
+                (click)="goToDetails(row.id)"
+                title="View details"
+              >
+                <i class="ri-eye-line" aria-hidden="true"></i>
+                <span class="sr-only">View details</span>
+              </button>
+
+              <button
+                type="button"
+                class="icon-action icon-action--edit"
+                (click)="openEdit(row)"
+                title="Edit row"
+              >
+                <i class="ri-edit-line" aria-hidden="true"></i>
+                <span class="sr-only">Edit row</span>
+              </button>
+
+              <button
+                type="button"
+                class="icon-action icon-action--delete"
+                (click)="deleteRow(row.id)"
+                title="Delete row"
+              >
+                <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
+                <span class="sr-only">Delete row</span>
+              </button>
+            </td>
+          </tr>
+
+          <tr *ngIf="filtered().length === 0">
+            <td class="empty-cell" colspan="6">
+              No tracking rows match your filters.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <app-tracking-form-modal
+    *ngIf="isModalOpen()"
+    [row]="editingRow()"
+    [drivers]="drivers()"
+    (close)="closeModal()"
+    (submit)="handleSubmit($event)"
+  >
+  </app-tracking-form-modal>
+</section>

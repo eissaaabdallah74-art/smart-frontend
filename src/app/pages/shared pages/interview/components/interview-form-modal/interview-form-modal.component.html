@@ -1,0 +1,316 @@
+<!-- src/app/pages/.../interview/components/interview-form-modal/interview-form-modal.component.html -->
+<div class="modal-backdrop" (click)="close.emit()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        {{ interviewToEdit ? 'Edit Interview' : 'Add Interview' }}
+      </h2>
+      <button type="button" class="modal-close" (click)="close.emit()">
+        <i class="ri-close-line" aria-hidden="true"></i>
+        <span class="sr-only">Close</span>
+      </button>
+    </div>
+
+    <form
+      #f="ngForm"
+      (ngSubmit)="onSubmit(f)"
+      novalidate
+      class="modal-body"
+    >
+      <div class="modal-grid">
+        <!-- Column 1: Basic info -->
+        <div class="modal-col">
+          <div class="field">
+            <label class="field-label" for="courierName">
+              Courier Name *
+            </label>
+            <input
+              id="courierName"
+              type="text"
+              class="field-input"
+              name="courierName"
+              [(ngModel)]="model.courierName"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="phoneNumber">
+              Phone Number *
+            </label>
+            <input
+              id="phoneNumber"
+              type="text"
+              class="field-input"
+              name="phoneNumber"
+              [(ngModel)]="model.phoneNumber"
+              required
+            />
+          </div>
+
+
+            <div class="field">
+    <label class="field-label" for="residence">
+      Residence / محل الإقامة
+    </label>
+    <input 
+      id="residence"
+      type="text"
+      class="field-input"
+      name="residence"
+      [(ngModel)]="model.residence"
+    />
+  </div>
+
+          <div class="field">
+            <label class="field-label" for="nationalId">National ID</label>
+            <input
+              id="nationalId"
+              type="text"
+              class="field-input"
+              name="nationalId"
+              [(ngModel)]="model.nationalId"
+            />
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="account">
+              Account (Client) *
+            </label>
+            <select
+              id="account"
+              class="field-input"
+              name="account"
+              [(ngModel)]="model.accountName"
+              (ngModelChange)="onAccountChange()"
+              required
+            >
+              <option value="" disabled selected hidden>
+                Select account
+              </option>
+              <option *ngFor="let acc of clients" [ngValue]="acc.name">
+                {{ acc.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="hub">Hub</label>
+            <select
+              id="hub"
+              class="field-input"
+              name="hub"
+              [(ngModel)]="model.hubName"
+              (ngModelChange)="onHubChange()"
+            >
+              <option value="" disabled selected hidden>
+                Select hub
+              </option>
+              <option *ngFor="let hub of hubs" [ngValue]="hub.name">
+                {{ hub.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="zone">Zone</label>
+            <select
+              id="zone"
+              class="field-input"
+              name="zone"
+              [(ngModel)]="model.zoneName"
+            >
+              <option value="" disabled selected hidden>
+                Select zone
+              </option>
+              <option *ngFor="let z of zones" [ngValue]="z.name">
+                {{ z.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="position">Position</label>
+            <input
+              id="position"
+              type="text"
+              class="field-input"
+              name="position"
+              [(ngModel)]="model.position"
+            />
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="vehicleType">
+              Vehicle Type
+            </label>
+            <input
+              id="vehicleType"
+              type="text"
+              class="field-input"
+              name="vehicleType"
+              [(ngModel)]="model.vehicleType"
+            />
+          </div>
+        </div>
+
+        <!-- Column 2: Ops / HR / Status -->
+        <div class="modal-col">
+          <div class="field">
+            <label class="field-label" for="accountManagerName">
+              Account Manager
+            </label>
+            <select
+              id="accountManagerName"
+              class="field-input"
+              name="accountManagerName"
+              [(ngModel)]="model.accountManagerName"
+            >
+              <option value="" disabled selected hidden>
+                Select account manager
+              </option>
+              <option
+                *ngFor="let u of operationUsers"
+                [ngValue]="u.fullName"
+              >
+                {{ u.fullName }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="interviewerName">
+              Interviewer
+            </label>
+            <select
+              id="interviewerName"
+              class="field-input"
+              name="interviewerName"
+              [(ngModel)]="model.interviewerName"
+            >
+              <option value="" disabled selected hidden>
+                Select interviewer
+              </option>
+              <option
+                *ngFor="let u of operationUsers"
+                [ngValue]="u.fullName"
+              >
+                {{ u.fullName }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="signedWithHr">
+              Signed with HR
+            </label>
+            <select
+              id="signedWithHr"
+              class="field-input"
+              name="signedWithHr"
+              [(ngModel)]="model.signedWithHr"
+            >
+              <option value="" disabled selected hidden>
+                Select status
+              </option>
+              <option *ngFor="let v of signedWithHrOptions" [ngValue]="v">
+                {{ v }}
+              </option>
+            </select>
+          </div>
+
+          <!-- HR Feedback removed from form as requested -->
+
+          <div class="field">
+            <label class="field-label" for="courierStatus">
+              Courier Status
+            </label>
+            <select
+              id="courierStatus"
+              class="field-input"
+              name="courierStatus"
+              [(ngModel)]="model.courierStatus"
+            >
+              <option value="" disabled selected hidden>
+                Select status
+              </option>
+              <option
+                *ngFor="let v of courierStatusOptions"
+                [ngValue]="v"
+              >
+                {{ v }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="followUp1">
+              Courier 1st follow up
+            </label>
+            <textarea
+              id="followUp1"
+              class="field-input field-textarea"
+              name="followUp1"
+              [(ngModel)]="model.followUp1"
+              rows="2"
+            ></textarea>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="followUp2">
+              Courier 2nd follow up
+            </label>
+            <textarea
+              id="followUp2"
+              class="field-input field-textarea"
+              name="followUp2"
+              [(ngModel)]="model.followUp2"
+              rows="2"
+            ></textarea>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="followUp3">
+              Courier 3rd follow up
+            </label>
+            <textarea
+              id="followUp3"
+              class="field-input field-textarea"
+              name="followUp3"
+              [(ngModel)]="model.followUp3"
+              rows="2"
+            ></textarea>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="notes">Notes</label>
+            <textarea
+              id="notes"
+              class="field-input field-textarea"
+              name="notes"
+              [(ngModel)]="model.notes"
+              rows="3"
+            ></textarea>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <div class="modal-footer">
+      <button
+        type="button"
+        class="btn btn--ghost"
+        (click)="close.emit()"
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        class="btn btn--primary"
+        (click)="onSubmit(f)"
+      >
+        {{ interviewToEdit ? 'Save changes' : 'Create interview' }}
+      </button>
+    </div>
+  </div>
+</div>

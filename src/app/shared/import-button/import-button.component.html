@@ -1,0 +1,16 @@
+<button
+  type="button"
+  class="btn btn--import"
+  (click)="triggerFileInput()"
+>
+  <i class="ri-upload-2-line icon" aria-hidden="true"></i>
+  <span>Import</span>
+
+  <input
+    #fileInput
+    type="file"
+    class="file-input"
+    accept=".xlsx,.xls,.csv"
+    (change)="onFileChange($event)"
+  />
+</button>

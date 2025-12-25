@@ -1,0 +1,258 @@
+<!-- src/app/pages/operation pages/my-tasks/my-tasks.component.html -->
+<section class="my-tasks-page">
+  <header class="head">
+    <div class="head-main">
+      <h1>My Tasks</h1>
+      <p class="sub">
+        Track the tasks assigned to you, update status, and keep an eye on deadlines.
+      </p>
+    </div>
+
+    <div class="head-filters">
+      <label for="statusFilter">Status:</label>
+      <select
+        id="statusFilter"
+        [(ngModel)]="selectedStatusFilter"
+        (ngModelChange)="onStatusFilterChange($event)"
+      >
+        <option value="all">All</option>
+        <option value="todo">To do</option>
+        <option value="in_progress">In progress</option>
+        <option value="completed">Completed</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="stats-bar" *ngIf="tasks.length">
+    <div class="stat-item">
+      <span class="label">Total</span>
+      <span class="value">{{ stats.total }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="label">To do</span>
+      <span class="value">{{ stats.todo }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="label">In progress</span>
+      <span class="value">{{ stats.inProgress }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="label">Completed</span>
+      <span class="value">{{ stats.completed }}</span>
+    </div>
+    <div class="stat-item warning">
+      <span class="label">Overdue</span>
+      <span class="value">{{ stats.overdue }}</span>
+    </div>
+    <div class="stat-item subtle" *ngIf="stats.completedLate > 0">
+      <span class="label">Completed late</span>
+      <span class="value">{{ stats.completedLate }}</span>
+    </div>
+  </div>
+
+  <div *ngIf="errorMsg" class="banner banner-error">
+    {{ errorMsg }}
+  </div>
+
+  <ng-container *ngIf="!loading; else loadingTpl">
+    <div class="card" *ngIf="tasks.length; else emptyTpl">
+      <!-- Desktop Table View -->
+      <div class="table-view">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>Deadline</th>
+                <th>Timing</th>
+                <th>Status</th>
+                <th class="th-actions"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let t of pagedTasks">
+                <td class="cell-task">
+                  <div class="task-title">
+                    {{ t.title || 'Untitled task' }}
+                  </div>
+                  <div class="task-desc" *ngIf="t.description">
+                    {{ t.description }}
+                  </div>
+                </td>
+
+                <td class="cell-deadline">
+                  <div class="date-main">
+                    {{ t.due_at ? (t.due_at | date: 'short') : 'No deadline' }}
+                  </div>
+                </td>
+
+                <td class="cell-timing">
+                  <span [class]="getTimingClass(t)">
+                    {{ getTimingLabel(t) }}
+                  </span>
+                </td>
+
+                <td class="cell-input">
+                  <select
+                    [(ngModel)]="rowState[t.id].status"
+                    (ngModelChange)="onRowChanged(t.id)"
+                  >
+                    <option
+                      *ngFor="let opt of statusOptions"
+                      [ngValue]="opt.value"
+                    >
+                      {{ opt.label }}
+                    </option>
+                  </select>
+                </td>
+
+                <td class="cell-actions">
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    (click)="markDone(t)"
+                    [disabled]="
+                      rowState[t.id]?.saving ||
+                      rowState[t.id]?.status === 'completed'
+                    "
+                  >
+                    {{ rowState[t.id]?.status === 'completed' ? 'Done' : 'Mark as done' }}
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    (click)="saveRow(t)"
+                    [disabled]="
+                      !rowState[t.id]?.dirty || rowState[t.id]?.saving
+                    "
+                  >
+                    {{ rowState[t.id]?.saving ? 'Saving…' : 'Save' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Mobile Cards View -->
+      <div class="cards-view">
+        <article class="task-card" *ngFor="let t of pagedTasks">
+          <header class="card-header">
+            <div class="card-title">
+              {{ t.title || 'Untitled task' }}
+            </div>
+            <span [class]="getTimingClass(t)">
+              {{ getTimingLabel(t) }}
+            </span>
+          </header>
+
+          <div class="card-row" *ngIf="t.description">
+            <span class="label">Details</span>
+            <span class="value">{{ t.description }}</span>
+          </div>
+
+          <div class="card-row">
+            <span class="label">Deadline</span>
+            <span class="value">
+              {{ t.due_at ? (t.due_at | date: 'short') : 'No deadline' }}
+            </span>
+          </div>
+
+          <div class="card-row">
+            <span class="label">Status</span>
+            <select
+              [(ngModel)]="rowState[t.id].status"
+              (ngModelChange)="onRowChanged(t.id)"
+            >
+              <option
+                *ngFor="let opt of statusOptions"
+                [ngValue]="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+          </div>
+
+          <footer class="card-actions">
+            <button
+              type="button"
+              class="btn btn-primary"
+              (click)="markDone(t)"
+              [disabled]="
+                rowState[t.id]?.saving ||
+                rowState[t.id]?.status === 'completed'
+              "
+            >
+              {{ rowState[t.id]?.status === 'completed' ? 'Done' : 'Mark as done' }}
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="saveRow(t)"
+              [disabled]="
+                !rowState[t.id]?.dirty || rowState[t.id]?.saving
+              "
+            >
+              {{ rowState[t.id]?.saving ? 'Saving…' : 'Save' }}
+            </button>
+          </footer>
+        </article>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" *ngIf="totalPages > 1">
+        <div class="page-info">
+          Showing
+          <strong>
+            {{ (currentPage - 1) * pageSize + 1 }}
+            –
+            {{ Math.min(currentPage * pageSize, tasks.length) }}
+          </strong>
+          of <strong>{{ tasks.length }}</strong> tasks
+        </div>
+
+        <div class="page-controls">
+          <button
+            type="button"
+            (click)="goToPage(currentPage - 1)"
+            [disabled]="currentPage === 1"
+          >
+            Prev
+          </button>
+
+          <span class="page-label">
+            Page {{ currentPage }} / {{ totalPages }}
+          </span>
+
+          <button
+            type="button"
+            (click)="goToPage(currentPage + 1)"
+            [disabled]="currentPage === totalPages"
+          >
+            Next
+          </button>
+
+          <select
+            [(ngModel)]="pageSize"
+            (ngModelChange)="onPageSizeChange($event)"
+          >
+            <option *ngFor="let size of pageSizeOptions" [ngValue]="size">
+              {{ size }} / page
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-template #loadingTpl>
+    <div class="loading-block">Loading tasks...</div>
+  </ng-template>
+
+  <ng-template #emptyTpl>
+    <p class="empty-text">No tasks found.</p>
+  </ng-template>
+</section>
