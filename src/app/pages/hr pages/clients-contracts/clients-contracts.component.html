@@ -1,0 +1,331 @@
+<section class="contracts-page">
+  <div class="contracts-card">
+    <div class="contracts-header">
+      <div class="contracts-header-main">
+        <h1 class="contracts-title">
+          Clients Contracts
+          <span class="contracts-count">({{ filtered().length }})</span>
+        </h1>
+        <p class="contracts-subtitle">
+          Manage client contracts, statuses, renewal alerts, and notes.
+        </p>
+      </div>
+
+      <div class="contracts-header-actions">
+        <import-button
+          class="import-btn"
+          (fileSelected)="onContractsImport($event)"
+        ></import-button>
+
+        <export-button
+          class="export-btn"
+          [data]="paginatedContracts()"
+          filename="clients_contracts_export.xlsx"
+        ></export-button>
+
+        <button type="button" class="btn btn--primary" (click)="openAddModal()">
+          <i class="ri-add-line" aria-hidden="true"></i>
+          <span>Add Contract</span>
+        </button>
+      </div>
+    </div>
+
+    <app-status-msg
+      *ngIf="status"
+      [type]="status.type"
+      [message]="status.message"
+      (close)="clearStatus()"
+    ></app-status-msg>
+
+    <!-- Filters -->
+    <div class="filters-section">
+      <div class="filters-header">
+        <h3 class="filters-title">
+          <i class="ri-filter-line" aria-hidden="true"></i>
+          Filters
+        </h3>
+
+        <button
+          type="button"
+          class="btn btn--secondary btn--sm"
+          (click)="clearFilters()"
+          *ngIf="hasActiveFilters() || search()"
+        >
+          <i class="ri-close-line" aria-hidden="true"></i>
+          Clear Filters
+        </button>
+      </div>
+
+      <div class="filters-grid">
+        <!-- Quick Search -->
+        <div class="filter-group">
+          <label class="filter-label" for="quickSearch">Quick Search</label>
+          <input
+            id="quickSearch"
+            type="text"
+            class="filter-input"
+            placeholder="Search by client, contract number, notes..."
+            [ngModel]="search()"
+            (ngModelChange)="search.set($event)"
+          />
+        </div>
+
+        <!-- Status -->
+        <div class="filter-group">
+          <label class="filter-label" for="statusFilter">Status</label>
+          <select
+            id="statusFilter"
+            class="filter-input"
+            [ngModel]="statusFilter()"
+            (ngModelChange)="statusFilter.set($event)"
+          >
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="expired">Expired</option>
+            <option value="terminated">Terminated</option>
+          </select>
+        </div>
+
+        <!-- Client -->
+        <div class="filter-group">
+          <label class="filter-label" for="clientFilter">Client</label>
+          <select
+            id="clientFilter"
+            class="filter-input"
+            [ngModel]="clientFilter()"
+            (ngModelChange)="clientFilter.set($event ? +$event : null)"
+          >
+            <option [ngValue]="null">All Clients</option>
+            <option *ngFor="let c of clientOptions()" [ngValue]="c.id">
+              {{ c.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Page size -->
+        <div class="filter-group">
+          <label class="filter-label" for="pageSize">Show</label>
+          <select
+            id="pageSize"
+            class="filter-input"
+            [ngModel]="pageSize()"
+            (ngModelChange)="onPageSizeChange($event)"
+          >
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-section">
+      <div class="table-header">
+        <div class="table-info">
+          Showing {{ startIndex() + 1 }}-{{ endIndex() }} of {{ filtered().length }} contracts
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="contracts-table">
+          <thead>
+            <tr>
+              <th (click)="sortBy('clientName')" class="sortable">
+                Client
+                <i class="ri-arrow-up-down-line" *ngIf="sortField() !== 'clientName'"></i>
+                <i class="ri-arrow-up-line" *ngIf="sortField() === 'clientName' && sortDirection() === 'asc'"></i>
+                <i class="ri-arrow-down-line" *ngIf="sortField() === 'clientName' && sortDirection() === 'desc'"></i>
+              </th>
+
+              <th>Contract #</th>
+
+              <th (click)="sortBy('status')" class="sortable">
+                Status
+                <i class="ri-arrow-up-down-line" *ngIf="sortField() !== 'status'"></i>
+                <i class="ri-arrow-up-line" *ngIf="sortField() === 'status' && sortDirection() === 'asc'"></i>
+                <i class="ri-arrow-down-line" *ngIf="sortField() === 'status' && sortDirection() === 'desc'"></i>
+              </th>
+
+              <th (click)="sortBy('startDate')" class="sortable">
+                Start
+                <i class="ri-arrow-up-down-line" *ngIf="sortField() !== 'startDate'"></i>
+                <i class="ri-arrow-up-line" *ngIf="sortField() === 'startDate' && sortDirection() === 'asc'"></i>
+                <i class="ri-arrow-down-line" *ngIf="sortField() === 'startDate' && sortDirection() === 'desc'"></i>
+              </th>
+
+              <th (click)="sortBy('endDate')" class="sortable">
+                End
+                <i class="ri-arrow-up-down-line" *ngIf="sortField() !== 'endDate'"></i>
+                <i class="ri-arrow-up-line" *ngIf="sortField() === 'endDate' && sortDirection() === 'asc'"></i>
+                <i class="ri-arrow-down-line" *ngIf="sortField() === 'endDate' && sortDirection() === 'desc'"></i>
+              </th>
+
+              <th>Renewal Alert</th>
+              <th>Duration</th>
+              <th>Notes</th>
+              <th class="th-actions">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let c of paginatedContracts()" class="row">
+              <td class="cell-primary" data-label="Client">
+                {{ c.client?.name || ('Client #' + c.clientId) }}
+              </td>
+
+              <td data-label="Contract #">{{ c.contractNumber || '-' }}</td>
+
+              <td data-label="Status">
+                <span class="status-badge" [ngClass]="statusClass(c.status)">
+                  {{ statusLabel(c.status) }}
+                </span>
+              </td>
+
+              <td data-label="Start"><span class="date-cell">{{ formatDate(c.startDate) }}</span></td>
+              <td data-label="End"><span class="date-cell">{{ formatDate(c.endDate) }}</span></td>
+              <td data-label="Renewal Alert"><span class="date-cell">{{ formatDate(c.renewalAlertDate) }}</span></td>
+              <td data-label="Duration">{{ c.duration || '-' }}</td>
+
+              <td data-label="Notes" class="notes-cell">
+                <span class="notes-text" [title]="c.notes || ''">{{ c.notes || '-' }}</span>
+              </td>
+
+              <td class="cell-actions" data-label="Actions">
+                <button
+                  type="button"
+                  class="icon-action icon-action--view"
+                  (click)="openViewModal(c)"
+                  title="View"
+                >
+                  <i class="ri-eye-line" aria-hidden="true"></i>
+                </button>
+
+                <button
+                  type="button"
+                  class="icon-action icon-action--edit"
+                  (click)="openEditModal(c)"
+                  title="Edit"
+                >
+                  <i class="ri-edit-line" aria-hidden="true"></i>
+                </button>
+
+                <button
+                  type="button"
+                  class="icon-action icon-action--delete"
+                  (click)="deleteContract(c.id)"
+                  title="Delete"
+                >
+                  <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
+                </button>
+              </td>
+            </tr>
+
+            <tr *ngIf="filtered().length === 0">
+              <td class="empty-cell" colspan="9">
+                <div class="empty-state">
+                  <i class="ri-search-line empty-icon"></i>
+                  <p>No contracts match your criteria.</p>
+                  <button
+                    *ngIf="hasActiveFilters() || search()"
+                    type="button"
+                    class="btn btn--secondary btn--sm"
+                    (click)="clearFilters()"
+                  >
+                    <i class="ri-close-line" aria-hidden="true"></i>
+                    <span>Clear Filters</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" *ngIf="totalPages() > 1">
+        <div class="pagination-info">Page {{ currentPage() }} of {{ totalPages() }}</div>
+
+        <div class="pagination-controls">
+          <button class="pagination-btn" [disabled]="currentPage() === 1" (click)="goToPage(1)">
+            <i class="ri-skip-left-line"></i>
+          </button>
+
+          <button class="pagination-btn" [disabled]="currentPage() === 1" (click)="previousPage()">
+            <i class="ri-arrow-left-line"></i>
+          </button>
+
+          <div class="pagination-pages">
+            <button
+              *ngFor="let page of visiblePages()"
+              class="pagination-page"
+              [class.active]="page === currentPage()"
+              (click)="goToPage(page)"
+            >
+              {{ page }}
+            </button>
+          </div>
+
+          <button
+            class="pagination-btn"
+            [disabled]="currentPage() === totalPages()"
+            (click)="nextPage()"
+          >
+            <i class="ri-arrow-right-line"></i>
+          </button>
+
+          <button
+            class="pagination-btn"
+            [disabled]="currentPage() === totalPages()"
+            (click)="goToPage(totalPages())"
+          >
+            <i class="ri-skip-right-line"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <app-form-modal-client-contracts
+    *ngIf="isModalOpen()"
+    [contractToEdit]="contractToEdit()"
+    [clients]="clientOptions()"
+    (close)="closeModal()"
+    (submit)="submitForm($event)"
+  ></app-form-modal-client-contracts>
+
+  <!-- View Modal -->
+  <div *ngIf="isViewModalOpen()" class="modal-backdrop" (click)="closeViewModal()"></div>
+
+  <div
+    *ngIf="isViewModalOpen()"
+    class="modal view-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Contract details"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="view-modal-body" *ngIf="viewingContract() as c">
+      <div class="view-head">
+        <h3 class="view-title">
+          {{ c.client?.name || ('Client #' + c.clientId) }}
+          <span class="view-sub"> {{ c.contractNumber ? ('(' + c.contractNumber + ')') : '' }} </span>
+        </h3>
+        <button class="icon-btn" type="button" (click)="closeViewModal()">
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+
+      <div class="view-grid">
+        <div class="view-item"><span class="k">Status</span><span class="v">{{ statusLabel(c.status) }}</span></div>
+        <div class="view-item"><span class="k">Start</span><span class="v">{{ formatDate(c.startDate) }}</span></div>
+        <div class="view-item"><span class="k">End</span><span class="v">{{ formatDate(c.endDate) }}</span></div>
+        <div class="view-item"><span class="k">Renewal Alert</span><span class="v">{{ formatDate(c.renewalAlertDate) }}</span></div>
+        <div class="view-item"><span class="k">Duration</span><span class="v">{{ c.duration || '-' }}</span></div>
+        <div class="view-item full"><span class="k">Notes</span><span class="v">{{ c.notes || '-' }}</span></div>
+      </div>
+    </div>
+  </div>
+</section>

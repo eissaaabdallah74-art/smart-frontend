@@ -677,13 +677,18 @@
     white-space: nowrap;
     font-size: 0.75rem;
   }
-
-  /* ✅ IMPORTANT: set background on ROW (not TD) so sticky cells inherit correctly */
+  /* ✅ Row background that ALSO applies to sticky cells */
   tbody tr {
-    background: #ffffff;
+    --row-bg: #ffffff;
+    background: var(--row-bg);
   }
+
   tbody tr:nth-child(even) {
-    background: #f9fafb;
+    --row-bg: #f9fafb;
+  }
+
+  tbody tr:hover {
+    --row-bg: #f1f5f9;
   }
 
   tbody td {
@@ -692,12 +697,16 @@
     vertical-align: middle;
     white-space: normal;
     font-size: 0.8rem;
-    background: transparent; /* ✅ row owns the background */
+    background: transparent; /* normal cells */
   }
 
-  tbody tr:hover {
-    background: #f1f5f9;
+  /* ✅ Sticky cells must paint their own bg (because they float above) */
+  tbody td.sticky-left,
+  tbody td.sticky-left-2,
+  tbody td.sticky-right {
+    background: var(--row-bg);
   }
+
 
   th.col-date,
   td.col-date {
@@ -722,26 +731,30 @@
 .sticky-left {
   position: sticky;
   left: 0;
-  z-index: 30;
-  background: inherit; /* ✅ now inherits from TR background */
+  z-index: 35;
+  background: inherit;
+  border-right: 1px solid #e5e7eb;
 }
 
 .sticky-left-2 {
   position: sticky;
   left: var(--col-date);
-  z-index: 30;
+  z-index: 36;
   background: inherit;
+  border-right: 1px solid #e5e7eb;
+  box-shadow: 8px 0 14px -14px rgba(15, 23, 42, 0.35);
 }
 
 /* sticky actions on the right */
 .sticky-right {
   position: sticky;
   right: 0;
-  z-index: 40;
-  background: inherit; /* ✅ now inherits from TR background */
-  box-shadow: none;
+  z-index: 37;
+  background: inherit;
   border-left: 1px solid #e5e7eb;
+  box-shadow: -8px 0 14px -14px rgba(15, 23, 42, 0.35);
 }
+
 
 /* Ensure header sticky cells keep correct stacking */
 thead .sticky-left,

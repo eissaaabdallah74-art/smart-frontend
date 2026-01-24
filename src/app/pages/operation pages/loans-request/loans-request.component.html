@@ -1,0 +1,165 @@
+<section class="page">
+  <header class="page-head">
+    <div>
+      <div class="title">My loans</div>
+      <div class="subtitle">Request a staff loan and track approvals</div>
+    </div>
+
+    <div class="head-actions">
+      <button class="btn btn--ghost" (click)="loadMyLoans()" [disabled]="loading">
+        Refresh
+      </button>
+    </div>
+  </header>
+
+  <div *ngIf="errorMsg" class="alert alert--danger">{{ errorMsg }}</div>
+  <div *ngIf="successMsg" class="alert alert--success">{{ successMsg }}</div>
+
+  <!-- KPIs -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Total requested (month)</div>
+      <div class="stat-value">{{ money(kpi().sumAll) }}</div>
+      <div class="stat-sub">Requests: {{ kpi().countAll }}</div>
+    </div>
+
+    <div class="stat-card stat-card--pending">
+      <div class="stat-label">Pending (month)</div>
+      <div class="stat-value">{{ money(kpi().sumPending) }}</div>
+      <div class="stat-sub">Pending: {{ kpi().countPending }}</div>
+    </div>
+
+    <div class="stat-card stat-card--approved">
+      <div class="stat-label">Approved (month)</div>
+      <div class="stat-value">{{ money(kpi().sumApproved) }}</div>
+      <div class="stat-sub">Approval rate: {{ kpi().approvalRate }}%</div>
+    </div>
+
+    <div class="stat-card stat-card--rejected">
+      <div class="stat-label">Rejected (month)</div>
+      <div class="stat-value">{{ money(kpi().sumRejected) }}</div>
+      <div class="stat-sub">Based on selected month</div>
+    </div>
+  </div>
+
+  <!-- New request -->
+  <div class="card">
+    <div class="card-title">New request</div>
+
+    <form class="form" (ngSubmit)="submit()">
+      <label class="field">
+        <span class="label">Amount</span>
+        <input
+          type="number"
+          min="1"
+          [(ngModel)]="amount"
+          name="amount"
+          class="input"
+          placeholder="e.g. 1500"
+        />
+      </label>
+
+      <label class="field field--wide">
+        <span class="label">Note</span>
+        <input
+          [(ngModel)]="note"
+          name="note"
+          class="input"
+          placeholder="Optional"
+        />
+      </label>
+
+      <button class="btn btn--primary" type="submit" [disabled]="submitting">
+        {{ submitting ? 'Submitting...' : 'Submit' }}
+      </button>
+    </form>
+  </div>
+
+  <!-- Filters + table -->
+  <div class="card">
+    <div class="card-title">History</div>
+
+    <div class="filters">
+      <label class="field">
+        <span class="label">Month</span>
+        <input class="input" type="month" [(ngModel)]="month" name="month" />
+      </label>
+
+      <label class="field">
+        <span class="label">Status</span>
+        <select class="input" [(ngModel)]="status" name="status">
+          <option value="all">All</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </label>
+
+      <label class="field field--wide">
+        <span class="label">Search</span>
+        <input
+          class="input"
+          [(ngModel)]="q"
+          name="q"
+          placeholder="ID / Amount / Note / Manager note"
+        />
+      </label>
+    </div>
+
+    <div class="table-wrap" *ngIf="!loading; else loadingTpl">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <ng-container *ngFor="let r of filteredRows()">
+            <tr>
+              <td class="mono">#{{ r.id }}</td>
+              <td class="mono">{{ money(r.amount) }}</td>
+              <td>
+                <span [class]="statusClass(r.status)">{{ statusLabel(r.status) }}</span>
+              </td>
+              <td>{{ fmtDate(r.createdAt) }}</td>
+              <td class="actions">
+                <button class="btn btn--ghost btn--sm" type="button" (click)="toggleDetails(r.id)">
+                  {{ expandedId === r.id ? 'Hide' : 'Details' }}
+                </button>
+              </td>
+            </tr>
+
+            <tr *ngIf="expandedId === r.id" class="details-row">
+              <td colspan="5">
+                <div class="details">
+                  <div class="details-item">
+                    <div class="details-label">Your note</div>
+                    <div class="details-value">{{ r.note || '—' }}</div>
+                  </div>
+
+                  <div class="details-item">
+                    <div class="details-label">Manager note</div>
+                    <div class="details-value">{{ r.managerNote || '—' }}</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+
+          <tr *ngIf="filteredRows().length === 0">
+            <td colspan="5" class="empty">No results</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #loadingTpl>
+      <div class="loading">Loading...</div>
+    </ng-template>
+  </div>
+</section>

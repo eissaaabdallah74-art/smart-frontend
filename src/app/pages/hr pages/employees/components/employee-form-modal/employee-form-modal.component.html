@@ -1,0 +1,163 @@
+<div class="modal-backdrop" (click)="close.emit()"></div>
+
+<div class="modal">
+  <div class="modal-head">
+    <div class="title">
+      {{ employeeToEdit ? 'Edit Employee' : 'Add Employee' }}
+    </div>
+    <button type="button" class="x" (click)="close.emit()">
+      <i class="ri-close-line"></i>
+    </button>
+  </div>
+
+  <div class="modal-body">
+    <div class="grid">
+      <!-- ===== Personal ===== -->
+      <div class="field">
+        <label>Full Name *</label>
+        <input [(ngModel)]="form.fullName" />
+      </div>
+
+      <div class="field">
+        <label>National ID *</label>
+        <input [(ngModel)]="form.nationalId" />
+      </div>
+
+      <div class="field">
+        <label>Birth Date</label>
+        <input type="date" [(ngModel)]="form.birthDate" />
+      </div>
+
+      <div class="field">
+        <label>Marital Status</label>
+        <select [(ngModel)]="form.maritalStatus">
+          <option value="unknown">Unknown</option>
+          <option value="single">Single</option>
+          <option value="married">Married</option>
+          <option value="divorced">Divorced</option>
+          <option value="widowed">Widowed</option>
+          <option value="engaged">Engaged</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Religion</label>
+        <select [(ngModel)]="form.religion">
+          <option value="unknown">Unknown</option>
+          <option value="muslim">Muslim</option>
+          <option value="christian">Christian</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Nationality</label>
+        <input [(ngModel)]="form.nationality" />
+      </div>
+
+      <div class="field">
+        <label>Birth Place</label>
+        <input [(ngModel)]="form.birthPlace" />
+      </div>
+
+      <div class="field full">
+        <label>Full Address</label>
+        <input [(ngModel)]="form.fullAddress" />
+      </div>
+
+      <div class="hr"></div>
+
+      <!-- ===== Employment ===== -->
+      <div class="field">
+        <label>Working</label>
+        <select
+          [ngModel]="form.employment.isWorking"
+          (ngModelChange)="onWorkingChange($event)"
+        >
+          <option [ngValue]="true">Working</option>
+          <option [ngValue]="false">Not working</option>
+        </select>
+      </div>
+
+<div class="field">
+  <label>Department</label>
+  <select [(ngModel)]="form.employment.department">
+    <option [ngValue]="null">— Select department —</option>
+    <option *ngFor="let d of departmentOptions" [ngValue]="d.key">
+      {{ d.label }}
+    </option>
+  </select>
+</div>
+
+
+      <div class="field">
+        <label>Job Title</label>
+        <input [(ngModel)]="form.employment.jobTitle" />
+      </div>
+
+      <div class="field">
+        <label>Corporate Email</label>
+        <input [(ngModel)]="form.employment.corporateEmail" />
+      </div>
+
+      <div class="field">
+        <label>Hire Date</label>
+        <input type="date" [(ngModel)]="form.employment.hireDate" />
+      </div>
+
+      <div class="field">
+        <label>Termination Date</label>
+        <input type="date" [(ngModel)]="form.employment.terminationDate" />
+      </div>
+
+      <div class="field">
+        <label>Company Code</label>
+        <input [(ngModel)]="form.employment.companyCode" />
+      </div>
+
+      <div class="field full">
+        <label>Admin Notes</label>
+        <input [(ngModel)]="form.employment.adminNotes" />
+      </div>
+
+      <div class="hr"></div>
+
+      <!-- ===== Annual Leave (IMPORTANT) ===== -->
+      <div class="field">
+        <label>Annual Leave Balance</label>
+        <input
+          type="number"
+          [ngModel]="form.employment.annualLeaveBalance"
+          (ngModelChange)="onAnnualLeaveBalanceChange($event)"
+        />
+      </div>
+
+      <div class="field">
+        <label>Annual Leave Used</label>
+        <input
+          type="number"
+          [ngModel]="form.employment.annualLeaveUsed"
+          (ngModelChange)="onAnnualLeaveUsedChange($event)"
+        />
+      </div>
+
+      <div class="field">
+        <label>Annual Leave Remaining</label>
+        <input
+          type="number"
+          [ngModel]="form.employment.annualLeaveRemaining"
+          readonly
+        />
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-foot">
+    <button class="btn btn--secondary" type="button" (click)="close.emit()">
+      Cancel
+    </button>
+    <button class="btn btn--primary" type="button" (click)="onSubmit()">
+      {{ employeeToEdit ? 'Save' : 'Create' }}
+    </button>
+  </div>
+</div>

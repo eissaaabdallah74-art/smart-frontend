@@ -1,0 +1,251 @@
+<section class="trk">
+  <!-- Header -->
+  <header class="trk__header">
+    <div class="trk__title">
+      <h1>Courier Tracking</h1>
+      <p>Simple hub-to-hub route + daily timeline (no map).</p>
+    </div>
+
+    <div class="trk__right">
+      <button class="btn btn--ghost" type="button" (click)="fakeSync()">
+        <i class="ri-refresh-line"></i>
+        Sync
+      </button>
+    </div>
+  </header>
+
+  <!-- Carrier tabs -->
+  <div class="tabs card">
+    <button
+      *ngFor="let c of carriers()"
+      type="button"
+      class="tab"
+      [class.is-on]="selectedCarrierId() === c.id"
+      (click)="selectCarrier(c.id)"
+    >
+      <span class="tab__dot" [ngClass]="'dot--' + c.accent"></span>
+      <span class="tab__name">{{ c.name }}</span>
+      <span class="tab__count">{{ c.count }}</span>
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters card">
+    <div class="field field--grow">
+      <label class="label">Search</label>
+      <div class="inputWrap">
+        <i class="ri-search-line inputIcon"></i>
+        <input
+          class="input"
+          type="text"
+          placeholder="tracking, order, hub, city, customer..."
+          [ngModel]="search()"
+          (ngModelChange)="search.set(($event ?? '').toString())"
+        />
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Status</label>
+      <select class="select" [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+        <option value="all">All</option>
+        <option value="pending_pickup">Pending pickup</option>
+        <option value="in_route">In route</option>
+        <option value="out_for_delivery">Out for delivery</option>
+        <option value="delivered">Delivered</option>
+        <option value="exception">Exception</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="label">Sort</label>
+      <select class="select" [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)">
+        <option value="lastUpdate">Last update</option>
+        <option value="eta">ETA</option>
+        <option value="priority">Priority</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- ✅ ORDER: Shipments -> Diagram -> Timeline -->
+  <div class="stack">
+    <!-- 1) Shipments (full width) -->
+    <section class="panel card">
+      <div class="panel__head">
+        <div class="panel__title">Route</div>
+        <div class="panel__meta">{{ filteredShipments().length }} shown</div>
+      </div>
+
+      <div class="panel__body panel__body--shipments scroll-soft">
+        <button
+          *ngFor="let s of filteredShipments(); trackBy: trackShipment"
+          type="button"
+          class="row"
+          [class.is-active]="selectedShipment()?.id === s.id"
+          (click)="selectShipment(s.id)"
+        >
+          <div class="row__top">
+            <div class="row__no" title="{{ s.trackingNo }}">{{ s.trackingNo }}</div>
+
+            <span class="pill" [ngClass]="statusPillClass(s.status)">
+              {{ statusLabel(s.status) }}
+            </span>
+
+            <span class="pill pill--rush" *ngIf="s.priority==='rush'">Rush</span>
+          </div>
+
+          <div class="row__mid">
+            <span class="muted">{{ s.orderNo }}</span>
+            <span class="sep">·</span>
+            <span><b>{{ s.toName }}</b> ({{ s.toCity }})</span>
+          </div>
+
+          <div class="row__bot">
+            <span class="chip">
+              <i class="ri-time-line"></i>
+              {{ formatDayTime(s.lastUpdateIso) }}
+            </span>
+            <span class="chip">
+              <i class="ri-flashlight-line"></i>
+              ETA {{ formatDayTime(s.etaIso) }}
+            </span>
+          </div>
+        </button>
+
+        <div class="empty" *ngIf="filteredShipments().length === 0">
+          <div class="empty__t">No shipments</div>
+          <div class="empty__s">Try different filters or search terms.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2) Route Diagram (full width) -->
+    <section class="panel card">
+      <div class="panel__head">
+        <div class="panel__title">Tracking Route</div>
+        <div class="panel__meta">{{ selectedCarrierName() }}</div>
+      </div>
+
+      <div class="panel__body details">
+        <ng-container *ngIf="selectedShipment() as sh; else noSelTop">
+          <!-- Summary -->
+          <div class="summary">
+            <div class="summary__left">
+              <div class="summary__no" title="{{ sh.trackingNo }}">{{ sh.trackingNo }}</div>
+              <div class="summary__sub">
+                {{ sh.fromCity }} <span class="arrow">→</span> {{ sh.toCity }}
+                <span class="sep">·</span>
+                Last update: <b>{{ formatDayTime(sh.lastUpdateIso) }}</b>
+                <span class="sep">·</span>
+                ETA: <b>{{ formatDayTime(sh.etaIso) }}</b>
+              </div>
+            </div>
+
+            <div class="summary__right">
+              <span class="pill" [ngClass]="statusPillClass(sh.status)">{{ statusLabel(sh.status) }}</span>
+              <span class="pill pill--rush" *ngIf="sh.priority==='rush'">Rush</span>
+            </div>
+          </div>
+
+          <!-- ✅ Steps wrap grid -->
+          <div class="diagram">
+            <div class="diagram__hint">
+              <i class="ri-route-line"></i>
+              Hub → Hub steps (wraps automatically)
+            </div>
+
+            <div class="diagram__grid">
+              <div
+                class="node"
+                *ngFor="let n of sh.route; let i = index"
+                [class.is-done]="routeState(sh.route, i) === 'done'"
+                [class.is-current]="routeState(sh.route, i) === 'current'"
+              >
+                <div class="node__left">
+                  <div class="node__pin">
+                    <i [class]="routeIcon(n.kind)"></i>
+                  </div>
+
+                  <div class="node__text">
+                    <div class="node__name" title="{{ n.hubName }}">{{ n.hubName }}</div>
+                    <div class="node__meta">
+                      <span class="muted">{{ n.city }}</span>
+                      <span class="sep" *ngIf="n.timeIso">·</span>
+                      <span class="muted" *ngIf="n.timeIso">{{ formatTime(n.timeIso) }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="node__arrow" *ngIf="i < sh.route.length - 1">
+                  <i class="ri-arrow-right-line"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <ng-template #noSelTop>
+          <div class="empty empty--big">
+            <div class="empty__t">Select a shipment</div>
+            <div class="empty__s">Choose any shipment above to see the route.</div>
+          </div>
+        </ng-template>
+      </div>
+    </section>
+
+    <!-- 3) Activity Timeline (full width) -->
+    <section class="panel card">
+      <div class="panel__head">
+        <div class="panel__title">Activity Timeline</div>
+        <div class="panel__meta">Grouped by day then hours</div>
+      </div>
+
+      <div class="panel__body details scroll-soft">
+        <ng-container *ngIf="selectedShipment(); else noSelBottom">
+          <div class="timeline">
+            <div class="timeline__head">
+              <div class="timeline__title">Updates</div>
+              <div class="timeline__sub">Daily grouping + time.</div>
+            </div>
+
+            <div class="day" *ngFor="let g of groupedEvents()">
+              <div class="day__title">
+                <i class="ri-calendar-line"></i>
+                {{ g.dayLabel }}
+              </div>
+
+              <div class="evt" *ngFor="let e of g.items">
+                <div class="evt__time">{{ formatTime(e.timeIso) }}</div>
+                <div class="evt__icon" [ngClass]="'evt__icon--' + e.level">
+                  <i [class]="e.icon"></i>
+                </div>
+                <div class="evt__body">
+                  <div class="evt__t">{{ e.title }}</div>
+                  <div class="evt__s">
+                    <span *ngIf="e.hubName"><b>{{ e.hubName }}</b></span>
+                    <span *ngIf="e.hubName && e.city" class="sep">·</span>
+                    <span *ngIf="e.city">{{ e.city }}</span>
+                    <span *ngIf="e.note" class="sep">·</span>
+                    <span *ngIf="e.note" class="muted">{{ e.note }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <ng-template #noSelBottom>
+          <div class="empty empty--big">
+            <div class="empty__t">Select a shipment</div>
+            <div class="empty__s">Pick any shipment above to see the timeline.</div>
+          </div>
+        </ng-template>
+      </div>
+    </section>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" *ngIf="toastMsg()">
+    {{ toastMsg() }}
+  </div>
+</section>

@@ -1,4 +1,5 @@
 // src/app/pages/.../interview/components/interview-form-modal/interview-form-modal.component.ts
+
 import {
   Component,
   EventEmitter,
@@ -31,14 +32,27 @@ import { InterviewRow } from '../../interview.component';
 export class InterviewFormModalComponent implements OnChanges {
   @Input() interviewToEdit: InterviewRow | null = null;
 
-  // sources
   @Input() clients: ApiClient[] = [];
   @Input() operationUsers: ApiUser[] = [];
 
   @Output() close = new EventEmitter<void>();
-  @Output() submit = new EventEmitter<CreateInterviewDto>(); // يبعث DTO جاهز
+  @Output() submit = new EventEmitter<CreateInterviewDto>();
 
-  // form model (بالأسماء للعرض) — بدون TicketNo / HR Feedback / CRM feedback
+  // ===== Vehicle Types (must match backend enum) =====
+  readonly vehicleTypeOptions: string[] = [
+    'SEDAN',
+    'VAN',
+    'BIKE',
+    'DABABA',
+    'NKR',
+    'TRICYCLE',
+    'JUMBO_4',
+    'JUMBO_6',
+    'HELPER',
+    'DRIVER',
+    'WORKER',
+  ];
+
   model = {
     courierName: '',
     phoneNumber: '',
@@ -49,18 +63,15 @@ export class InterviewFormModalComponent implements OnChanges {
     zoneName: '',
     position: '',
     vehicleType: '',
+
     accountManagerName: '',
     interviewerName: '',
     signedWithHr: '',
     feedback: '',
-    followUp1: '',
-    followUp2: '',
-    followUp3: '',
     courierStatus: '',
     notes: '',
   };
 
-  // خيارات الـ dropdowns
   readonly signedWithHrOptions: string[] = [
     'Signed A Contract With HR',
     'Will Think About Our Offers',
@@ -94,14 +105,12 @@ export class InterviewFormModalComponent implements OnChanges {
           hubName: r.hub ?? '',
           zoneName: r.zone ?? '',
           position: r.position ?? '',
-          vehicleType: r.vehicleType ?? '',
+          vehicleType: (r.vehicleType ?? '').toString().trim(),
+
           accountManagerName: r.accountManager ?? '',
           interviewerName: r.interviewer ?? '',
           signedWithHr: r.signedWithHr ?? '',
           feedback: r.feedback ?? '',
-          followUp1: r.followUp1 ?? '',
-          followUp2: r.followUp2 ?? '',
-          followUp3: r.followUp3 ?? '',
           courierStatus: r.courierStatus ?? '',
           notes: r.notes ?? '',
         };
@@ -122,15 +131,12 @@ export class InterviewFormModalComponent implements OnChanges {
       accountName: '',
       hubName: '',
       zoneName: '',
-      position: '',
+      position: 'Courier',
       vehicleType: '',
       accountManagerName: '',
       interviewerName: '',
       signedWithHr: '',
       feedback: '',
-      followUp1: '',
-      followUp2: '',
-      followUp3: '',
       courierStatus: '',
       notes: '',
     };
@@ -138,7 +144,6 @@ export class InterviewFormModalComponent implements OnChanges {
     this.zones = [];
   }
 
-  // ===== dependent dropdowns =====
   onAccountChange(): void {
     this.model.hubName = '';
     this.model.zoneName = '';
@@ -152,9 +157,7 @@ export class InterviewFormModalComponent implements OnChanges {
   }
 
   private loadHubsForAccount(): void {
-    const client = this.clients.find(
-      (c) => c.name === this.model.accountName,
-    );
+    const client = this.clients.find((c) => c.name === this.model.accountName);
     if (!client) {
       this.hubs = [];
       return;
@@ -191,33 +194,22 @@ export class InterviewFormModalComponent implements OnChanges {
     });
   }
 
-  // ===== submit =====
   onSubmit(form: NgForm): void {
     if (form.invalid) {
       form.control.markAllAsTouched();
       return;
     }
 
-    const client =
-      this.clients.find((c) => c.name === this.model.accountName) || null;
+    const client = this.clients.find((c) => c.name === this.model.accountName) || null;
     const hub = this.hubs.find((h) => h.name === this.model.hubName) || null;
-    const zone =
-      this.zones.find((z) => z.name === this.model.zoneName) || null;
+    const zone = this.zones.find((z) => z.name === this.model.zoneName) || null;
 
     const accManager =
-      this.operationUsers.find(
-        (u) => u.fullName === this.model.accountManagerName,
-      ) || null;
+      this.operationUsers.find((u) => u.fullName === this.model.accountManagerName) || null;
     const interviewer =
-      this.operationUsers.find(
-        (u) => u.fullName === this.model.interviewerName,
-      ) || null;
+      this.operationUsers.find((u) => u.fullName === this.model.interviewerName) || null;
 
     const dto: CreateInterviewDto = {
-      // مابنبعتش date من الفورم – الـ backend هو اللي بيحط تاريخ الإنشاء
-      // date: undefined,
-
-      // دول optional / مش داخلين من الفورم (هيجوا من import أو logic تاني)
       ticketNo: undefined,
       crmFeedback: undefined,
 
@@ -231,7 +223,7 @@ export class InterviewFormModalComponent implements OnChanges {
       zoneId: zone?.id ?? null,
 
       position: this.model.position,
-      vehicleType: this.model.vehicleType,
+      vehicleType: this.model.vehicleType || null,
 
       accountManagerId: accManager?.id ?? null,
       interviewerId: interviewer?.id ?? null,
@@ -239,10 +231,6 @@ export class InterviewFormModalComponent implements OnChanges {
       signedWithHr: this.model.signedWithHr || null,
 
       feedback: this.model.feedback,
-      // hrFeedback intentionally not sent from this form
-      followUp1: this.model.followUp1,
-      followUp2: this.model.followUp2,
-      followUp3: this.model.followUp3,
       courierStatus: this.model.courierStatus,
       notes: this.model.notes,
 

@@ -1,0 +1,230 @@
+<!-- src/app/pages/hr pages/security-background-check/form-modal-security-background-check/form-modal-security-background-check.component.html -->
+<div class="modal-backdrop" (click)="onBackdropClick()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        Update Security Background Check
+      </h2>
+
+      <button
+        type="button"
+        class="modal-close"
+        (click)="close.emit()"
+        [disabled]="saving"
+      >
+        <i class="ri-close-line" aria-hidden="true"></i>
+        <span class="sr-only">Close</span>
+      </button>
+    </div>
+
+    <form
+      #f="ngForm"
+      (ngSubmit)="onSubmit(f)"
+      novalidate
+      class="modal-body"
+    >
+      <div class="modal-grid">
+        <!-- Column 1: Basic info -->
+        <div class="modal-col">
+          <div class="field">
+            <label class="field-label" for="courierName">
+              Courier Name *
+            </label>
+            <input
+              id="courierName"
+              type="text"
+              class="field-input"
+              name="courierName"
+              [(ngModel)]="model.courierName"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="phoneNumber">
+              Phone Number *
+            </label>
+            <input
+              id="phoneNumber"
+              type="text"
+              class="field-input"
+              name="phoneNumber"
+              [(ngModel)]="model.phoneNumber"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="residence">
+              Residence / محل الإقامة
+            </label>
+            <input
+              id="residence"
+              type="text"
+              class="field-input"
+              name="residence"
+              [(ngModel)]="model.residence"
+            />
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="nationalId">National ID</label>
+            <input
+              id="nationalId"
+              type="text"
+              class="field-input"
+              name="nationalId"
+              [(ngModel)]="model.nationalId"
+            />
+          </div>
+
+
+
+          <div class="field">
+            <label class="field-label" for="position">Position</label>
+            <input
+              id="position"
+              type="text"
+              class="field-input"
+              name="position"
+              [(ngModel)]="model.position"
+            />
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="vehicleType">
+              Vehicle Type
+            </label>
+            <input
+              id="vehicleType"
+              type="text"
+              class="field-input"
+              name="vehicleType"
+              [(ngModel)]="model.vehicleType"
+            />
+          </div>
+        </div>
+
+        <!-- Column 2: Security focus + Status/Notes -->
+        <div class="modal-col">
+          <!-- ===== Security focus ===== -->
+          <div class="security-focus">
+            <div class="security-focus__head">
+              <div class="security-focus__title">
+                <i class="ri-shield-check-line"></i>
+                <span>Security result</span>
+              </div>
+
+              <div class="security-focus__quick">
+                <button
+                  type="button"
+                  class="quick-btn quick-btn--success"
+                  (click)="setSecurity('Negative')"
+                  [disabled]="saving"
+                >
+                  Negative
+                </button>
+
+                <button
+                  type="button"
+                  class="quick-btn quick-btn--danger"
+                  (click)="setSecurity('Positive')"
+                  [disabled]="saving"
+                >
+                  Positive
+                </button>
+
+                <button
+                  type="button"
+                  class="quick-btn quick-btn--neutral"
+                  (click)="setSecurity(null)"
+                  [disabled]="saving"
+                >
+                  Pending
+                </button>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="securityResult">Security result</label>
+              <select
+                #securitySelect
+                id="securityResult"
+                class="field-input field-input--strong"
+                name="securityResult"
+                [(ngModel)]="model.securityResult"
+              >
+                <option [ngValue]="null">Pending</option>
+                <option [ngValue]="'Negative'">Negative</option>
+                <option [ngValue]="'Positive'">Positive</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="notes">Notes</label>
+            <textarea
+              id="notes"
+              class="field-input field-textarea"
+              name="notes"
+              [(ngModel)]="model.notes"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="signedWithHr">
+              Signed with HR
+            </label>
+            <input
+              id="signedWithHr"
+              type="text"
+              class="field-input"
+              name="signedWithHr"
+              [(ngModel)]="model.signedWithHr"
+              placeholder="e.g. Signed A Contract With HR"
+            />
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="courierStatus">
+              Courier Status
+            </label>
+            <input
+              id="courierStatus"
+              type="text"
+              class="field-input"
+              name="courierStatus"
+              [(ngModel)]="model.courierStatus"
+              placeholder="e.g. Active"
+            />
+          </div>
+        </div>
+      </div>
+
+      <p class="error-text" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </p>
+    </form>
+
+    <div class="modal-footer">
+      <button
+        type="button"
+        class="btn btn--ghost"
+        (click)="close.emit()"
+        [disabled]="saving"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="btn btn--primary"
+        (click)="onSubmit(f)"
+        [disabled]="saving"
+      >
+        Save changes
+      </button>
+    </div>
+  </div>
+</div>

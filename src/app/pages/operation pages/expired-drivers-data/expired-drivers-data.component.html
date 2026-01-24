@@ -1,0 +1,448 @@
+<div class="drivers-page">
+  <div class="wrap">
+    <!-- Header -->
+    <div class="header">
+      <div class="title">
+        <div class="badgeIcon" aria-hidden="true">
+          <i class="ri-id-card-line"></i>
+        </div>
+
+        <div class="txt">
+          <h2>Licenses Overview</h2>
+          <p>Track courier IDs, licenses, vehicle types, and renewal risk across partner companies.</p>
+        </div>
+      </div>
+
+      <div class="topActions">
+        <button type="button" class="btn btn--ghost" (click)="exportCsv()" title="Export CSV">
+          <i class="ri-download-cloud-2-line"></i>
+          <span>Export</span>
+        </button>
+
+        <button type="button" class="btn btn--primary" (click)="openCreate()" title="Add Courier">
+          <i class="ri-add-line"></i>
+          <span>Add</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpis">
+      <div class="kpi">
+        <div class="kpiTop">
+          <span>Total</span>
+          <i class="ri-group-line" aria-hidden="true"></i>
+        </div>
+        <div class="kpiVal">{{ kpiTotal }}</div>
+        <div class="kpiHint">All couriers tracked.</div>
+      </div>
+
+      <div class="kpi kpi--warn">
+        <div class="kpiTop">
+          <span>Expiring ≤ {{ EXPIRING_SOON_DAYS }}d</span>
+          <i class="ri-timer-line" aria-hidden="true"></i>
+        </div>
+        <div class="kpiVal">{{ kpiExpiring }}</div>
+        <div class="kpiHint">Needs renewal plan.</div>
+      </div>
+
+      <div class="kpi kpi--danger">
+        <div class="kpiTop">
+          <span>Expired</span>
+          <i class="ri-error-warning-line" aria-hidden="true"></i>
+        </div>
+        <div class="kpiVal">{{ kpiExpired }}</div>
+        <div class="kpiHint">Should be blocked.</div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpiTop">
+          <span>Companies</span>
+          <i class="ri-building-2-line" aria-hidden="true"></i>
+        </div>
+        <div class="kpiVal">{{ kpiCompanies }}</div>
+        <div class="kpiHint">Unique partners.</div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card filters">
+      <div class="filtersGrid">
+        <div class="field field--icon">
+          <i class="ri-search-line" aria-hidden="true"></i>
+          <input
+            [(ngModel)]="q"
+            (ngModelChange)="onChangeAnyFilter()"
+            class="control"
+            type="text"
+            placeholder="Search: ID, name, license, plate, subcontractor…"
+            title="Search"
+          />
+        </div>
+
+        <div class="field field--icon field--select">
+          <i class="ri-building-2-line" aria-hidden="true"></i>
+          <select [(ngModel)]="company" (ngModelChange)="onChangeAnyFilter()" class="control" title="Company">
+            <option value="all">All companies</option>
+            <option value="Jumia">Jumia</option>
+            <option value="Amazon">Amazon</option>
+            <option value="SMSA">SMSA</option>
+            <option value="Mylerz">Mylerz</option>
+            <option value="Bosta">Bosta</option>
+            <option value="Other">Other</option>
+          </select>
+          <span class="chev" aria-hidden="true"><i class="ri-arrow-down-s-line"></i></span>
+        </div>
+
+        <div class="field field--icon field--select">
+          <i class="ri-truck-line" aria-hidden="true"></i>
+          <select [(ngModel)]="vehicleType" (ngModelChange)="onChangeAnyFilter()" class="control" title="Vehicle">
+            <option value="all">All vehicles</option>
+            <option value="truck">Truck</option>
+            <option value="van">Van</option>
+            <option value="sedan">Sedan</option>
+            <option value="motorbike">Motorbike</option>
+          </select>
+          <span class="chev" aria-hidden="true"><i class="ri-arrow-down-s-line"></i></span>
+        </div>
+
+        <div class="field field--icon field--select">
+          <i class="ri-user-settings-line" aria-hidden="true"></i>
+          <select
+            [(ngModel)]="engagementType"
+            (ngModelChange)="onChangeAnyFilter()"
+            class="control"
+            title="Engagement"
+          >
+            <option value="all">Direct + Sub</option>
+            <option value="direct">Direct</option>
+            <option value="subcontractor">Sub</option>
+          </select>
+          <span class="chev" aria-hidden="true"><i class="ri-arrow-down-s-line"></i></span>
+        </div>
+
+        <div class="field field--icon field--select">
+          <i class="ri-shield-check-line" aria-hidden="true"></i>
+          <select [(ngModel)]="status" (ngModelChange)="onChangeAnyFilter()" class="control" title="Status">
+            <option value="all">All statuses</option>
+            <option value="valid">Valid</option>
+            <option value="expiring">Expiring</option>
+            <option value="expired">Expired</option>
+          </select>
+          <span class="chev" aria-hidden="true"><i class="ri-arrow-down-s-line"></i></span>
+        </div>
+      </div>
+
+      <div class="filtersFooter">
+        <label class="check">
+          <input type="checkbox" [(ngModel)]="onlyCritical14" (ngModelChange)="onChangeAnyFilter()" />
+          <span>Only ≤ 14 days</span>
+        </label>
+
+        <div class="meta">
+          Showing <b>{{ filteredSorted.length }}</b> results
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card tableCard">
+      <div class="tableTop">
+        <div class="tableTitle">
+          <span class="dot"></span>
+          <span>Licenses Overview</span>
+        </div>
+
+        <div class="tableMeta">
+          <span>Page <b>{{ page }}</b> / <b>{{ pageCount }}</b></span>
+          <span class="sep">•</span>
+          <span>Total <b>{{ filteredSorted.length }}</b></span>
+        </div>
+      </div>
+
+      <div class="tableWrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th class="colFlag" aria-hidden="true"></th>
+              <th class="colCourier">Courier</th>
+              <th class="colCompany thSort" (click)="toggleSort('company')" title="Sort by Company">
+                Company <i class="ri-sort-desc" aria-hidden="true"></i>
+              </th>
+              <th class="colVehicle thSort" (click)="toggleSort('vehicle')" title="Sort by Vehicle">
+                Vehicle <i class="ri-sort-desc" aria-hidden="true"></i>
+              </th>
+              <th class="colLicense">License</th>
+              <th class="colExpiry thSort" (click)="toggleSort('expiry')" title="Sort by Expiry">
+                Expiry <i class="ri-sort-desc" aria-hidden="true"></i>
+              </th>
+              <th class="colDays thSort" (click)="toggleSort('daysLeft')" title="Sort by Days Left">
+                Days <i class="ri-sort-desc" aria-hidden="true"></i>
+              </th>
+              <th class="colStatus">Status</th>
+              <th class="colActions"></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let r of paged; trackBy: trackById" class="row">
+              <td class="colFlag">
+                <span class="flag" [attr.data-status]="getStatus(r)"></span>
+              </td>
+
+              <td class="colCourier">
+                <div class="courier">
+                  <div class="avatar" aria-hidden="true"><i class="ri-user-3-line"></i></div>
+
+                  <div class="cInfo">
+                    <div class="cTop">
+                      <span class="name" [title]="r.courierName">{{ r.courierName }}</span>
+                      <span class="pill pill--id">{{ r.id }}</span>
+                    </div>
+
+                    <div class="cSub">
+                      <span class="mini">
+                        <i class="ri-link-m" aria-hidden="true"></i>
+                        {{ engagementLabel(r.engagementType) }}
+                      </span>
+
+                      <ng-container *ngIf="r.engagementType === 'subcontractor'">
+                        <span class="sep">•</span>
+                        <span class="mini truncate" [title]="r.subcontractorName">
+                          <i class="ri-briefcase-4-line" aria-hidden="true"></i>
+                          {{ r.subcontractorName }}
+                        </span>
+                      </ng-container>
+
+                      <ng-container *ngIf="r.courierPhone">
+                        <span class="sep">•</span>
+                        <span class="mini mono" [title]="r.courierPhone">
+                          <i class="ri-phone-line" aria-hidden="true"></i>
+                          {{ r.courierPhone }}
+                        </span>
+                      </ng-container>
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              <td class="colCompany">
+                <div class="strong">{{ r.company }}</div>
+                <div class="muted" *ngIf="r.companyRef">Ref: <b>{{ r.companyRef }}</b></div>
+              </td>
+
+              <td class="colVehicle">
+                <span class="pill">
+                  <i class="ri-roadster-line" *ngIf="r.vehicleType === 'sedan'" aria-hidden="true"></i>
+                  <i class="ri-truck-line" *ngIf="r.vehicleType === 'truck'" aria-hidden="true"></i>
+                  <i class="ri-bus-2-line" *ngIf="r.vehicleType === 'van'" aria-hidden="true"></i>
+                  <i class="ri-motorbike-line" *ngIf="r.vehicleType === 'motorbike'" aria-hidden="true"></i>
+                  {{ vehicleLabel(r.vehicleType) }}
+                </span>
+                <div class="muted" *ngIf="r.vehiclePlate">Plate: <b>{{ r.vehiclePlate }}</b></div>
+              </td>
+
+              <td class="colLicense">
+                <div class="strong mono">{{ r.licenseNo }}</div>
+                <div class="muted" *ngIf="r.nationalId">National: <b class="mono">{{ r.nationalId }}</b></div>
+              </td>
+
+              <td class="colExpiry">
+                <div class="strong mono">{{ r.licenseExpiry }}</div>
+                <div class="muted">Upd: <b>{{ r.lastUpdatedAt | date : 'yyyy-MM-dd' }}</b></div>
+              </td>
+
+              <td class="colDays">
+                <div class="strong mono">{{ daysLeft(r) }}</div>
+                <div class="muted">days</div>
+              </td>
+
+              <td class="colStatus">
+                <span class="badge" [attr.data-status]="getStatus(r)">
+                  <i class="ri-close-circle-line" *ngIf="getStatus(r) === 'expired'" aria-hidden="true"></i>
+                  <i class="ri-timer-line" *ngIf="getStatus(r) === 'expiring'" aria-hidden="true"></i>
+                  <i class="ri-shield-check-line" *ngIf="getStatus(r) === 'valid'" aria-hidden="true"></i>
+                  {{ statusLabel(r) }}
+                </span>
+              </td>
+
+              <!-- Actions: EDIT ONLY -->
+              <td class="colActions">
+                <div class="iconActions">
+                  <button type="button" class="iconBtn" (click)="openEdit(r)" title="Edit">
+                    <i class="ri-edit-2-line"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <tr *ngIf="paged.length === 0">
+              <td colspan="9">
+                <div class="empty">
+                  <div class="emptyIcon" aria-hidden="true"><i class="ri-inbox-2-line"></i></div>
+                  <div class="emptyTitle">No results</div>
+                  <div class="emptyHint">Change filters or search keywords.</div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pager">
+        <div class="pagerLeft">
+          <span class="muted">Rows:</span>
+          <select [(ngModel)]="pageSize" (ngModelChange)="onChangeAnyFilter()" class="control control--sm" title="Page size">
+            <option [ngValue]="4">4</option>
+            <option [ngValue]="6">6</option>
+            <option [ngValue]="8">8</option>
+            <option [ngValue]="12">12</option>
+          </select>
+          <span class="muted">/ page</span>
+        </div>
+
+        <div class="pagerRight">
+          <button class="pBtn" (click)="goFirstPage()" [disabled]="page === 1" title="First">
+            <i class="ri-skip-back-line"></i>
+          </button>
+          <button class="pBtn" (click)="goPrevPage()" [disabled]="page === 1" title="Prev">
+            <i class="ri-arrow-left-s-line"></i>
+          </button>
+
+          <span class="pInfo">
+            <b>{{ page }}</b><span>/</span><b>{{ pageCount }}</b>
+          </span>
+
+          <button class="pBtn" (click)="goNextPage()" [disabled]="page === pageCount" title="Next">
+            <i class="ri-arrow-right-s-line"></i>
+          </button>
+          <button class="pBtn" (click)="goLastPage()" [disabled]="page === pageCount" title="Last">
+            <i class="ri-skip-forward-line"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================
+         MODAL (Required for Add/Edit to work)
+         ========================= -->
+    <div class="modal-backdrop" *ngIf="modalOpen" (click)="closeModal()">
+      <div class="modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <div class="modal__header">
+          <div class="modal__title">
+            <h2>{{ modalMode === 'create' ? 'Add Courier License' : 'Edit Courier License' }}</h2>
+            <p>Courier, license, vehicle, and engagement details.</p>
+          </div>
+
+          <button type="button" class="iconBtn" (click)="closeModal()" title="Close">
+            <i class="ri-close-line"></i>
+          </button>
+        </div>
+
+        <div class="modal__body">
+          <div class="formGrid">
+            <div class="field2">
+              <label for="courierName">Courier name</label>
+              <input id="courierName" [(ngModel)]="draft.courierName" class="control" placeholder="e.g., Ahmed Samir" />
+            </div>
+
+            <div class="field2">
+              <label for="courierPhone">Phone</label>
+              <input id="courierPhone" [(ngModel)]="draft.courierPhone" class="control" placeholder="+20 10 1234 5678" />
+            </div>
+
+            <div class="field2">
+              <label for="companyModal">Company</label>
+              <select id="companyModal" [(ngModel)]="draft.company" class="control">
+                <option value="Jumia">Jumia</option>
+                <option value="Amazon">Amazon</option>
+                <option value="SMSA">SMSA</option>
+                <option value="Mylerz">Mylerz</option>
+                <option value="Bosta">Bosta</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="field2">
+              <label for="companyRef">Company ref</label>
+              <input id="companyRef" [(ngModel)]="draft.companyRef" class="control" placeholder="e.g., AMZ-19" />
+            </div>
+
+            <div class="field2">
+              <label for="engagementModal">Engagement</label>
+              <select id="engagementModal" [(ngModel)]="draft.engagementType" class="control">
+                <option value="direct">Direct</option>
+                <option value="subcontractor">Sub-Contractor</option>
+              </select>
+            </div>
+
+            <div class="field2">
+              <label for="subcontractorName">Sub-Contractor name</label>
+              <input
+                id="subcontractorName"
+                [(ngModel)]="draft.subcontractorName"
+                class="control"
+                [disabled]="draft.engagementType !== 'subcontractor'"
+                placeholder="e.g., Karim Samy"
+              />
+            </div>
+
+            <div class="field2">
+              <label for="vehicleModal">Vehicle type</label>
+              <select id="vehicleModal" [(ngModel)]="draft.vehicleType" class="control">
+                <option value="sedan">Sedan</option>
+                <option value="truck">Truck</option>
+                <option value="van">Van</option>
+                <option value="motorbike">Motorbike</option>
+              </select>
+            </div>
+
+            <div class="field2">
+              <label for="plate">Vehicle plate</label>
+              <input id="plate" [(ngModel)]="draft.vehiclePlate" class="control" placeholder="e.g., ABC 1234" />
+            </div>
+
+            <div class="field2">
+              <label for="licenseNo">License number</label>
+              <input id="licenseNo" [(ngModel)]="draft.licenseNo" class="control" placeholder="e.g., LIC-784512" />
+            </div>
+
+            <div class="field2">
+              <label for="expiry">License expiry</label>
+              <input id="expiry" [(ngModel)]="draft.licenseExpiry" class="control" type="date" />
+            </div>
+
+            <div class="field2">
+              <label for="nationalId">National ID</label>
+              <input id="nationalId" [(ngModel)]="draft.nationalId" class="control" placeholder="e.g., 29801011234567" />
+            </div>
+
+            <div class="field2 field2--full">
+              <label for="notes">Notes</label>
+              <textarea id="notes" [(ngModel)]="draft.notes" class="control" rows="3"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal__footer">
+          <div class="muted">Rows highlight when expiring/expired.</div>
+
+          <div class="modal__actions">
+            <button type="button" class="btn btn--ghost" (click)="closeModal()">Cancel</button>
+            <button type="button" class="btn btn--primary" (click)="saveDraft()">
+              {{ modalMode === 'create' ? 'Create' : 'Save' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" *ngIf="toast" [attr.data-type]="toast.type">
+      <i class="ri-checkbox-circle-line" *ngIf="toast.type === 'success'" aria-hidden="true"></i>
+      <i class="ri-error-warning-line" *ngIf="toast.type === 'error'" aria-hidden="true"></i>
+      <span>{{ toast.msg }}</span>
+    </div>
+  </div>
+</div>

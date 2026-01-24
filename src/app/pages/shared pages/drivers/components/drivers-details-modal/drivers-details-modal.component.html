@@ -1,316 +1,330 @@
-<section class="driver-details-page">
-  <!-- Page header -->
-  <header class="page-header">
-    <div class="page-header__inner">
-      <button
-        type="button"
-        class="page-header__back"
-        (click)="goBack()"
-      >
-        <i class="ri-arrow-left-line" aria-hidden="true"></i>
-        <span>Back to drivers</span>
-      </button>
+<!-- src/app/pages/.../drivers/components/driver-details/driver-details.component.html -->
 
-      <div class="page-header__title-block">
-        <h1 class="page-header__title">
-          <i class="ri-steering-2-line" aria-hidden="true"></i>
-          <span>Driver details</span>
-        </h1>
-        <p class="page-header__subtitle">
-          Review full profile, assignment, and compliance for this driver.
-        </p>
-      </div>
+<div class="backdrop" *ngIf="!isStandaloneRoute" (click)="onCloseClick()"></div>
+
+<div class="profile-container" [class.is-page]="isStandaloneRoute">
+  <header class="top-nav">
+    <button class="nav-back-btn" (click)="onCloseClick()">
+      <i class="ri-arrow-left-s-line"></i>
+      <span>Back</span>
+    </button>
+
+    <div class="nav-actions">
+      <span class="ticket-badge" *ngIf="vm?.courierCode">
+        <i class="ri-hashtag"></i> Code: {{ vm?.courierCode }}
+      </span>
+
+      <span class="ticket-badge" *ngIf="!vm?.courierCode && vm?.courierId">
+        <i class="ri-fingerprint-line"></i> ID: {{ vm?.courierId }}
+      </span>
+
+      <button
+        class="close-icon-btn"
+        *ngIf="!isStandaloneRoute"
+        (click)="onCloseClick()"
+      >
+        <i class="ri-close-line"></i>
+      </button>
     </div>
   </header>
 
-  <!-- Loading / error states -->
-  <div class="card card--state" *ngIf="loading()">
-    <p>Loading driver details…</p>
-  </div>
-
-  <div class="card card--state card--error" *ngIf="!loading() && error()">
-    <p class="card__error-text">{{ error() }}</p>
-    <button type="button" class="btn btn--secondary" (click)="goBack()">
-      Back to drivers
-    </button>
-  </div>
-
-  <!-- Main card -->
-  <article class="card" *ngIf="!loading() && !error() && driver() as d">
-    <!-- Top strip -->
-    <div class="card__top">
-      <div class="card__identity">
-        <div class="avatar">
-          {{ getInitials(d.name) }}
+  <!-- Drawer Error State (لو Drawer فقط) -->
+  <ng-container *ngIf="!loading && loadError && !isStandaloneRoute">
+    <div class="layout-grid">
+      <section class="content-card">
+        <h3 class="card-title">
+          <i class="ri-error-warning-line"></i> Failed to load
+        </h3>
+        <div class="empty-state">{{ loadError }}</div>
+        <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem">
+          <button class="action-btn primary" (click)="onCloseClick()">
+            <i class="ri-arrow-go-back-line"></i> Close
+          </button>
         </div>
-
-        <div class="card__identity-text">
-          <div class="card__name-row">
-            <h2 class="card__name">
-              {{ d.name || 'Unnamed driver' }}
-            </h2>
-            <span class="chip chip--primary" *ngIf="d.clientName">
-              <i class="ri-briefcase-4-line" aria-hidden="true"></i>
-              <span>{{ d.clientName }}</span>
-            </span>
-          </div>
-
-          <div class="card__meta">
-            <span *ngIf="d.courierId">
-              <i class="ri-fingerprint-line" aria-hidden="true"></i>
-              ID: {{ d.courierId }}
-            </span>
-            <span *ngIf="d.courierCode">
-              · <i class="ri-hashtag" aria-hidden="true"></i>
-              Code: {{ d.courierCode }}
-            </span>
-            <span *ngIf="d.area">
-              · <i class="ri-map-pin-2-line" aria-hidden="true"></i>
-              {{ d.area }}
-            </span>
-          </div>
-
-          <div class="card__contact">
-            <span *ngIf="d.courierPhone">
-              <i class="ri-phone-line" aria-hidden="true"></i>
-              {{ d.courierPhone }}
-            </span>
-            <span *ngIf="d.email">
-              · <i class="ri-mail-line" aria-hidden="true"></i>
-              {{ d.email }}
-            </span>
-            <span *ngIf="d.residence">
-              · <i class="ri-home-4-line" aria-hidden="true"></i>
-              {{ d.residence }}
-            </span>
-          </div>
-        </div>
-      </div>
-
+      </section>
     </div>
+  </ng-container>
 
-    <!-- Body layout -->
-    <div class="card__body">
-      <div class="layout-grid">
-        <!-- Profile -->
-        <section class="section">
-          <h2 class="section__title">
-            <i class="ri-user-3-line" aria-hidden="true"></i>
-            <span>Profile</span>
-          </h2>
-          <dl class="field-grid">
-            <div class="field">
-              <dt class="field__label">Name (EN)</dt>
-              <dd class="field__value">{{ d.name || '—' }}</dd>
+  <ng-container *ngIf="!loading && !loadError && vm as row; else loadingSkeleton">
+    <div class="layout-grid">
+      <!-- LEFT -->
+      <aside class="col-identity">
+        <div class="profile-card">
+          <div class="profile-status" [ngClass]="statusClass">
+            {{ statusText }}
+          </div>
+
+          <div class="profile-header">
+            <div class="avatar-circle">{{ initials }}</div>
+            <h1 class="profile-name">{{ row.name || 'Unnamed driver' }}</h1>
+            <p class="profile-role">
+              {{ row.clientName || 'Driver' }}
+            </p>
+          </div>
+
+          <div class="highlights-row">
+            <div class="highlight-badge" *ngIf="row.vehicleType">
+              <i
+                class="ri-motorbike-line"
+                *ngIf="row.vehicleType.toLowerCase().includes('motor')"
+              ></i>
+              <i
+                class="ri-car-line"
+                *ngIf="!row.vehicleType.toLowerCase().includes('motor')"
+              ></i>
+              {{ row.vehicleType }}
             </div>
 
-            <div class="field">
-              <dt class="field__label">Name (AR)</dt>
-              <dd class="field__value">{{ d.fullNameArabic || '—' }}</dd>
+            <div class="highlight-badge secondary" *ngIf="row.residence">
+              <i class="ri-home-4-line"></i> {{ row.residence }}
             </div>
 
-            <div class="field">
-              <dt class="field__label">Email</dt>
-              <dd class="field__value">{{ d.email || '—' }}</dd>
+            <div class="highlight-badge secondary" *ngIf="row.area">
+              <i class="ri-map-pin-2-line"></i> {{ row.area }}
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="contact-section">
+            <div class="contact-row">
+              <i class="ri-phone-line"></i>
+              <span>{{ row.courierPhone || 'No phone' }}</span>
+              <button
+                class="copy-btn"
+                title="Copy"
+                (click)="copyText('Phone', row.courierPhone)"
+                [disabled]="!row.courierPhone"
+              >
+                <i class="ri-file-copy-line"></i>
+              </button>
             </div>
 
-            <div class="field">
-              <dt class="field__label">Phone</dt>
-              <dd class="field__value">{{ d.courierPhone || '—' }}</dd>
+            <div class="contact-row">
+              <i class="ri-mail-line"></i>
+              <span>{{ row.email || 'No email' }}</span>
+              <button
+                class="copy-btn"
+                title="Copy"
+                (click)="copyText('Email', row.email)"
+                [disabled]="!row.email"
+              >
+                <i class="ri-file-copy-line"></i>
+              </button>
             </div>
 
-            <div class="field">
-              <dt class="field__label">Residence</dt>
-              <dd class="field__value">{{ d.residence || '—' }}</dd>
+            <div class="contact-row" *ngIf="row.courierId">
+              <i class="ri-fingerprint-line"></i>
+              <span>{{ row.courierId }}</span>
+              <button
+                class="copy-btn"
+                title="Copy"
+                (click)="copyText('Courier ID', row.courierId)"
+              >
+                <i class="ri-file-copy-line"></i>
+              </button>
             </div>
-          </dl>
+          </div>
+
+          <div class="profile-actions">
+            <button class="action-btn primary" (click)="callDriver()" [disabled]="!row.courierPhone">
+              <i class="ri-phone-fill"></i> Call Driver
+            </button>
+          </div>
+        </div>
+
+        <div class="toast" *ngIf="copiedToast">{{ copiedToast }}</div>
+      </aside>
+
+      <!-- RIGHT -->
+      <main class="col-details">
+        <!-- Top highlights -->
+        <section class="highlights-grid">
+          <div class="highlight-box brand-theme">
+            <div class="hb-icon"><i class="ri-building-4-line"></i></div>
+            <div class="hb-content">
+              <label>Client Account</label>
+              <div class="hb-value">{{ row.clientName || 'Not Assigned' }}</div>
+              <div class="hb-sub">
+                <i class="ri-user-star-line"></i>
+                Manager:
+                <strong>{{ row.accountManager || '—' }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="highlight-box blue-theme">
+            <div class="hb-icon"><i class="ri-route-line"></i></div>
+            <div class="hb-content">
+              <label>Assignment</label>
+              <div class="hb-value">{{ row.hub || 'No Hub' }}</div>
+              <div class="hb-sub">
+                <i class="ri-map-pin-2-line"></i>
+                {{ row.area || 'No Area' }} · {{ row.module || 'No Module' }}
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="highlight-box status-theme"
+            [class.is-signed]="row.signed"
+            [class.not-signed]="!row.signed"
+          >
+            <div class="hb-icon">
+              <i class="ri-file-paper-2-line" *ngIf="!row.signed"></i>
+              <i class="ri-checkbox-circle-fill" *ngIf="row.signed"></i>
+            </div>
+            <div class="hb-content">
+              <label>Contract Status</label>
+              <div class="hb-value">
+                {{ row.signed ? 'Signed' : 'Not signed' }}
+              </div>
+              <div class="hb-sub">
+                <i class="ri-shield-check-line"></i>
+                {{ row.contractStatus || 'N/A' }} · {{ row.hiringStatus || 'N/A' }}
+              </div>
+            </div>
+          </div>
         </section>
 
-        <!-- Assignment -->
-        <section class="section">
-          <h2 class="section__title">
-            <i class="ri-route-line" aria-hidden="true"></i>
-            <span>Assignment</span>
-          </h2>
-          <dl class="field-grid">
-            <div class="field">
-              <dt class="field__label">Client</dt>
-              <dd class="field__value">{{ d.clientName || '—' }}</dd>
+        <!-- Profile / Identity -->
+        <section class="content-card">
+          <h3 class="card-title">
+            <i class="ri-user-3-line"></i> Profile & Identity
+          </h3>
+
+          <div class="info-grid">
+            <div class="info-box">
+              <label>Name (EN)</label>
+              <div class="val">{{ row.name || '—' }}</div>
             </div>
 
-            <div class="field">
-              <dt class="field__label">Hub</dt>
-              <dd class="field__value">{{ d.hub || '—' }}</dd>
+            <div class="info-box">
+              <label>Name (AR)</label>
+              <div class="val">{{ row.fullNameArabic || '—' }}</div>
             </div>
 
-            <div class="field">
-              <dt class="field__label">Area</dt>
-              <dd class="field__value">{{ d.area || '—' }}</dd>
+            <div class="info-box">
+              <label>Contractor</label>
+              <div class="val">{{ row.contractor || '—' }}</div>
             </div>
 
-            <div class="field">
-              <dt class="field__label">Module</dt>
-              <dd class="field__value">{{ d.module || '—' }}</dd>
+            <div class="info-box">
+              <label>Point of contact</label>
+              <div class="val">{{ row.pointOfContact || '—' }}</div>
             </div>
 
-            <div class="field">
-              <dt class="field__label">Vehicle type</dt>
-              <dd class="field__value">{{ d.vehicleType || '—' }}</dd>
+            <div class="info-box">
+              <label>Interviewer</label>
+              <div class="val">{{ row.interviewer || '—' }}</div>
             </div>
 
-            <div class="field">
-              <dt class="field__label">Contractor</dt>
-              <dd class="field__value">{{ d.contractor || '—' }}</dd>
+            <div class="info-box">
+              <label>HR representative</label>
+              <div class="val">{{ row.hrRepresentative || '—' }}</div>
             </div>
-          </dl>
+          </div>
         </section>
 
-        <!-- Contacts -->
-        <section class="section">
-          <h2 class="section__title">
-            <i class="ri-contacts-book-2-line" aria-hidden="true"></i>
-            <span>Contacts</span>
-          </h2>
-          <dl class="field-grid">
-            <div class="field">
-              <dt class="field__label">Point of contact</dt>
-              <dd class="field__value">{{ d.pointOfContact || '—' }}</dd>
+        <!-- Dates & Documents -->
+        <section class="content-card">
+          <h3 class="card-title">
+            <i class="ri-calendar-event-line"></i> Dates & Documents
+          </h3>
+
+          <div class="info-grid">
+            <div class="info-box">
+              <label>Hiring date</label>
+              <div class="val">{{ row.hiringDate || '—' }}</div>
             </div>
 
-            <div class="field">
-              <dt class="field__label">Account manager</dt>
-              <dd class="field__value">{{ d.accountManager || '—' }}</dd>
+            <div class="info-box">
+              <label>Day 1 date</label>
+              <div class="val">{{ row.day1Date || '—' }}</div>
             </div>
 
-            <div class="field">
-              <dt class="field__label">Interviewer</dt>
-              <dd class="field__value">{{ d.interviewer || '—' }}</dd>
+            <div class="info-box">
+              <label>V-license expiry</label>
+              <div class="val">{{ row.vLicenseExpiryDate || '—' }}</div>
             </div>
 
-            <div class="field">
-              <dt class="field__label">HR representative</dt>
-              <dd class="field__value">{{ d.hrRepresentative || '—' }}</dd>
-            </div>
-          </dl>
-        </section>
-
-        <!-- Dates & documents -->
-        <section class="section">
-          <h2 class="section__title">
-            <i class="ri-calendar-event-line" aria-hidden="true"></i>
-            <span>Dates & documents</span>
-          </h2>
-          <dl class="field-grid">
-            <div class="field">
-              <dt class="field__label">Hiring date</dt>
-              <dd class="field__value">{{ d.hiringDate || '—' }}</dd>
+            <div class="info-box">
+              <label>D-license expiry</label>
+              <div class="val">{{ row.dLicenseExpiryDate || '—' }}</div>
             </div>
 
-            <div class="field">
-              <dt class="field__label">Day 1 date</dt>
-              <dd class="field__value">{{ d.day1Date || '—' }}</dd>
+            <div class="info-box">
+              <label>ID expiry</label>
+              <div class="val">{{ row.idExpiryDate || '—' }}</div>
             </div>
 
-            <div class="field">
-              <dt class="field__label">V-license expiry</dt>
-              <dd class="field__value">{{ d.vLicenseExpiryDate || '—' }}</dd>
-            </div>
-
-            <div class="field">
-              <dt class="field__label">D-license expiry</dt>
-              <dd class="field__value">{{ d.dLicenseExpiryDate || '—' }}</dd>
-            </div>
-
-            <div class="field">
-              <dt class="field__label">ID expiry</dt>
-              <dd class="field__value">{{ d.idExpiryDate || '—' }}</dd>
-            </div>
-          </dl>
-        </section>
-
-        <!-- Status & security -->
-        <section class="section">
-          <h2 class="section__title">
-            <i class="ri-shield-check-line" aria-hidden="true"></i>
-            <span>Status & security</span>
-          </h2>
-          <dl class="field-grid">
-            <div class="field">
-              <dt class="field__label">Liability amount</dt>
-              <dd class="field__value">
+            <div class="info-box">
+              <label>Liability amount</label>
+              <div class="val">
                 {{
-                  d.liabilityAmount !== null && d.liabilityAmount !== undefined
-                    ? d.liabilityAmount
+                  row.liabilityAmount !== null && row.liabilityAmount !== undefined
+                    ? row.liabilityAmount
                     : '—'
                 }}
-              </dd>
-            </div>
-
-            <div class="field">
-              <dt class="field__label">Signed</dt>
-              <dd class="field__value">
-                {{ d.signed ? 'Yes' : 'No' }}
-              </dd>
-            </div>
-
-            <div class="field">
-              <dt class="field__label">Contract status</dt>
-              <dd class="field__value">
-                <span class="badge" [ngClass]="getBadgeClass(d.contractStatus)">
-                  {{ d.contractStatus || 'N/A' }}
-                </span>
-              </dd>
-            </div>
-
-            <div class="field">
-              <dt class="field__label">Hiring status</dt>
-              <dd class="field__value">
-                <span class="badge" [ngClass]="getBadgeClass(d.hiringStatus)">
-                  {{ d.hiringStatus || 'N/A' }}
-                </span>
-              </dd>
-            </div>
-
-            <div class="field">
-              <dt class="field__label">Security status</dt>
-              <dd class="field__value">
-                <span
-                  class="badge"
-                  [ngClass]="getBadgeClass(d.securityQueryStatus)">
-                  {{ d.securityQueryStatus || 'N/A' }}
-                </span>
-              </dd>
-            </div>
-
-            <div class="field">
-              <dt class="field__label">Exception by</dt>
-              <dd class="field__value">{{ d.exceptionBy || '—' }}</dd>
-            </div>
-          </dl>
-        </section>
-
-        <!-- Remarks -->
-        <section class="section section--full">
-          <h2 class="section__title">
-            <i class="ri-chat-3-line" aria-hidden="true"></i>
-            <span>Remarks</span>
-          </h2>
-          <div class="remarks">
-            <div class="remarks__block">
-              <div class="field__label">Security comment</div>
-              <div class="remarks__value">
-                {{ d.securityQueryComment || '—' }}
               </div>
             </div>
-            <div class="remarks__block">
-              <div class="field__label">Notes</div>
-              <div class="remarks__value">
-                {{ d.notes || '—' }}
-              </div>
+
+            <div class="info-box">
+              <label>Security status</label>
+              <div class="val">{{ row.securityQueryStatus || '—' }}</div>
+            </div>
+
+            <div class="info-box">
+              <label>Exception by</label>
+              <div class="val">{{ row.exceptionBy || '—' }}</div>
             </div>
           </div>
         </section>
+
+        <!-- Notes (Chat style like interview feedback) -->
+        <section class="content-card" *ngIf="hasAnyNotes">
+          <h3 class="card-title">
+            <i class="ri-chat-quote-line"></i> Notes & Remarks
+          </h3>
+
+          <div class="feedback-list">
+            <div class="feedback-item" *ngIf="row.securityQueryComment">
+              <div class="feedback-avatar is-interviewer">
+                <i class="ri-shield-check-line"></i>
+              </div>
+              <div class="feedback-content">
+                <div class="feedback-author">Security comment</div>
+                <div class="feedback-text">{{ row.securityQueryComment }}</div>
+              </div>
+            </div>
+
+            <div class="feedback-item" *ngIf="row.notes">
+              <div class="feedback-avatar is-crm">
+                <i class="ri-sticky-note-line"></i>
+              </div>
+              <div class="feedback-content">
+                <div class="feedback-author">General notes</div>
+                <div class="feedback-text">{{ row.notes }}</div>
+              </div>
+            </div>
+
+            <div class="empty-state" *ngIf="!row.securityQueryComment && !row.notes">
+              No notes recorded yet.
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </ng-container>
+
+  <ng-template #loadingSkeleton>
+    <div class="skeleton-loader">
+      <div class="sk-side"></div>
+      <div class="sk-main">
+        <div class="sk-grid-3"></div>
+        <div class="sk-card"></div>
+        <div class="sk-card"></div>
       </div>
     </div>
-  </article>
-</section>
+  </ng-template>
+</div>

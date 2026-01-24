@@ -1,0 +1,198 @@
+<section class="employees-page">
+  <div class="employees-card">
+    <app-status-msg
+      *ngIf="status"
+      [type]="status.type"
+      [message]="status.message"
+      (close)="clearStatus()"
+    ></app-status-msg>
+
+    <!-- Header -->
+    <div class="employees-header">
+      <div class="employees-header-main">
+        <h1 class="employees-title">
+          Employees
+          <span class="employees-count">({{ total() }})</span>
+        </h1>
+        <p class="employees-subtitle">
+          HR employee database (profile, employment, documents, education, payroll, evaluation, accounts).
+        </p>
+      </div>
+
+      <div class="employees-header-actions">
+        <export-button
+          class="export-btn"
+          [data]="rows()"
+          filename="employees_export.xlsx"
+        ></export-button>
+
+        <button type="button" class="btn btn--primary" (click)="openAddModal()">
+          <i class="ri-user-add-line" aria-hidden="true"></i>
+          <span>Add Employee</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="employees-search">
+      <label class="field-label">Search</label>
+      <input
+        class="field-input"
+        type="text"
+        placeholder="Search by name or national ID..."
+        [ngModel]="q()"
+        (ngModelChange)="q.set($event); applyFilters()"
+      />
+    </div>
+
+    <!-- Filters -->
+    <div class="employees-filters">
+      <div class="filter-group">
+        <label class="field-label">Department</label>
+        <select class="field-input" [ngModel]="department()" (ngModelChange)="department.set($event); applyFilters()">
+          <option value="">All</option>
+          <option *ngFor="let d of departmentOptions" [value]="d">{{ d }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="field-label">Working</label>
+        <select class="field-input" [ngModel]="isWorking()" (ngModelChange)="isWorking.set($event); applyFilters()">
+          <option value="">All</option>
+          <option value="true">Working</option>
+          <option value="false">Not working</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="field-label">Has Account</label>
+        <select class="field-input" [ngModel]="hasAccount()" (ngModelChange)="hasAccount.set($event); applyFilters()">
+          <option value="">All</option>
+          <option value="true">Linked</option>
+          <option value="false">Not linked</option>
+        </select>
+      </div>
+
+      <div class="filter-group clear-filters">
+        <button type="button" class="btn btn--secondary" (click)="clearFilters()">Clear</button>
+      </div>
+    </div>
+
+    <!-- Table controls -->
+    <div class="table-controls">
+      <div class="table-info">
+        Showing {{ paginationStats().startItem }} to {{ paginationStats().endItem }} of {{ paginationStats().total }} employees
+      </div>
+
+      <div class="page-size-control">
+        <label class="page-size-label">Show:</label>
+        <select class="page-size-select" [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
+          <option *ngFor="let s of pageSizes()" [value]="s">{{ s }}</option>
+        </select>
+        <span class="page-size-text">per page</span>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper" [class.is-loading]="loading()">
+      <table class="employees-table">
+        <thead>
+          <tr>
+            <th>Full Name</th>
+            <th>National ID</th>
+            <th>Department</th>
+            <th>Job Title</th>
+            <th>Hire Date</th>
+            <th>Working</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let e of rows(); trackBy: trackById" class="row">
+            <td class="cell-primary" data-label="Full Name">
+              <div class="emp-info">
+                <div class="emp-name">{{ e.fullName }}</div>
+                <div class="emp-sub">
+                  <span class="muted">#{{ e.id }}</span>
+                  <span class="dot">•</span>
+                  <span class="muted">{{ e.employment?.corporateEmail || '—' }}</span>
+                </div>
+              </div>
+            </td>
+
+            <td data-label="National ID">{{ e.nationalId }}</td>
+
+            <td data-label="Department">
+              <span class="chip">{{ e.employment?.department || '—' }}</span>
+            </td>
+
+            <td data-label="Job Title">{{ e.employment?.jobTitle || '—' }}</td>
+
+            <td data-label="Hire Date">{{ formatDate(e.employment?.hireDate) }}</td>
+
+            <td data-label="Working">
+              <span class="status" [class.ok]="e.employment?.isWorking" [class.bad]="!e.employment?.isWorking">
+                {{ e.employment?.isWorking ? 'Working' : 'Not working' }}
+              </span>
+            </td>
+
+
+            <td class="cell-actions" data-label="Actions">
+              <div class="actions-group">
+                <a class="icon-action icon-action--view" [routerLink]="['/hr/employees', e.id]" title="Open">
+                  <i class="ri-external-link-line" aria-hidden="true"></i>
+                </a>
+
+                <button class="icon-action icon-action--edit" type="button" (click)="openEditModal(e)" title="Edit">
+                  <i class="ri-edit-line" aria-hidden="true"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="rows().length === 0">
+            <td class="empty-cell" colspan="8">
+              <div class="empty-state">
+                <i class="ri-user-search-line empty-icon"></i>
+                <h3>No employees found</h3>
+                <p>Try adjusting your search/filters.</p>
+                <button class="btn btn--primary" (click)="openAddModal()">
+                  <i class="ri-user-add-line"></i>
+                  Add First Employee
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="paginationStats().totalPages > 1">
+      <div class="pagination-info">
+        Page {{ paginationStats().currentPage }} of {{ paginationStats().totalPages }}
+      </div>
+
+      <div class="pagination-controls">
+        <button class="pagination-btn" [disabled]="!paginationStats().hasPrevious" (click)="previousPage()">
+          <i class="ri-arrow-left-line"></i>
+          Previous
+        </button>
+
+        <button class="pagination-btn" [disabled]="!paginationStats().hasNext" (click)="nextPage()">
+          Next
+          <i class="ri-arrow-right-line"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <app-employee-form-modal
+    *ngIf="isModalOpen()"
+    [employeeToEdit]="employeeToEdit()"
+    (close)="closeModal()"
+    (submit)="submitForm($event)"
+  ></app-employee-form-modal>
+</section>

@@ -1,0 +1,762 @@
+<div class="backdrop" *ngIf="!isStandaloneRoute" (click)="onCloseClick()"></div>
+
+<div class="profile-container" [class.is-page]="isStandaloneRoute">
+  <!-- Top Nav -->
+  <header class="top-nav">
+    <button class="nav-back-btn" (click)="onCloseClick()">
+      <i class="ri-arrow-left-s-line"></i>
+      <span>Back</span>
+    </button>
+
+    <div class="nav-actions" *ngIf="employee() as e">
+      <span class="ticket-badge">
+        <i class="ri-id-card-line"></i>
+        Employee #{{ e.id }}
+      </span>
+
+      <span class="meta-pill"
+        [class.ok]="docsMissingCount() === 0"
+        [class.bad]="docsMissingCount() > 0">
+        <i class="ri-file-list-3-line"></i>
+        Docs {{ docsReceivedCount() }}/{{ documentOptions.length }}
+      </span>
+
+      <span class="meta-pill"
+        [class.ok]="payrollPendingCount() === 0"
+        [class.bad]="payrollPendingCount() > 0">
+        <i class="ri-shield-check-line"></i>
+        Payroll
+        {{ payrollPendingCount() === 0 ? 'OK' : ('Needs action (' + payrollPendingCount() + ')') }}
+      </span>
+
+      <button class="close-icon-btn" *ngIf="!isStandaloneRoute" (click)="onCloseClick()">
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Status banner -->
+  <div
+    *ngIf="statusMsg() as st"
+    class="status-banner"
+    [class.ok]="st.type === 'success'"
+    [class.bad]="st.type === 'error'"
+  >
+    {{ st.text }}
+  </div>
+
+  <!-- Loading -->
+  <ng-container *ngIf="loading(); else loadedState">
+    <div class="skeleton-loader">
+      <div class="sk-side"></div>
+      <div class="sk-main">
+        <div class="sk-grid"></div>
+        <div class="sk-card"></div>
+        <div class="sk-card"></div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-template #loadedState>
+    <!-- Error -->
+    <div class="content-card error-card" *ngIf="errorMsg()">
+      <div class="card-title">
+        <i class="ri-error-warning-line"></i>
+        Error
+      </div>
+      <div class="error-text">{{ errorMsg() }}</div>
+    </div>
+
+    <!-- Main -->
+    <ng-container *ngIf="!errorMsg() && employee() as e">
+      <div class="layout-grid">
+        <!-- LEFT: Identity -->
+        <aside class="col-identity">
+          <div class="profile-card">
+            <div class="profile-status"
+              [class.status-ok]="e.employment?.isWorking === true"
+              [class.status-bad]="e.employment?.isWorking === false"
+              [class.status-neutral]="e.employment?.isWorking !== true && e.employment?.isWorking !== false"
+            >
+              {{ isWorkingLabel() }}
+            </div>
+
+            <div class="profile-header">
+              <div class="avatar-circle">{{ initials }}</div>
+              <h1 class="profile-name">{{ e.fullName || 'Unknown Name' }}</h1>
+              <p class="profile-role">{{ e.employment?.jobTitle || '—' }}</p>
+            </div>
+
+            <div class="highlights-row">
+              <div class="highlight-badge" *ngIf="e.employment?.department">
+                <i class="ri-building-4-line"></i>
+                {{ e.employment?.department }}
+              </div>
+
+              <div class="highlight-badge secondary">
+                <i class="ri-briefcase-4-line"></i>
+                {{ e.employment?.companyCode || 'No Company Code' }}
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="contact-section">
+              <div class="contact-row">
+                <i class="ri-id-card-line"></i>
+                <span>{{ e.nationalId || 'No National ID' }}</span>
+                <button class="copy-btn" title="Copy" (click)="copyToClipboard(e.nationalId)">
+                  <i class="ri-file-copy-line"></i>
+                </button>
+              </div>
+
+              <div class="contact-row">
+                <i class="ri-mail-line"></i>
+                <span>{{ e.employment?.corporateEmail || 'No corporate email' }}</span>
+                <button class="copy-btn" title="Copy" (click)="copyToClipboard(e.employment?.corporateEmail)">
+                  <i class="ri-file-copy-line"></i>
+                </button>
+              </div>
+
+              <div class="contact-row">
+                <i class="ri-calendar-2-line"></i>
+                <span>Hire: {{ formatDate(e.employment?.hireDate) }}</span>
+              </div>
+            </div>
+
+            <div class="profile-actions">
+              <button class="action-btn primary" (click)="startEditBasic()" [disabled]="editingAny()">
+                <i class="ri-edit-2-line"></i>
+                Quick Edit (Basic)
+              </button>
+
+              <button class="action-btn ghost" (click)="startEditDocuments()" [disabled]="editingAny()">
+                <i class="ri-file-list-2-line"></i>
+                Update Documents
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        <!-- RIGHT: Details -->
+        <main class="col-details">
+          <!-- Highlights -->
+          <section class="highlights-grid">
+            <div class="highlight-box brand-theme">
+              <div class="hb-icon"><i class="ri-user-3-line"></i></div>
+              <div class="hb-content">
+                <label>Employment</label>
+                <div class="hb-value">
+                  {{ e.employment?.jobTitle || '—' }}
+                </div>
+                <div class="hb-sub">
+                  <i class="ri-building-4-line"></i>
+                  Dept: <strong>{{ e.employment?.department || '—' }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="highlight-box blue-theme">
+              <div class="hb-icon"><i class="ri-file-list-3-line"></i></div>
+              <div class="hb-content">
+                <label>Documents</label>
+                <div class="hb-value">
+                  {{ docsReceivedCount() }}/{{ documentOptions.length }} Received
+                </div>
+                <div class="hb-sub" *ngIf="docsMissingCount() > 0">
+                  <i class="ri-alarm-warning-line"></i>
+                  Missing: <strong>{{ docsMissingCount() }}</strong>
+                </div>
+                <div class="hb-sub" *ngIf="docsMissingCount() === 0">
+                  <i class="ri-checkbox-circle-line"></i>
+                  All set
+                </div>
+              </div>
+            </div>
+
+            <div class="highlight-box status-theme"
+              [class.is-signed]="payrollPendingCount() === 0"
+              [class.not-signed]="payrollPendingCount() > 0">
+              <div class="hb-icon">
+                <i class="ri-shield-check-line" *ngIf="payrollPendingCount() === 0"></i>
+                <i class="ri-error-warning-line" *ngIf="payrollPendingCount() > 0"></i>
+              </div>
+              <div class="hb-content">
+                <label>Payroll</label>
+                <div class="hb-value">
+                  {{ payrollPendingCount() === 0 ? 'OK' : 'Needs Action' }}
+                </div>
+                <div class="hb-sub">
+                  Medical: <strong>{{ payrollRow()?.medicalInsuranceStatus || '—' }}</strong>
+                  • Social: <strong>{{ payrollRow()?.socialInsuranceStatus || '—' }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="highlight-box neutral-theme">
+              <div class="hb-icon"><i class="ri-suitcase-line"></i></div>
+              <div class="hb-content">
+                <label>Annual Leave</label>
+                <div class="hb-value">
+                  Remaining: {{ e.employment?.annualLeaveRemaining ?? '—' }}
+                </div>
+                <div class="hb-sub">
+                  Used: <strong>{{ e.employment?.annualLeaveUsed ?? '—' }}</strong>
+                  • Balance: <strong>{{ e.employment?.annualLeaveBalance ?? '—' }}</strong>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Basic -->
+          <section class="content-card">
+            <div class="card-head">
+              <h3 class="card-title"><i class="ri-profile-line"></i> Basic Information</h3>
+
+              <div class="card-actions">
+                <button *ngIf="!editingBasic()" class="btn" (click)="startEditBasic()" [disabled]="editingAny()">
+                  Edit
+                </button>
+
+                <ng-container *ngIf="editingBasic()">
+                  <button class="btn ghost" (click)="cancelEditBasic()">Cancel</button>
+                  <button class="btn primary" (click)="saveBasic()">Save</button>
+                </ng-container>
+              </div>
+            </div>
+
+            <div class="info-grid" *ngIf="!editingBasic()">
+              <div class="info-box">
+                <label>Full Name</label>
+                <div class="val">{{ e.fullName }}</div>
+              </div>
+
+              <div class="info-box">
+                <label>National ID</label>
+                <div class="val">{{ e.nationalId }}</div>
+              </div>
+
+              <div class="info-box">
+                <label>Birth Date</label>
+                <div class="val">{{ formatDate(e.birthDate) }}</div>
+              </div>
+
+              <div class="info-box">
+                <label>Marital Status</label>
+                <div class="val">{{ e.maritalStatus || '—' }}</div>
+              </div>
+
+              <div class="info-box">
+                <label>Religion</label>
+                <div class="val">{{ e.religion || '—' }}</div>
+              </div>
+
+              <div class="info-box">
+                <label>Nationality</label>
+                <div class="val">{{ e.nationality || '—' }}</div>
+              </div>
+
+              <div class="info-box">
+                <label>Birth Place</label>
+                <div class="val">{{ e.birthPlace || '—' }}</div>
+              </div>
+
+              <div class="info-box span2">
+                <label>Full Address</label>
+                <div class="val">{{ e.fullAddress || '—' }}</div>
+              </div>
+            </div>
+
+            <div class="form" *ngIf="editingBasic()">
+              <div class="f">
+                <label>Full Name *</label>
+                <input [(ngModel)]="basicForm.fullName" />
+              </div>
+
+              <div class="f">
+                <label>National ID *</label>
+                <input [(ngModel)]="basicForm.nationalId" />
+              </div>
+
+              <div class="f">
+                <label>Birth Date</label>
+                <input type="date" [(ngModel)]="basicForm.birthDate" />
+              </div>
+
+              <div class="f">
+                <label>Marital Status</label>
+                <select [(ngModel)]="basicForm.maritalStatus">
+                  <option value="unknown">unknown</option>
+                  <option value="single">single</option>
+                  <option value="married">married</option>
+                  <option value="divorced">divorced</option>
+                  <option value="widowed">widowed</option>
+                  <option value="engaged">engaged</option>
+                </select>
+              </div>
+
+              <div class="f">
+                <label>Religion</label>
+                <select [(ngModel)]="basicForm.religion">
+                  <option value="unknown">unknown</option>
+                  <option value="muslim">muslim</option>
+                  <option value="christian">christian</option>
+                  <option value="other">other</option>
+                </select>
+              </div>
+
+              <div class="f">
+                <label>Nationality</label>
+                <input [(ngModel)]="basicForm.nationality" />
+              </div>
+
+              <div class="f">
+                <label>Birth Place</label>
+                <input [(ngModel)]="basicForm.birthPlace" />
+              </div>
+
+              <div class="f span2">
+                <label>Full Address</label>
+                <input [(ngModel)]="basicForm.fullAddress" />
+              </div>
+            </div>
+          </section>
+
+          <!-- Employment -->
+          <section class="content-card">
+            <div class="card-head">
+              <h3 class="card-title"><i class="ri-briefcase-4-line"></i> Employment</h3>
+
+              <div class="card-actions">
+                <button *ngIf="!editingEmployment()" class="btn" (click)="startEditEmployment()" [disabled]="editingAny()">
+                  Edit
+                </button>
+
+                <ng-container *ngIf="editingEmployment()">
+                  <button class="btn ghost" (click)="cancelEditEmployment()">Cancel</button>
+                  <button class="btn primary" (click)="saveEmployment()">Save</button>
+                </ng-container>
+              </div>
+            </div>
+
+            <div class="two-col">
+              <!-- Job data -->
+              <div class="inner-card">
+                <div class="inner-title">Job Data</div>
+
+                <div class="info-grid" *ngIf="!editingEmployment()">
+                  <div class="info-box">
+                    <label>Working</label>
+                    <div class="val">{{ e.employment?.isWorking ? 'Working' : 'Not working' }}</div>
+                  </div>
+                  <div class="info-box">
+                    <label>Department</label>
+                    <div class="val">{{ e.employment?.department || '—' }}</div>
+                  </div>
+                  <div class="info-box">
+                    <label>Job Title</label>
+                    <div class="val">{{ e.employment?.jobTitle || '—' }}</div>
+                  </div>
+                  <div class="info-box">
+                    <label>Corporate Email</label>
+                    <div class="val">{{ e.employment?.corporateEmail || '—' }}</div>
+                  </div>
+                  <div class="info-box">
+                    <label>Hire Date</label>
+                    <div class="val">{{ formatDate(e.employment?.hireDate) }}</div>
+                  </div>
+                  <div class="info-box">
+                    <label>Termination Date</label>
+                    <div class="val">{{ formatDate(e.employment?.terminationDate) }}</div>
+                  </div>
+                  <div class="info-box">
+                    <label>Company Code</label>
+                    <div class="val">{{ e.employment?.companyCode || '—' }}</div>
+                  </div>
+                  <div class="info-box span2">
+                    <label>Admin Notes</label>
+                    <div class="val">{{ e.employment?.adminNotes || '—' }}</div>
+                  </div>
+                </div>
+
+                <div class="form" *ngIf="editingEmployment()">
+                  <div class="f">
+                    <label>Working</label>
+                    <select [(ngModel)]="employmentForm.isWorking">
+                      <option [ngValue]="true">Working</option>
+                      <option [ngValue]="false">Not working</option>
+                    </select>
+                  </div>
+
+                  <div class="f">
+                    <label>Department</label>
+                    <input [(ngModel)]="employmentForm.department" />
+                  </div>
+
+                  <div class="f">
+                    <label>Job Title</label>
+                    <input [(ngModel)]="employmentForm.jobTitle" />
+                  </div>
+
+                  <div class="f">
+                    <label>Corporate Email</label>
+                    <input [(ngModel)]="employmentForm.corporateEmail" />
+                  </div>
+
+                  <div class="f">
+                    <label>Hire Date</label>
+                    <input type="date" [(ngModel)]="employmentForm.hireDate" />
+                  </div>
+
+                  <div class="f">
+                    <label>Termination Date</label>
+                    <input type="date" [(ngModel)]="employmentForm.terminationDate" />
+                  </div>
+
+                  <div class="f">
+                    <label>Company Code</label>
+                    <input [(ngModel)]="employmentForm.companyCode" />
+                  </div>
+
+                  <div class="f span2">
+                    <label>Admin Notes</label>
+                    <textarea rows="3" [(ngModel)]="employmentForm.adminNotes"></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Papers & Leave -->
+              <div class="inner-card">
+                <div class="inner-title">Papers & Annual Leave</div>
+
+                <div class="subcard">
+                  <div class="subhead">
+                    <div class="ttl">Missing papers (text)</div>
+                    <div class="hint" *ngIf="missingPapersList().length">{{ missingPapersList().length }} item(s)</div>
+                  </div>
+
+                  <div *ngIf="!missingPapersList().length" class="empty">No missing papers.</div>
+
+                  <div class="chips" *ngIf="missingPapersList().length">
+                    <span class="chip" *ngFor="let it of missingPapersList()">{{ it }}</span>
+                  </div>
+
+                  <div class="form" *ngIf="editingEmployment()">
+                    <div class="f span2">
+                      <label>Missing Papers Text</label>
+                      <textarea rows="4" [(ngModel)]="employmentForm.missingPapersText"></textarea>
+                    </div>
+
+                    <div class="f">
+                      <label>Sheet Last Update</label>
+                      <input type="date" [(ngModel)]="employmentForm.sheetLastUpdateAt" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="subcard">
+                  <div class="subhead">
+                    <div class="ttl">Annual leave</div>
+                    <div class="hint">Auto remaining = balance - used</div>
+                  </div>
+
+                  <div class="info-grid" *ngIf="!editingEmployment()">
+                    <div class="info-box">
+                      <label>Balance</label>
+                      <div class="val">{{ e.employment?.annualLeaveBalance ?? '—' }}</div>
+                    </div>
+                    <div class="info-box">
+                      <label>Used</label>
+                      <div class="val">{{ e.employment?.annualLeaveUsed ?? '—' }}</div>
+                    </div>
+                    <div class="info-box">
+                      <label>Remaining</label>
+                      <div class="val">{{ e.employment?.annualLeaveRemaining ?? '—' }}</div>
+                    </div>
+                  </div>
+
+                  <div class="form" *ngIf="editingEmployment()">
+                    <div class="f">
+                      <label>Balance</label>
+                      <input type="number" [ngModel]="employmentForm.annualLeaveBalance" (ngModelChange)="onAnnualLeaveBalanceChange($event)" />
+                    </div>
+
+                    <div class="f">
+                      <label>Used</label>
+                      <input type="number" [ngModel]="employmentForm.annualLeaveUsed" (ngModelChange)="onAnnualLeaveUsedChange($event)" />
+                    </div>
+
+                    <div class="f">
+                      <label>Remaining</label>
+                      <input type="number" [ngModel]="employmentForm.annualLeaveRemaining" readonly />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Education -->
+          <section class="content-card">
+            <div class="card-head">
+              <h3 class="card-title"><i class="ri-graduation-cap-line"></i> Education</h3>
+
+              <div class="card-actions">
+                <button *ngIf="!editingEducation()" class="btn" (click)="startEditEducation()" [disabled]="editingAny()">
+                  Edit
+                </button>
+
+                <ng-container *ngIf="editingEducation()">
+                  <button class="btn ghost" (click)="cancelEditEducation()">Cancel</button>
+                  <button class="btn primary" (click)="saveEducation()">Save</button>
+                </ng-container>
+              </div>
+            </div>
+
+            <div class="info-grid" *ngIf="!editingEducation()">
+              <div class="info-box">
+                <label>University / Institute</label>
+                <div class="val">{{ e.education?.university || '—' }}</div>
+              </div>
+              <div class="info-box">
+                <label>Faculty / Major</label>
+                <div class="val">{{ e.education?.faculty || '—' }}</div>
+              </div>
+              <div class="info-box">
+                <label>Degree</label>
+                <div class="val">{{ e.education?.degree || '—' }}</div>
+              </div>
+              <div class="info-box">
+                <label>Graduation Year</label>
+                <div class="val">{{ e.education?.graduationYear ?? '—' }}</div>
+              </div>
+              <div class="info-box">
+                <label>GPA / Grade</label>
+                <div class="val">{{ e.education?.gpa || '—' }}</div>
+              </div>
+              <div class="info-box span2">
+                <label>Notes</label>
+                <div class="val">{{ e.education?.notes || '—' }}</div>
+              </div>
+            </div>
+
+            <div class="form" *ngIf="editingEducation()">
+              <div class="f">
+                <label>University / Institute</label>
+                <input [(ngModel)]="educationForm.university" />
+              </div>
+
+              <div class="f">
+                <label>Faculty / Major</label>
+                <input [(ngModel)]="educationForm.faculty" />
+              </div>
+
+              <div class="f">
+                <label>Degree *</label>
+                <input [(ngModel)]="educationForm.degree" />
+              </div>
+
+              <div class="f">
+                <label>Graduation Year</label>
+                <input type="number" [(ngModel)]="educationForm.graduationYear" />
+              </div>
+
+              <div class="f">
+                <label>GPA / Grade</label>
+                <input [(ngModel)]="educationForm.gpa" />
+              </div>
+
+              <div class="f span2">
+                <label>Notes (UI only unless you add DB column)</label>
+                <textarea rows="4" [(ngModel)]="educationForm.notes"></textarea>
+              </div>
+            </div>
+          </section>
+
+          <!-- Documents -->
+          <section class="content-card">
+            <div class="card-head">
+              <h3 class="card-title"><i class="ri-file-list-3-line"></i> Documents Checklist</h3>
+
+              <div class="card-actions">
+                <button *ngIf="!editingDocuments()" class="btn" (click)="startEditDocuments()" [disabled]="editingAny()">
+                  Edit
+                </button>
+
+                <ng-container *ngIf="editingDocuments()">
+                  <button class="btn ghost" (click)="markAllDocumentsReceived()">Mark all received</button>
+                  <button class="btn ghost danger" (click)="markAllDocumentsMissing()">Mark all missing</button>
+                  <button class="btn ghost" (click)="cancelEditDocuments()">Cancel</button>
+                  <button class="btn primary" (click)="saveDocuments()">Save</button>
+                </ng-container>
+              </div>
+            </div>
+
+            <div class="mini-note" *ngIf="docsMissingCount() > 0">
+              <i class="ri-alarm-warning-line"></i>
+              Missing documents: <strong>{{ docsMissingCount() }}</strong>
+            </div>
+
+            <div class="docs-grid">
+              <label class="doc-item" *ngFor="let d of documentOptions">
+                <input
+                  type="checkbox"
+                  class="doc-checkbox"
+                  [checked]="docsForm[d.key] === true"
+                  [disabled]="!editingDocuments()"
+                  (change)="toggleDoc(d.key, $event)"
+                />
+
+                <div class="doc-meta">
+                  <div class="doc-name">{{ d.label }}</div>
+                  <div class="doc-sub">
+                    <span class="doc-pill" [class.ok]="docsForm[d.key] === true" [class.bad]="docsForm[d.key] !== true">
+                      {{ docsForm[d.key] === true ? 'Received' : 'Missing' }}
+                    </span>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </section>
+
+          <!-- Payroll -->
+          <section class="content-card">
+            <div class="card-head">
+              <h3 class="card-title"><i class="ri-shield-check-line"></i> Payroll & Insurances</h3>
+
+              <div class="card-actions">
+                <button *ngIf="!editingPayroll()" class="btn" (click)="startEditPayroll()" [disabled]="editingAny()">
+                  Edit
+                </button>
+
+                <ng-container *ngIf="editingPayroll()">
+                  <button class="btn ghost" (click)="recalcSharesFromInsuredSalary()">Auto-calc shares</button>
+                  <button class="btn ghost" (click)="cancelEditPayroll()">Cancel</button>
+                  <button class="btn primary" (click)="savePayroll()">Save</button>
+                </ng-container>
+              </div>
+            </div>
+
+            <div class="subcard" *ngIf="payrollLoading()">Loading payroll...</div>
+
+            <div class="subcard errorish" *ngIf="payrollError()">
+              {{ payrollError() }}
+            </div>
+
+            <ng-container *ngIf="!payrollLoading() && !payrollError()">
+              <div class="payroll-grid" *ngIf="!editingPayroll()">
+                <div class="pay-card">
+                  <div class="pay-title">Insurance status</div>
+
+                  <div class="pay-row">
+                    <span class="k">Medical</span>
+                    <span class="pill" [class.ok]="payrollRow()?.medicalInsuranceStatus === 'done'" [class.bad]="payrollRow()?.medicalInsuranceStatus !== 'done'">
+                      {{ payrollRow()?.medicalInsuranceStatus || '—' }}
+                    </span>
+                  </div>
+
+                  <div class="pay-row">
+                    <span class="k">Social</span>
+                    <span class="pill" [class.ok]="payrollRow()?.socialInsuranceStatus === 'done'" [class.bad]="payrollRow()?.socialInsuranceStatus !== 'done'">
+                      {{ payrollRow()?.socialInsuranceStatus || '—' }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="pay-card">
+                  <div class="pay-title">Salary</div>
+
+                  <div class="pay-row">
+                    <span class="k">Gross Salary</span>
+                    <span class="v">{{ payrollRow()?.grossSalary || '—' }}</span>
+                  </div>
+
+                  <div class="pay-row">
+                    <span class="k">Insured Salary</span>
+                    <span class="v">{{ payrollRow()?.insuredSalary || '—' }}</span>
+                  </div>
+                </div>
+
+                <div class="pay-card">
+                  <div class="pay-title">Insurance shares</div>
+
+                  <div class="pay-row">
+                    <span class="k">Employee (11%)</span>
+                    <span class="v">{{ payrollRow()?.employeeShare11 || '—' }}</span>
+                  </div>
+
+                  <div class="pay-row">
+                    <span class="k">Employer (18.75%)</span>
+                    <span class="v">{{ payrollRow()?.employerShare1875 || '—' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="payroll-edit" *ngIf="editingPayroll()">
+                <div class="subcard">
+                  <div class="subhead">
+                    <div class="ttl">Insurance status</div>
+                  </div>
+
+                  <div class="form">
+                    <div class="f">
+                      <label>Medical Insurance</label>
+                      <select [(ngModel)]="payrollForm.medicalInsuranceStatus">
+                        <option *ngFor="let o of insuranceStatusOptions" [ngValue]="o.key">{{ o.label }}</option>
+                      </select>
+                    </div>
+
+                    <div class="f">
+                      <label>Social Insurance</label>
+                      <select [(ngModel)]="payrollForm.socialInsuranceStatus">
+                        <option *ngFor="let o of insuranceStatusOptions" [ngValue]="o.key">{{ o.label }}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="subcard">
+                  <div class="subhead">
+                    <div class="ttl">Salary</div>
+                    <div class="hint">Use numbers (string decimals allowed)</div>
+                  </div>
+
+                  <div class="form">
+                    <div class="f">
+                      <label>Gross Salary</label>
+                      <input [(ngModel)]="payrollForm.grossSalary" placeholder="e.g. 12000" />
+                    </div>
+
+                    <div class="f">
+                      <label>Insured Salary</label>
+                      <input [(ngModel)]="payrollForm.insuredSalary" placeholder="e.g. 8000" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="subcard">
+                  <div class="subhead">
+                    <div class="ttl">Shares</div>
+                    <div class="hint">You can auto-calc from insured salary</div>
+                  </div>
+
+                  <div class="form">
+                    <div class="f">
+                      <label>Employee Share (11%)</label>
+                      <input [(ngModel)]="payrollForm.employeeShare11" placeholder="auto or manual" />
+                    </div>
+
+                    <div class="f">
+                      <label>Employer Share (18.75%)</label>
+                      <input [(ngModel)]="payrollForm.employerShare1875" placeholder="auto or manual" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+          </section>
+        </main>
+      </div>
+    </ng-container>
+  </ng-template>
+</div>

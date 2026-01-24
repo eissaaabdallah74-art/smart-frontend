@@ -293,3 +293,42 @@
 .nav-badge-text {
   line-height: 1;
 }
+
+
+/* =========================
+   Operations Submenu (Drivers / Sub Contractors)
+   ========================= */
+
+.nav-sublink--parent {
+  width: 100%;
+  text-align: start;
+  position: relative;
+}
+
+.nav-sublink--parent .caret {
+  margin-inline-start: auto;
+  font-size: 18px;
+  transition: transform 0.15s ease;
+}
+
+.nav-sublink--parent.is-open .caret {
+  transform: rotate(180deg);
+}
+
+.sub-sub-nav {
+  display: none;
+  margin-top: 4px;
+  padding-inline-start: 12px;
+  border-inline-start: 1px solid #f3f4f6;
+}
+
+.sub-sub-nav--open {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-sublink--nested {
+  padding-inline-start: 34px; /* أعمق من الساب لينك الأساسي */
+  font-size: 12.5px;
+}

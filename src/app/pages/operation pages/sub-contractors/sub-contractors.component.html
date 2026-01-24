@@ -1,0 +1,274 @@
+<div class="page">
+  <!-- Header -->
+  <div class="header">
+    <div class="h-left">
+      <div class="title">
+        <i class="ri-bar-chart-2-line"></i>
+        Courier Scoreboard
+      </div>
+      <div class="subtitle">
+        Weighted model: Safety (40%), Driving Behavior (30%), Attendance (20%), Vehicle Care (10%).
+      </div>
+    </div>
+
+    <div class="h-right">
+      <div class="pill">
+        <i class="ri-group-line"></i>
+        <span>{{ stats().count }} couriers</span>
+      </div>
+      <div class="pill">
+        <i class="ri-star-smile-line"></i>
+        <span>Avg <b>{{ stats().avg }}</b>/100</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="search">
+      <i class="ri-search-2-line"></i>
+      <input
+        type="text"
+        [ngModel]="query()"
+        (ngModelChange)="query.set($event)"
+        placeholder="Search by name, company, hub…"
+      />
+    </div>
+
+    <div class="select">
+      <label>Status</label>
+      <select [ngModel]="statusFilter()" (ngModelChange)="setStatusFilter($event)">
+        <option value="all">All</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
+    </div>
+
+    <div class="select">
+      <label>Sort</label>
+      <select [ngModel]="sortKey()" (ngModelChange)="setSortKey($event)">
+        <option value="scoreDesc">Score (High → Low)</option>
+        <option value="scoreAsc">Score (Low → High)</option>
+        <option value="updatedDesc">Last Updated</option>
+        <option value="nameAsc">Name (A → Z)</option>
+      </select>
+    </div>
+
+    <div class="weights">
+      <span class="wchip"><i class="ri-shield-check-line"></i> Safety 40%</span>
+      <span class="wchip"><i class="ri-road-map-line"></i> Driving 30%</span>
+      <span class="wchip"><i class="ri-calendar-check-line"></i> Attendance 20%</span>
+      <span class="wchip"><i class="ri-car-line"></i> Vehicle 10%</span>
+    </div>
+  </div>
+
+  <!-- Cards -->
+  <div class="grid" *ngIf="vmList().length; else empty">
+    <article class="card" *ngFor="let c of vmList(); trackBy: trackById">
+      <div class="card-head">
+        <div class="who">
+          <div class="avatar">{{ c.initials }}</div>
+
+          <div class="who-meta">
+            <div class="row1">
+              <div class="name">{{ c.fullName }}</div>
+              <span class="status" [class.active]="c.status === 'active'" [class.inactive]="c.status === 'inactive'">
+                <i class="ri-flashlight-line" *ngIf="c.status === 'active'"></i>
+                <i class="ri-pause-circle-line" *ngIf="c.status === 'inactive'"></i>
+                {{ c.status === 'active' ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+
+            <div class="row2">
+              <span class="tag"><i class="ri-building-2-line"></i> {{ c.company }}</span>
+              <span class="tag"><i class="ri-map-pin-2-line"></i> {{ c.hub }}</span>
+            </div>
+
+            <div class="row3">
+              <span class="muted"><i class="ri-time-line"></i> Updated: <b>{{ formatDate(c.lastUpdatedIso) }}</b></span>
+              <span class="muted" *ngIf="c.weakCount">
+                <i class="ri-error-warning-line"></i> {{ c.weakCount }} weak KPI(s)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="scorebox">
+          <div class="ring" [attr.title]="'Total Score: ' + c.total0to100 + '/100'">
+            <svg viewBox="0 0 44 44" aria-hidden="true">
+              <circle class="track" cx="22" cy="22" r="18"></circle>
+              <circle
+                class="prog"
+                cx="22"
+                cy="22"
+                r="18"
+                [attr.stroke-dasharray]="(c.scorePct * 113.097 / 100) + ' 113.097'"
+              ></circle>
+            </svg>
+            <div class="ring-txt">
+              <div class="val">{{ c.total0to100 }}</div>
+              <div class="sub">/100</div>
+            </div>
+          </div>
+
+          <div class="rating" [class]="c.rating.cls">{{ c.rating.label }}</div>
+
+          <button type="button" class="btn" (click)="openDetails(c.id)">
+            <i class="ri-eye-line"></i>
+            Details
+          </button>
+        </div>
+      </div>
+
+      <!-- Compact category tiles (2x2) -->
+      <div class="tiles">
+        <div class="tile" *ngFor="let def of categoryDefs" (click)="openDetails(c.id)" role="button" tabindex="0">
+          <div class="t-top">
+            <div class="t-ico"><i [class]="def.icon"></i></div>
+            <div class="t-name">{{ def.label }}</div>
+            <div class="t-val">{{ c.categories[def.key].avg0to10 }}<span>/10</span></div>
+          </div>
+
+          <div class="t-bar" aria-hidden="true">
+            <div class="fill" [style.width.%]="c.categories[def.key].avg0to10 * 10"></div>
+          </div>
+
+          <div class="t-foot">
+            <span>W {{ def.weight * 100 }}%</span>
+            <span>+{{ c.categories[def.key].contribution0to100 }}</span>
+          </div>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <ng-template #empty>
+    <div class="empty">
+      <div class="empty-title">No results</div>
+      <div class="empty-sub">Try changing the filters or the search query.</div>
+    </div>
+  </ng-template>
+
+  <!-- Modal -->
+  <div class="modal-backdrop" *ngIf="isModalOpen()" (click)="closeDetails()"></div>
+
+  <div class="modal" *ngIf="detailsCourier() as dc" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <div class="m-head">
+      <div class="m-title">
+        <i class="ri-clipboard-line"></i>
+        Courier Details
+      </div>
+
+      <button type="button" class="icon-btn" (click)="closeDetails()" aria-label="Close">
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+
+    <div class="m-body" *ngIf="detailsVm() as d">
+      <div class="m-layout">
+        <!-- Sidebar summary -->
+        <aside class="m-side">
+          <div class="side-top">
+            <div class="avatar lg">{{ d.initials }}</div>
+            <div class="s-meta">
+              <div class="s-name">{{ d.fullName }}</div>
+              <div class="s-tags">
+                <span class="pill"><i class="ri-building-2-line"></i> {{ d.company }}</span>
+                <span class="pill"><i class="ri-map-pin-2-line"></i> {{ d.hub }}</span>
+              </div>
+              <div class="s-updated">
+                <i class="ri-time-line"></i>
+                Updated: <b>{{ formatDate(d.lastUpdatedIso) }}</b>
+              </div>
+            </div>
+          </div>
+
+          <div class="side-score">
+            <div class="big-ring">
+              <svg viewBox="0 0 44 44" aria-hidden="true">
+                <circle class="track" cx="22" cy="22" r="18"></circle>
+                <circle class="prog" cx="22" cy="22" r="18"
+                        [attr.stroke-dasharray]="(d.scorePct * 113.097 / 100) + ' 113.097'"></circle>
+              </svg>
+              <div class="txt">
+                <div class="val">{{ d.total0to100 }}</div>
+                <div class="sub">/100</div>
+              </div>
+            </div>
+
+            <div class="rating big" [class]="d.rating.cls">
+              <i class="ri-award-line"></i>
+              {{ d.rating.label }}
+            </div>
+
+            <div class="status big" [class.active]="d.status==='active'" [class.inactive]="d.status==='inactive'">
+              <i class="ri-flashlight-line" *ngIf="d.status==='active'"></i>
+              <i class="ri-pause-circle-line" *ngIf="d.status==='inactive'"></i>
+              {{ d.status==='active' ? 'Active' : 'Inactive' }}
+            </div>
+          </div>
+
+          <div class="side-list">
+            <div class="side-h">Category Contribution</div>
+            <div class="side-item" *ngFor="let def of categoryDefs" (click)="setOpenCategory(def.key)">
+              <div class="left">
+                <i [class]="def.icon"></i>
+                <span>{{ def.label }}</span>
+              </div>
+              <div class="right">
+                <b>+{{ d.categories[def.key].contribution0to100 }}</b>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Content -->
+        <section class="m-content">
+          <div class="acc" *ngFor="let def of categoryDefs">
+            <button type="button"
+                    class="acc-head"
+                    [class.open]="isOpenCategory(def.key)"
+                    (click)="setOpenCategory(def.key)">
+              <div class="a-left">
+                <span class="a-ico"><i [class]="def.icon"></i></span>
+                <span class="a-title">{{ def.label }}</span>
+              </div>
+
+              <div class="a-right">
+                <span class="a-pill">Avg <b>{{ d.categories[def.key].avg0to10 }}</b>/10</span>
+                <span class="a-pill">W {{ def.weight * 100 }}%</span>
+                <span class="a-pill plus">+{{ d.categories[def.key].contribution0to100 }}</span>
+                <i class="ri-arrow-down-s-line chevron" aria-hidden="true"></i>
+              </div>
+            </button>
+
+            <div class="acc-body" *ngIf="isOpenCategory(def.key)">
+              <table class="kpi-table">
+                <tbody>
+                  <tr *ngFor="let k of def.kpis">
+                    <td class="k-name">
+                      {{ k.label }}
+                    </td>
+                    <td class="k-score">
+                      <span class="score-pill" [class.low]="dc.metrics[k.key] <= 5.5">
+                        {{ dc.metrics[k.key] }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="m-foot">
+            <div class="hint"><i class="ri-keyboard-line"></i> Press ESC to close</div>
+            <button type="button" class="btn secondary" (click)="closeDetails()">
+              <i class="ri-close-circle-line"></i>
+              Close
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>

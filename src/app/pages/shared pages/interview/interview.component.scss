@@ -1,13 +1,14 @@
-/* src/app/pages/.../interview/interview.component.scss */
 :host {
   --surface: #ffffff;
   --surface-alt: #f9fafb;
   --border: #e5e7eb;
   --ink-main: #111827;
   --ink-muted: #6b7280;
+
   --brand: #ef7f1a;
   --brand-dark: #112535;
   --danger: #dc2626;
+
   --shadow-soft: 0 10px 30px rgba(15, 23, 42, 0.1);
 }
 
@@ -24,7 +25,6 @@
 }
 
 /* Header */
-
 .interviews-header {
   display: flex;
   flex-direction: column;
@@ -77,7 +77,6 @@
 }
 
 /* Filters */
-
 .interviews-filters {
   margin-bottom: 1.25rem;
   display: flex;
@@ -125,11 +124,10 @@
 
 .filter-input:focus {
   border-color: var(--brand);
-  box-shadow: 0 0 0 3px rgba(224, 179, 79, 0.25);
+  box-shadow: 0 0 0 3px rgba(239, 127, 26, 0.18);
 }
 
 /* Active filters badges */
-
 .active-filters {
   display: flex;
   align-items: center;
@@ -165,7 +163,6 @@
 }
 
 /* Table */
-
 .table-section {
   margin-top: 0.5rem;
 }
@@ -242,22 +239,8 @@
 .cell-primary {
   font-weight: 600;
   color: var(--ink-main);
-
-  .link-like {
-    font-weight: 600;
-    color: var(--ink-main);
-    border: none;
-    background: transparent;
-    cursor: pointer;
-  }
-
-  .link-like:hover {
-    color: var(--brand);
-    text-decoration: underline;
-  }
 }
 
-/* courier name كـ نص عادي */
 .cell-primary-name {
   font-weight: 600;
   color: var(--ink-main);
@@ -277,16 +260,14 @@
   align-items: center;
 }
 
-/* ✅ National ID mono style */
 .cell-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     'Liberation Mono', 'Courier New', monospace;
   letter-spacing: 0.02em;
-  color: #374151; /* أغمق من muted علشان القراءة */
+  color: #374151;
 }
 
 /* Empty state */
-
 .empty-cell {
   padding: 1.5rem;
   text-align: center;
@@ -294,8 +275,7 @@
   color: #9ca3af;
 }
 
-/* Buttons (Add) */
-
+/* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -306,10 +286,7 @@
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.02s ease;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.02s ease;
   user-select: none;
 }
 
@@ -324,11 +301,11 @@
 .btn--primary {
   background: var(--brand);
   color: #ffffff;
-  box-shadow: 0 8px 20px rgba(224, 179, 79, 0.35);
+  box-shadow: 0 8px 20px rgba(239, 127, 26, 0.28);
 }
 
 .btn--primary:hover {
-  filter: brightness(0.95);
+  filter: brightness(0.96);
 }
 
 .btn--secondary {
@@ -336,8 +313,12 @@
   color: #111827;
 }
 
-/* Icon Actions */
+.btn--sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+}
 
+/* Icon Actions */
 .icon-action {
   display: inline-flex;
   align-items: center;
@@ -349,10 +330,7 @@
   background: transparent;
   cursor: pointer;
   font-size: 0.9rem;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    transform 0.02s ease,
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.02s ease,
     box-shadow 0.15s ease;
 }
 
@@ -392,7 +370,6 @@
 }
 
 /* Status chip (courier + HR) */
-
 .status-chip {
   display: inline-flex;
   align-items: center;
@@ -406,7 +383,6 @@
   color: #374151;
 }
 
-/* Existing HR classes */
 .status-chip--positive {
   background: #dcfce7;
   color: #166534;
@@ -427,68 +403,50 @@
   color: #374151;
 }
 
-/* ✅ Make Status chip more visible */
+/* More visible */
 .status-chip--strong {
   border: 1px solid rgba(17, 24, 39, 0.08);
   box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
 }
 
-/* ✅ Status mapping by value (courierStatus) */
-.status-chip--status.Active {
+/* ✅ Safe status classes (no spaces/slashes) */
+.status-chip--status.status--active {
   background: #dcfce7;
   color: #166534;
   border-color: rgba(22, 101, 52, 0.18);
 }
 
-.status-chip--status.Unreachable\/Reschedule {
+.status-chip--status.status--unreachable-reschedule {
   background: #e0f2fe;
   color: #075985;
   border-color: rgba(7, 89, 133, 0.18);
 }
 
-.status-chip--status.Resigned {
+.status-chip--status.status--resigned {
   background: #fee2e2;
   color: #b91c1c;
   border-color: rgba(185, 28, 28, 0.18);
 }
 
-.status-chip--status.Hold\ zone {
+.status-chip--status.status--hold-zone {
   background: #fef3c7;
   color: #92400e;
   border-color: rgba(146, 64, 14, 0.18);
 }
 
-.status-chip--status.unknown {
+.status-chip--status.status--pending {
   background: #f3f4f6;
   color: #374151;
   border-color: rgba(55, 65, 81, 0.12);
 }
 
-/* Link-style button for courier name */
-
-.link-button {
-  border: none;
-  padding: 0;
-  margin: 0;
-  background: transparent;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  text-align: left;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  text-decoration: none;
-  transition: color 0.15s ease, text-decoration-color 0.15s ease;
-}
-
-.link-button:hover {
-  color: var(--brand);
-  text-decoration: underline;
+.status-chip--status.status--unknown {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: rgba(55, 65, 81, 0.12);
 }
 
 /* Pagination */
-
 .pagination {
   margin-top: 0.75rem;
   display: flex;
@@ -546,8 +504,12 @@
   color: #ffffff;
 }
 
-/* Accessibility helper */
+.pagination-page[disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
 
+/* Accessibility helper */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -561,7 +523,6 @@
 }
 
 /* Animation */
-
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -573,158 +534,7 @@
   }
 }
 
-/* =========================
-   RESPONSIVE (TABLET & MOBILE)
-   ========================= */
-
-@media (max-width: 1024px) {
-  .interviews-page {
-    padding: 1rem;
-  }
-
-  .interviews-card {
-    padding: 1rem;
-  }
-
-  .table-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
-  .table-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-}
-
-/* Mobile: stack كل حاجة وتبسيط الجدول */
-@media (max-width: 640px) {
-  .interviews-page {
-    padding: 0.75rem;
-  }
-
-  .interviews-card {
-    padding: 0.75rem;
-    border-radius: 0.75rem;
-    box-shadow: none;
-    border: 1px solid var(--border);
-  }
-
-  .interviews-header {
-    gap: 0.75rem;
-  }
-
-  .interviews-title {
-    font-size: 1.05rem;
-  }
-
-  .interviews-subtitle {
-    font-size: 0.8rem;
-  }
-
-  .interviews-header-actions {
-    width: 100%;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .interviews-header-actions > * {
-    flex: 1 1 auto;
-  }
-
-  .btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .interviews-filters {
-    gap: 0.5rem;
-  }
-
-  .filter-row {
-    flex-direction: column;
-  }
-
-  .filter-group,
-  .filter-group--wide {
-    min-width: 100%;
-    flex: 1 1 100%;
-  }
-
-  .active-filters {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .pagination {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .pagination-controls {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .table-wrapper {
-    border-radius: 0.5rem;
-    border: 1px solid var(--border);
-    overflow-x: auto;
-  }
-
-  .table-wrapper::-webkit-scrollbar {
-    height: 6px;
-  }
-
-  .table-wrapper::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 999px;
-  }
-
-  /* ✅ إخفاء أعمدة أقل أهمية (تم تعديل indexes بعد استبدال Residence بـ National ID) */
-  .interviews-table th:nth-child(6),
-  .interviews-table td:nth-child(6), /* Hub */
-  .interviews-table th:nth-child(7),
-  .interviews-table td:nth-child(7), /* Zone */
-  .interviews-table th:nth-child(9),
-  .interviews-table td:nth-child(9)  /* Interviewer */
-  {
-    display: none;
-  }
-
-  .interviews-table th,
-  .interviews-table td {
-    padding: 0.45rem 0.5rem;
-    font-size: 0.75rem;
-  }
-
-  .cell-actions {
-    gap: 0.25rem;
-  }
-
-  .icon-action {
-    width: 26px;
-    height: 26px;
-  }
-}
-
-/* Extra small (very narrow phones) */
-@media (max-width: 400px) {
-  .interviews-header-actions > * {
-    flex: 1 1 100%;
-  }
-
-  .pagination-controls {
-    flex-wrap: wrap;
-    row-gap: 0.35rem;
-  }
-}
-
-/* =========================
-   MOBILE CARDS LAYOUT
-   ========================= */
-
+/* Responsive */
 .cards-wrapper {
   display: none;
 }
@@ -751,17 +561,6 @@
 }
 
 @media (max-width: 768px) {
-  .interviews-page {
-    padding: 0.75rem;
-  }
-
-  .interviews-card {
-    padding: 0.75rem;
-    border-radius: 0.75rem;
-    box-shadow: none;
-    border: 1px solid var(--border);
-  }
-
   .table-wrapper--desktop {
     display: none;
   }
@@ -802,12 +601,6 @@
     justify-content: flex-end;
   }
 
-  .status-chip--outline {
-    background: transparent;
-    border: 1px solid #e5e7eb;
-    color: #4b5563;
-  }
-
   .interview-card-main {
     border: none;
     background: transparent;
@@ -818,7 +611,12 @@
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
+    cursor: pointer;
+  }
+
+  .interview-card-main[disabled] {
     cursor: default;
+    opacity: 0.75;
   }
 
   .card-name {
@@ -880,13 +678,6 @@
     gap: 0.25rem;
   }
 
-  .empty-cell--card {
-    padding: 1rem;
-    text-align: center;
-    font-size: 0.8rem;
-    color: #9ca3af;
-  }
-
   .pagination {
     flex-direction: column;
     align-items: flex-start;
@@ -898,5 +689,45 @@
     justify-content: space-between;
     flex-wrap: wrap;
     row-gap: 0.35rem;
+  }
+
+  .empty-cell--card {
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #9ca3af;
+  }
+}
+
+@media (max-width: 640px) {
+  .interviews-page {
+    padding: 0.75rem;
+  }
+
+  .interviews-card {
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    box-shadow: none;
+    border: 1px solid var(--border);
+  }
+
+  .interviews-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .interviews-header-actions > * {
+    flex: 1 1 auto;
+  }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .active-filters {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

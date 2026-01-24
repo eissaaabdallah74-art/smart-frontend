@@ -1,0 +1,151 @@
+<div class="modal-backdrop" (click)="close.emit()"></div>
+
+<div
+  class="modal"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Client contract form"
+  (click)="$event.stopPropagation()"
+>
+  <header class="modal-head">
+    <h3 class="modal-title">
+      <i
+        class="ri-edit-line modal-title-icon"
+        *ngIf="contractToEdit"
+        aria-hidden="true"
+      ></i>
+      <i
+        class="ri-file-list-3-line modal-title-icon"
+        *ngIf="!contractToEdit"
+        aria-hidden="true"
+      ></i>
+      {{ contractToEdit ? 'Edit Contract' : 'Add New Contract' }}
+    </h3>
+
+    <button class="icon-btn" type="button" (click)="close.emit()" aria-label="Close">
+      <i class="ri-close-line" aria-hidden="true"></i>
+    </button>
+  </header>
+
+  <form #f="ngForm" (ngSubmit)="onSubmit(f)" class="modal-body" novalidate>
+    <div class="form-grid">
+      <!-- Client -->
+      <div class="form-group full-width">
+        <label class="form-label" for="clientId">Client</label>
+        <select
+          id="clientId"
+          name="clientId"
+          class="form-input"
+          [(ngModel)]="model.clientId"
+          required
+          [disabled]="!!contractToEdit"
+        >
+          <option [ngValue]="null" disabled>Select client...</option>
+          <option *ngFor="let c of clients" [ngValue]="c.id">
+            {{ c.name }}
+          </option>
+        </select>
+        <small class="help-text" *ngIf="contractToEdit">
+          Client cannot be changed after creation.
+        </small>
+      </div>
+
+      <!-- Contract Number -->
+      <div class="form-group">
+        <label class="form-label" for="contractNumber">Contract Number</label>
+        <input
+          id="contractNumber"
+          name="contractNumber"
+          class="form-input"
+          [(ngModel)]="model.contractNumber"
+          placeholder="e.g. C-001"
+        />
+      </div>
+
+      <!-- Status -->
+      <div class="form-group">
+        <label class="form-label" for="status">Status</label>
+        <select id="status" name="status" class="form-input" [(ngModel)]="model.status">
+          <option value="active">Active</option>
+          <option value="expired">Expired</option>
+          <option value="terminated">Terminated</option>
+        </select>
+      </div>
+
+      <!-- Start Date -->
+      <div class="form-group">
+        <label class="form-label" for="startDate">Start Date</label>
+        <input
+          id="startDate"
+          name="startDate"
+          type="date"
+          class="form-input"
+          [(ngModel)]="model.startDate"
+          required
+        />
+      </div>
+
+      <!-- End Date -->
+      <div class="form-group">
+        <label class="form-label" for="endDate">End Date</label>
+        <input
+          id="endDate"
+          name="endDate"
+          type="date"
+          class="form-input"
+          [(ngModel)]="model.endDate"
+        />
+      </div>
+
+      <!-- Renewal Alert -->
+      <div class="form-group">
+        <label class="form-label" for="renewalAlertDate">Renewal Alert Date</label>
+        <input
+          id="renewalAlertDate"
+          name="renewalAlertDate"
+          type="date"
+          class="form-input"
+          [(ngModel)]="model.renewalAlertDate"
+        />
+      </div>
+
+      <!-- Duration -->
+      <div class="form-group">
+        <label class="form-label" for="duration">Duration</label>
+        <input
+          id="duration"
+          name="duration"
+          class="form-input"
+          [(ngModel)]="model.duration"
+          placeholder="e.g. سنة"
+        />
+      </div>
+
+      <!-- Notes -->
+      <div class="form-group full-width">
+        <label class="form-label" for="notes">Notes</label>
+        <textarea
+          id="notes"
+          name="notes"
+          rows="4"
+          class="form-input"
+          [(ngModel)]="model.notes"
+          placeholder="Any notes..."
+        ></textarea>
+      </div>
+    </div>
+
+    <footer class="modal-foot">
+      <button type="button" class="btn btn--secondary" (click)="close.emit()">
+        <i class="ri-close-circle-line" aria-hidden="true"></i>
+        <span>Cancel</span>
+      </button>
+
+      <button type="submit" class="btn btn--primary">
+        <i class="ri-save-3-line" *ngIf="contractToEdit" aria-hidden="true"></i>
+        <i class="ri-add-line" *ngIf="!contractToEdit" aria-hidden="true"></i>
+        <span>{{ contractToEdit ? 'Save Changes' : 'Add Contract' }}</span>
+      </button>
+    </footer>
+  </form>
+</div>

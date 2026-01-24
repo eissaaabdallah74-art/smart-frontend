@@ -1,0 +1,255 @@
+<div class="import-container">
+  <div class="page-header">
+    <div class="title">
+      <h1>Import Attendance Sheet</h1>
+      <p class="muted">
+        Upload the monthly Excel sheet. The backend will parse it, match employees,
+        and compute attendance deductions.
+      </p>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-ghost" type="button" (click)="goToOverview()">
+        Back to overview
+      </button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- Upload card -->
+    <section class="card upload-card">
+      <div class="card-head">
+        <div>
+          <h2>Upload</h2>
+          <p class="muted-sm">
+            Supported: .xls / .xlsx — Max 10 MB
+          </p>
+        </div>
+        <span class="pill" [class.pill--ok]="selectedFile()">
+          {{ selectedFile() ? 'File selected' : 'No file' }}
+        </span>
+      </div>
+
+      <input
+        #fileInput
+        type="file"
+        accept=".xls,.xlsx"
+        class="hidden-file"
+        (change)="onFileInputChange($event)"
+      />
+
+      <div
+        class="dropzone"
+        [class.dropzone--active]="dragActive()"
+        [class.dropzone--disabled]="importing()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+      >
+        <div class="dz-icon" aria-hidden="true">⬆</div>
+
+        <div class="dz-text">
+          <div class="dz-title">
+            Drag & drop your sheet here
+          </div>
+          <div class="dz-sub">
+            or
+            <button
+              class="link-btn"
+              type="button"
+              [disabled]="importing()"
+              (click)="openFilePicker(fileInput)"
+            >
+              browse file
+            </button>
+          </div>
+        </div>
+
+        <div class="file-chip" *ngIf="selectedFile() as f">
+          <div class="file-name">{{ f.name }}</div>
+          <div class="file-meta">
+            <span>{{ formatBytes(f.size) }}</span>
+            <span class="dot">•</span>
+            <span>{{ f.type || 'Excel file' }}</span>
+          </div>
+          <button
+            class="chip-remove"
+            type="button"
+            [disabled]="importing()"
+            (click)="clearFile()"
+            aria-label="Remove file"
+            title="Remove"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="state() === 'error' && errorMsg()" class="alert alert-error">
+        {{ errorMsg() }}
+      </div>
+
+      <div class="progress-wrap" *ngIf="importing()">
+        <div class="progress-line">
+          <div class="progress-bar" [style.width.%]="progress()"></div>
+        </div>
+        <div class="progress-meta">
+          <span>Uploading…</span>
+          <span class="mono">{{ progress() }}%</span>
+        </div>
+      </div>
+
+      <div class="card-actions">
+        <button
+          class="btn btn-primary"
+          type="button"
+          [disabled]="!selectedFile() || importing()"
+          (click)="importNow()"
+        >
+          Import now
+        </button>
+
+        <button
+          class="btn"
+          type="button"
+          [disabled]="importing()"
+          (click)="resetForAnotherImport()"
+        >
+          Reset
+        </button>
+      </div>
+
+      <!-- Success summary -->
+      <div class="result" *ngIf="state() === 'success' && importResult() as r">
+        <div class="result-head">
+          <div class="ok-badge">Imported</div>
+          <div class="result-title">
+            Month: <span class="mono">{{ r.month }}</span>
+          </div>
+        </div>
+
+        <div class="result-grid">
+          <div class="stat">
+            <div class="k">Working days</div>
+            <div class="v">{{ r.workingDaysCount }}</div>
+          </div>
+          <div class="stat">
+            <div class="k">Rows</div>
+            <div class="v">{{ r.rowsCount }}</div>
+          </div>
+          <div class="stat">
+            <div class="k">Matched</div>
+            <div class="v">{{ r.matchedRowsCount }}</div>
+          </div>
+          <div class="stat">
+            <div class="k">Unmatched</div>
+            <div class="v" [class.bad]="r.unmatchedRowsCount > 0">{{ r.unmatchedRowsCount }}</div>
+          </div>
+        </div>
+
+        <div class="result-actions">
+          <button class="btn btn-primary" type="button" (click)="goToOverview()">
+            Open overview
+          </button>
+
+          <button
+            class="btn"
+            type="button"
+            *ngIf="hasUnmatched()"
+            (click)="goToMapping()"
+          >
+            Fix mapping
+          </button>
+
+          <button class="btn btn-ghost" type="button" (click)="resetForAnotherImport()">
+            Import another sheet
+          </button>
+        </div>
+
+        <!-- Unmatched preview (optional) -->
+        <div class="unmatched" *ngIf="hasUnmatched()">
+          <div class="unmatched-head">
+            <h3>Unmatched employees</h3>
+            <p class="muted-sm">
+              Some rows could not be linked to an employee profile. Go to Mapping to fix.
+            </p>
+          </div>
+
+          <div class="mini-table" *ngIf="unmatchedRows().length > 0; else noSample">
+            <div class="mini-row mini-head">
+              <div>EmpNo / AC-No</div>
+              <div>Name</div>
+              <div>Status</div>
+            </div>
+
+            <div class="mini-row" *ngFor="let u of unmatchedRows().slice(0, 8)">
+              <div class="mono">
+                {{ u.empNo || u.employeeNo || u.acNo || u.ac || '-' }}
+              </div>
+              <div>{{ u.name || u.employeeName || '-' }}</div>
+              <div class="tag tag-warn">Unmatched</div>
+            </div>
+          </div>
+
+          <ng-template #noSample>
+            <div class="muted-sm">
+              Unmatched count is {{ r.unmatchedRowsCount }}. Preview is not available from the backend response.
+            </div>
+          </ng-template>
+        </div>
+      </div>
+    </section>
+
+    <!-- Recent imports -->
+    <section class="card recent-card">
+      <div class="card-head">
+        <div>
+          <h2>Recent imports</h2>
+          <p class="muted-sm">
+            Quick view of the latest uploaded sheets.
+          </p>
+        </div>
+        <button class="btn btn-ghost" type="button" (click)="loadRecentImports()">
+          Refresh
+        </button>
+      </div>
+
+      <div class="recent-list" *ngIf="recentImports().length > 0; else noRecent">
+        <div class="recent-item" *ngFor="let it of recentImports()">
+          <div class="ri-left">
+            <div class="ri-title">
+              <span class="mono">{{ it.month }}</span>
+              <span class="status" [class.status--ok]="it.status === 'done'" [class.status--bad]="it.status === 'failed'">
+                {{ it.status }}
+              </span>
+            </div>
+
+            <div class="ri-meta">
+              <span>Rows: <span class="mono">{{ it.rowsCount }}</span></span>
+              <span class="dot">•</span>
+              <span>Matched: <span class="mono">{{ it.matchedRowsCount }}</span></span>
+              <span class="dot">•</span>
+              <span>Unmatched: <span class="mono" [class.bad]="it.unmatchedRowsCount > 0">{{ it.unmatchedRowsCount }}</span></span>
+            </div>
+
+            <div class="ri-date" *ngIf="it.createdAt">
+              {{ formatDateTime(it.createdAt) }}
+            </div>
+          </div>
+
+          <div class="ri-right">
+            <button class="btn btn-small" type="button" (click)="goToOverview()">
+              Open
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noRecent>
+        <div class="empty">
+          No imports yet. Upload your first sheet from the left panel.
+        </div>
+      </ng-template>
+    </section>
+  </div>
+</div>

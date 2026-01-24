@@ -39,8 +39,6 @@
   padding: 16px;
   background: var(--bg);
   color: var(--ink);
-  overflow: auto; /* سكرول داخلي للمحتوى فقط */
-  height: calc(100vh - var(--header-h));
 }
 
 @media (min-width: 768px) {

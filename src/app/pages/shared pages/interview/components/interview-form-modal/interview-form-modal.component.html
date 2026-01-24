@@ -3,7 +3,7 @@
   <div class="modal" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2 class="modal-title">
-        {{ interviewToEdit ? 'Edit Interview' : 'Add Interview' }}
+        {{ interviewToEdit ? "Edit Interview" : "Add Interview" }}
       </h2>
       <button type="button" class="modal-close" (click)="close.emit()">
         <i class="ri-close-line" aria-hidden="true"></i>
@@ -11,12 +11,7 @@
       </button>
     </div>
 
-    <form
-      #f="ngForm"
-      (ngSubmit)="onSubmit(f)"
-      novalidate
-      class="modal-body"
-    >
+    <form #f="ngForm" (ngSubmit)="onSubmit(f)" novalidate class="modal-body">
       <div class="modal-grid">
         <!-- Column 1: Basic info -->
         <div class="modal-col">
@@ -48,19 +43,18 @@
             />
           </div>
 
-
-            <div class="field">
-    <label class="field-label" for="residence">
-      Residence / محل الإقامة
-    </label>
-    <input 
-      id="residence"
-      type="text"
-      class="field-input"
-      name="residence"
-      [(ngModel)]="model.residence"
-    />
-  </div>
+          <div class="field">
+            <label class="field-label" for="residence">
+              Residence / محل الإقامة
+            </label>
+            <input
+              id="residence"
+              type="text"
+              class="field-input"
+              name="residence"
+              [(ngModel)]="model.residence"
+            />
+          </div>
 
           <div class="field">
             <label class="field-label" for="nationalId">National ID</label>
@@ -85,9 +79,7 @@
               (ngModelChange)="onAccountChange()"
               required
             >
-              <option value="" disabled selected hidden>
-                Select account
-              </option>
+              <option value="" disabled selected hidden>Select account</option>
               <option *ngFor="let acc of clients" [ngValue]="acc.name">
                 {{ acc.name }}
               </option>
@@ -103,9 +95,7 @@
               [(ngModel)]="model.hubName"
               (ngModelChange)="onHubChange()"
             >
-              <option value="" disabled selected hidden>
-                Select hub
-              </option>
+              <option value="" disabled selected hidden>Select hub</option>
               <option *ngFor="let hub of hubs" [ngValue]="hub.name">
                 {{ hub.name }}
               </option>
@@ -120,9 +110,7 @@
               name="zone"
               [(ngModel)]="model.zoneName"
             >
-              <option value="" disabled selected hidden>
-                Select zone
-              </option>
+              <option value="" disabled selected hidden>Select zone</option>
               <option *ngFor="let z of zones" [ngValue]="z.name">
                 {{ z.name }}
               </option>
@@ -140,17 +128,21 @@
             />
           </div>
 
+          <!-- Vehicle Type -->
           <div class="field">
-            <label class="field-label" for="vehicleType">
-              Vehicle Type
-            </label>
-            <input
+            <label class="field-label" for="vehicleType">Vehicle Type</label>
+
+            <select
               id="vehicleType"
-              type="text"
               class="field-input"
               name="vehicleType"
               [(ngModel)]="model.vehicleType"
-            />
+            >
+              <option value="" selected>None</option>
+              <option *ngFor="let v of vehicleTypeOptions" [ngValue]="v">
+                {{ v }}
+              </option>
+            </select>
           </div>
         </div>
 
@@ -169,10 +161,7 @@
               <option value="" disabled selected hidden>
                 Select account manager
               </option>
-              <option
-                *ngFor="let u of operationUsers"
-                [ngValue]="u.fullName"
-              >
+              <option *ngFor="let u of operationUsers" [ngValue]="u.fullName">
                 {{ u.fullName }}
               </option>
             </select>
@@ -191,10 +180,7 @@
               <option value="" disabled selected hidden>
                 Select interviewer
               </option>
-              <option
-                *ngFor="let u of operationUsers"
-                [ngValue]="u.fullName"
-              >
+              <option *ngFor="let u of operationUsers" [ngValue]="u.fullName">
                 {{ u.fullName }}
               </option>
             </select>
@@ -210,9 +196,7 @@
               name="signedWithHr"
               [(ngModel)]="model.signedWithHr"
             >
-              <option value="" disabled selected hidden>
-                Select status
-              </option>
+              <option value="" disabled selected hidden>Select status</option>
               <option *ngFor="let v of signedWithHrOptions" [ngValue]="v">
                 {{ v }}
               </option>
@@ -220,67 +204,6 @@
           </div>
 
           <!-- HR Feedback removed from form as requested -->
-
-          <div class="field">
-            <label class="field-label" for="courierStatus">
-              Courier Status
-            </label>
-            <select
-              id="courierStatus"
-              class="field-input"
-              name="courierStatus"
-              [(ngModel)]="model.courierStatus"
-            >
-              <option value="" disabled selected hidden>
-                Select status
-              </option>
-              <option
-                *ngFor="let v of courierStatusOptions"
-                [ngValue]="v"
-              >
-                {{ v }}
-              </option>
-            </select>
-          </div>
-
-          <div class="field">
-            <label class="field-label" for="followUp1">
-              Courier 1st follow up
-            </label>
-            <textarea
-              id="followUp1"
-              class="field-input field-textarea"
-              name="followUp1"
-              [(ngModel)]="model.followUp1"
-              rows="2"
-            ></textarea>
-          </div>
-
-          <div class="field">
-            <label class="field-label" for="followUp2">
-              Courier 2nd follow up
-            </label>
-            <textarea
-              id="followUp2"
-              class="field-input field-textarea"
-              name="followUp2"
-              [(ngModel)]="model.followUp2"
-              rows="2"
-            ></textarea>
-          </div>
-
-          <div class="field">
-            <label class="field-label" for="followUp3">
-              Courier 3rd follow up
-            </label>
-            <textarea
-              id="followUp3"
-              class="field-input field-textarea"
-              name="followUp3"
-              [(ngModel)]="model.followUp3"
-              rows="2"
-            ></textarea>
-          </div>
 
           <div class="field">
             <label class="field-label" for="notes">Notes</label>
@@ -297,19 +220,11 @@
     </form>
 
     <div class="modal-footer">
-      <button
-        type="button"
-        class="btn btn--ghost"
-        (click)="close.emit()"
-      >
+      <button type="button" class="btn btn--ghost" (click)="close.emit()">
         Cancel
       </button>
-      <button
-        type="submit"
-        class="btn btn--primary"
-        (click)="onSubmit(f)"
-      >
-        {{ interviewToEdit ? 'Save changes' : 'Create interview' }}
+      <button type="submit" class="btn btn--primary" (click)="onSubmit(f)">
+        {{ interviewToEdit ? "Save changes" : "Create interview" }}
       </button>
     </div>
   </div>

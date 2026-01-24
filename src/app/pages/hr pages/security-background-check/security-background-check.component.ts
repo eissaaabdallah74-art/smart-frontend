@@ -1,7 +1,7 @@
-// src/app/pages/hr pages/security-background-check/security-background-check.component.ts
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, NgForm } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 import {
   ApiInterview,
@@ -9,10 +9,10 @@ import {
   InterviewsServiceService,
   UpdateInterviewDto,
 } from '../../../services/interviews/interviews-service.service';
+import { FormModalSecurityBackgroundCheckComponent } from './components/form-modal-security-background-check/form-modal-security-background-check.component';
 
-import { ExportButtonComponent } from '../../../shared/export-button/export-button';
 
-interface BackgroundRow {
+export interface BackgroundRow {
   id: number;
   date: string;
   courierName: string;
@@ -30,37 +30,35 @@ interface BackgroundRow {
   notes: string;
 }
 
+
+
 @Component({
   selector: 'app-security-background-check',
   standalone: true,
-  imports: [CommonModule, FormsModule, ExportButtonComponent],
+  imports: [CommonModule, FormsModule, FormModalSecurityBackgroundCheckComponent],
   templateUrl: './security-background-check.component.html',
   styleUrls: ['./security-background-check.component.scss'],
 })
 export class SecurityBackgroundCheckComponent implements OnInit {
   private interviewsService = inject(InterviewsServiceService);
+  private router = inject(Router);
 
-  // ===== state =====
   readonly rows = signal<BackgroundRow[]>([]);
   readonly search = signal<string>('');
-  readonly securityResultFilter = signal<string>(''); // '', 'Positive', 'Negative', 'pending'
+  readonly securityResultFilter = signal<string>('');
 
-  // pagination
   readonly pageSize = signal<number>(10);
   readonly currentPage = signal<number>(1);
 
   // edit modal
-  isModalOpen = false;
+  isEditModalOpen = false;
   editingRow: BackgroundRow | null = null;
 
-  // notes modal
-  isNotesModalOpen = false;
-  notesRow: BackgroundRow | null = null;
+  editingInterview: ApiInterview | null = null;
+
 
   saving = false;
   errorMessage = '';
-
-  readonly securityResultOptions: SecurityResult[] = ['Positive', 'Negative'];
 
   readonly filteredRows = computed<BackgroundRow[]>(() => {
     const term = this.search().toLowerCase().trim();
@@ -99,7 +97,6 @@ export class SecurityBackgroundCheckComponent implements OnInit {
     return list;
   });
 
-  // ===== pagination computed =====
   readonly totalPages = computed(() =>
     this.filteredRows().length
       ? Math.ceil(this.filteredRows().length / this.pageSize())
@@ -125,11 +122,7 @@ export class SecurityBackgroundCheckComponent implements OnInit {
     const range: number[] = [];
     const rangeWithDots: (number | string)[] = [];
 
-    for (
-      let i = Math.max(2, current - delta);
-      i <= Math.min(total - 1, current + delta);
-      i++
-    ) {
+    for (let i = Math.max(2, current - delta); i <= Math.min(total - 1, current + delta); i++) {
       range.push(i);
     }
 
@@ -146,23 +139,21 @@ export class SecurityBackgroundCheckComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadRows();
+    // log response
+    this.interviewsService.getInterviews().subscribe((res) => console.log(res));
   }
 
   private loadRows(): void {
     this.interviewsService.getInterviews().subscribe({
       next: (list: ApiInterview[]) => {
         const mapped = list
-          .filter((i) =>
-            (i.hrFeedback || '').toLowerCase().includes('signed'),
-          )
+          .filter((i) => (i.hrFeedback || '').toLowerCase().includes('signed'))
           .map((i) => this.mapInterviewToRow(i));
 
         this.rows.set(mapped);
         this.currentPage.set(1);
       },
-      error: (err) => {
-        console.error('Failed to load background check list', err);
-      },
+      error: (err) => console.error('Failed to load background check list', err),
     });
   }
 
@@ -184,7 +175,7 @@ export class SecurityBackgroundCheckComponent implements OnInit {
     };
   }
 
-  // ===== filters handlers =====
+  // filters
   onSearchChange(v: string): void {
     this.search.set(v);
     this.currentPage.set(1);
@@ -195,10 +186,9 @@ export class SecurityBackgroundCheckComponent implements OnInit {
     this.currentPage.set(1);
   }
 
-  // ===== pagination handlers =====
+  // pagination
   onPageSizeChange(size: string): void {
-    const num = Number(size) || 10;
-    this.pageSize.set(num);
+    this.pageSize.set(Number(size) || 10);
     this.currentPage.set(1);
   }
 
@@ -209,147 +199,75 @@ export class SecurityBackgroundCheckComponent implements OnInit {
   }
 
   previousPage(): void {
-    if (this.currentPage() > 1) {
-      this.currentPage.set(this.currentPage() - 1);
-    }
+    if (this.currentPage() > 1) this.currentPage.set(this.currentPage() - 1);
   }
 
   nextPage(): void {
-    if (this.currentPage() < this.totalPages()) {
-      this.currentPage.set(this.currentPage() + 1);
-    }
+    if (this.currentPage() < this.totalPages()) this.currentPage.set(this.currentPage() + 1);
   }
 
-  // ===== table helpers =====
+  // helpers
   trackById(_index: number, row: BackgroundRow): number {
     return row.id;
   }
 
   statusPillClass(value: string | SecurityResult | null): string {
     const s = (value || '').toString().toLowerCase().trim();
-
     if (!s) return 'status-pill--new';
 
-    // ✅ swapped colors: Negative green, Positive red
+    // Negative green, Positive red
     if (s === 'negative') return 'status-pill--hired';
     if (s === 'positive') return 'status-pill--rejected';
-
-    // HR feedback
-    if (s.includes('signed')) return 'status-pill--hired';
-    if (s.includes('hiring from hold')) return 'status-pill--hired';
-
-    if (s.includes('missing') || s.includes('think')) {
-      return 'status-pill--in-progress';
-    }
-    if (s.includes('hold')) return 'status-pill--hold';
-    if (s.includes('unqualified') || s.includes('reject')) {
-      return 'status-pill--rejected';
-    }
 
     return 'status-pill--new';
   }
 
-  // ===== export =====
-  readonly exportData = computed<any[]>(() =>
-    this.filteredRows().map((r) => ({
-      date: r.date,
-      courierName: r.courierName,
-      nationalId: r.nationalId,
-      phoneNumber: r.phoneNumber,
-      residence: r.residence,
-      vehicleType: r.vehicleType,
-      hub: r.hub,
-      area: r.area,
-      account: r.account,
-      hrFeedback: r.hrFeedback,
-      securityResult: r.securityResult ?? '',
-      notes: r.notes,
-    })),
-  );
-
-  // ===== edit modal =====
-  openEditModal(row: BackgroundRow): void {
-    this.editingRow = { ...row };
-    this.errorMessage = '';
-    this.isModalOpen = true;
-  }
-
-  closeModal(): void {
-    this.isModalOpen = false;
-    this.editingRow = null;
-    this.errorMessage = '';
-    this.saving = false;
-  }
-
-  onSave(form: NgForm): void {
-    if (!this.editingRow) return;
-
-    if (form.invalid) {
-      form.control.markAllAsTouched();
-      return;
-    }
-
-    this.saving = true;
-    this.errorMessage = '';
-
-    const row = this.editingRow;
-    const dto: UpdateInterviewDto = {
-      securityResult: row.securityResult,
-      notes: row.notes,
-    };
-
-    this.interviewsService.updateInterview(row.id, dto).subscribe({
-      next: (updated: ApiInterview) => {
-        const updatedRow = this.mapInterviewToRow(updated);
-
-        this.rows.update((list) =>
-          list.map((r) => (r.id === updatedRow.id ? updatedRow : r)),
-        );
-
-        this.closeModal();
-      },
-      error: (err) => {
-        console.error('Failed to update security result', err);
-        this.errorMessage =
-          err?.error?.message ||
-          'Failed to update security result. Please try again.';
-        this.saving = false;
-      },
+  // ✅ details navigation (optionally: section=notes)
+  openDetails(row: BackgroundRow, section?: 'notes'): void {
+    this.router.navigate(['/interviews', row.id], {
+      queryParams: section ? { section } : undefined,
     });
   }
 
-  // ===== notes modal =====
-  openNotesModal(row: BackgroundRow): void {
-    this.notesRow = row;
-    this.isNotesModalOpen = true;
-  }
 
-  closeNotesModal(): void {
-    this.isNotesModalOpen = false;
-    this.notesRow = null;
-  }
+  openEditModal(row: BackgroundRow): void {
+  this.errorMessage = '';
+  this.saving = false;
 
-  copyNotesToClipboard(text: string | null | undefined): void {
-    const val = (text || '').trim();
-    if (!val) return;
+  this.interviewsService.getInterview(row.id).subscribe({
+    next: (api) => {
+      this.editingInterview = api;
+      this.isEditModalOpen = true;
+    },
+    error: () => {
+      this.errorMessage = 'Failed to load interview details.';
+    },
+  });
+}
 
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(val).catch(() => {});
-      return;
-    }
+closeEditModal(): void {
+  this.isEditModalOpen = false;
+  this.editingInterview = null;
+  this.errorMessage = '';
+  this.saving = false;
+}
 
-    try {
-      const ta = document.createElement('textarea');
-      ta.value = val;
-      ta.style.position = 'fixed';
-      ta.style.left = '-9999px';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-    } catch {
-      // ignore
-    }
-  }
+onSave(payload: { id: number; dto: UpdateInterviewDto }): void {
+  this.saving = true;
+  this.errorMessage = '';
+
+  this.interviewsService.updateInterview(payload.id, payload.dto).subscribe({
+    next: () => {
+      // اعمل reload بسيط عشان الجدول يتحدث (أو حدّث row محليًا)
+      this.loadRows();
+      this.closeEditModal();
+    },
+    error: (err) => {
+      this.errorMessage = err?.error?.message || 'Failed to update. Try again.';
+      this.saving = false;
+    },
+  });
+}
+
+
 }

@@ -22,6 +22,7 @@
       <span>Dashboard</span>
     </a>
 
+    <!-- ========== Operations group ========== -->
     <div class="nav-group" *ngIf="isOperations || isAdmin">
       <button
         type="button"
@@ -65,7 +66,7 @@
           <span>Background sheets</span>
         </a>
 
-        <!-- NEW: Background Follow-up (Operations) -->
+        <!-- Background Follow-up (Operations) -->
         <a
           routerLink="/operations/background-follow-up"
           [routerLinkActive]="['is-active']"
@@ -91,6 +92,32 @@
           <span>Clients list</span>
         </a>
 
+        <!-- =========================
+             Sub Contractors (single link - no submenu)
+             ========================= -->
+        <a
+          routerLink="/operations/sub-contractors"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+          *ngIf="isOperations || isAdmin"
+        >
+          <i class="ri-group-line nav-icon" aria-hidden="true"></i>
+          <span>Sub Contractors</span>
+        </a>
+
+        <!-- Drivers (commented for now) -->
+        <!--
+        <a
+          routerLink="/drivers"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+          *ngIf="isOperations || isAdmin"
+        >
+          <i class="ri-truck-line nav-icon" aria-hidden="true"></i>
+          <span>Drivers</span>
+        </a>
+        -->
+
         <!-- Taskboard (Manager/Supervisor فقط) -->
         <a
           routerLink="/operations/tasks-board"
@@ -111,6 +138,28 @@
         >
           <i class="ri-task-line nav-icon" aria-hidden="true"></i>
           <span>My tasks</span>
+        </a>
+
+        <!-- Loans (Manager/Supervisor) -->
+        <a
+          routerLink="/operations/loans-approvals"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+          *ngIf="isOperationManagerOrSupervisor || isAdmin"
+        >
+          <i class="ri-hand-coin-line nav-icon" aria-hidden="true"></i>
+          <span>Loans approvals</span>
+        </a>
+
+        <!-- Loans (Senior/Junior) -->
+        <a
+          routerLink="/operations/loans-request"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+          *ngIf="isOperationStaffWithCalls"
+        >
+          <i class="ri-hand-coin-line nav-icon" aria-hidden="true"></i>
+          <span>My loan request</span>
         </a>
 
         <!-- Calls sheet -->
@@ -147,6 +196,42 @@
       </div>
     </div>
 
+    <!-- ========== Tracking group (Top-level) ========== -->
+    <div class="nav-group" *ngIf="isOperations || isAdmin">
+      <button
+        type="button"
+        class="nav-link nav-link--parent"
+        (click)="toggleGroup('tracking')"
+        [class.is-open]="openGroup === 'tracking'"
+      >
+        <i class="ri-radar-line nav-icon" aria-hidden="true"></i>
+        <span>Tracking</span>
+        <i class="ri-arrow-down-s-line caret" aria-hidden="true"></i>
+      </button>
+
+      <div class="sub-nav" [class.sub-nav--open]="openGroup === 'tracking'">
+        <a
+          routerLink="/operations/tracking/gps"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+          *ngIf="isOperations || isAdmin"
+        >
+          <i class="ri-map-pin-line nav-icon" aria-hidden="true"></i>
+          <span>GPS</span>
+        </a>
+
+        <a
+          routerLink="/operations/tracking/expired-drivers-data"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+          *ngIf="isOperations || isAdmin"
+        >
+          <i class="ri-timer-flash-line nav-icon" aria-hidden="true"></i>
+          <span>Expired drivers data</span>
+        </a>
+      </div>
+    </div>
+
     <!-- ========== HR group ========== -->
     <div class="nav-group" *ngIf="isHr || isAdmin">
       <button
@@ -161,15 +246,6 @@
       </button>
 
       <div class="sub-nav" [class.sub-nav--open]="openGroup === 'hr'">
-        <a
-          routerLink="/interviews"
-          [routerLinkActive]="['is-active']"
-          class="nav-sublink"
-        >
-          <i class="ri-user-voice-line nav-icon" aria-hidden="true"></i>
-          <span>Interview sheet</span>
-        </a>
-
         <a
           routerLink="/employment-contracts-status"
           [routerLinkActive]="['is-active']"
@@ -189,51 +265,39 @@
         </a>
 
         <a
-          routerLink="/hr/clients"
-          [routerLinkActive]="['is-active']"
-          class="nav-sublink"
-        >
-          <i class="ri-user-3-line nav-icon" aria-hidden="true"></i>
-          <span>Clients</span>
-        </a>
-
-        <div class="nav-group nav-group--nested">
-          <button
-            type="button"
-            class="nav-link nav-link--parent nav-link--sub"
-            (click)="toggleHrContracts()"
-            [class.is-open]="hrContractsOpen"
-          >
-            <i class="ri-file-text-line nav-icon" aria-hidden="true"></i>
-            <span>Contracts</span>
-            <i class="ri-arrow-down-s-line caret" aria-hidden="true"></i>
-          </button>
-
-          <div class="sub-nav sub-nav--inner" [class.sub-nav--open]="hrContractsOpen">
-            <a
-              routerLink="/hr/contracts/drivers"
-              [routerLinkActive]="['is-active']"
-              class="nav-sublink nav-sublink--inner"
-            >
-              <span>Drivers</span>
-            </a>
-            <a
-              routerLink="/hr/contracts/employees"
-              [routerLinkActive]="['is-active']"
-              class="nav-sublink nav-sublink--inner"
-            >
-              <span>Employees</span>
-            </a>
-          </div>
-        </div>
-
-        <a
           routerLink="/hr/deductions"
           [routerLinkActive]="['is-active']"
           class="nav-sublink"
         >
           <i class="ri-scales-2-line nav-icon" aria-hidden="true"></i>
           <span>Deductions</span>
+        </a>
+
+        <a
+          routerLink="/hr/employees"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+        >
+          <i class="ri-team-line nav-icon" aria-hidden="true"></i>
+          <span>Employees</span>
+        </a>
+
+        <a
+          routerLink="/hr/clients-contracts"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+        >
+          <i class="ri-file-list-3-line nav-icon" aria-hidden="true"></i>
+          <span>Clients Contracts</span>
+        </a>
+
+        <a
+          routerLink="/hr/attendance"
+          [routerLinkActive]="['is-active']"
+          class="nav-sublink"
+        >
+          <i class="ri-fingerprint-line nav-icon" aria-hidden="true"></i>
+          <span>Attendance</span>
         </a>
       </div>
     </div>

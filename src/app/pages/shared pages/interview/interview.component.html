@@ -1,4 +1,3 @@
-<!-- src/app/pages/.../interview/interview.component.html -->
 <section class="interviews-page">
   <div class="interviews-card">
     <!-- Header -->
@@ -9,8 +8,7 @@
           <span class="interviews-count">({{ filtered().length }})</span>
         </h1>
         <p class="interviews-subtitle">
-          Manage courier interview pipeline, follow-ups, and status in one
-          place.
+          Manage courier interview pipeline, follow-ups, and status in one place.
         </p>
       </div>
 
@@ -29,11 +27,7 @@
         ></export-button>
 
         <!-- Add -->
-        <button
-          type="button"
-          class="btn btn--primary"
-          (click)="openAddModal()"
-        >
+        <button type="button" class="btn btn--primary" (click)="openAddModal()">
           <i class="ri-user-add-line" aria-hidden="true"></i>
           <span>Add Interview</span>
         </button>
@@ -45,14 +39,12 @@
       <div class="filter-row">
         <!-- Search -->
         <div class="filter-group filter-group--wide">
-          <label for="interviewSearch" class="filter-label">
-            Search Interviews
-          </label>
+          <label for="interviewSearch" class="filter-label">Search Interviews</label>
           <input
             id="interviewSearch"
             type="text"
             class="filter-input"
-            placeholder="Search by courier name, phone, account, hub, zone, status..."
+            placeholder="Search by courier name, phone, national ID, account, hub, zone, status..."
             [ngModel]="search()"
             (ngModelChange)="onSearchChange($event)"
           />
@@ -112,33 +104,21 @@
         <div class="active-filters-list">
           <span class="active-filter" *ngIf="search().trim()">
             Search: “{{ search() }}”
-            <button
-              type="button"
-              class="filter-remove"
-              (click)="onSearchChange('')"
-            >
+            <button type="button" class="filter-remove" (click)="onSearchChange('')">
               <i class="ri-close-line"></i>
             </button>
           </span>
 
           <span class="active-filter" *ngIf="accountFilter()">
             Account: {{ accountFilter() }}
-            <button
-              type="button"
-              class="filter-remove"
-              (click)="onAccountFilterChange('')"
-            >
+            <button type="button" class="filter-remove" (click)="onAccountFilterChange('')">
               <i class="ri-close-line"></i>
             </button>
           </span>
 
           <span class="active-filter" *ngIf="statusFilter()">
             Status: {{ statusFilter() }}
-            <button
-              type="button"
-              class="filter-remove"
-              (click)="onStatusFilterChange('')"
-            >
+            <button type="button" class="filter-remove" (click)="onStatusFilterChange('')">
               <i class="ri-close-line"></i>
             </button>
           </span>
@@ -146,27 +126,19 @@
           <span class="active-filter" *ngIf="signedWithHrFilter()">
             HR:
             {{
-              signedWithHrFilter() === 'signed with hr'
+              signedWithHrFilter() === 'signed'
                 ? 'Signed with HR'
                 : signedWithHrFilter() === 'not_signed'
                 ? 'Not signed'
                 : 'Other'
             }}
-            <button
-              type="button"
-              class="filter-remove"
-              (click)="onSignedWithHrFilterChange('')"
-            >
+            <button type="button" class="filter-remove" (click)="onSignedWithHrFilterChange('')">
               <i class="ri-close-line"></i>
             </button>
           </span>
         </div>
 
-        <button
-          type="button"
-          class="btn btn--secondary btn--sm"
-          (click)="clearFilters()"
-        >
+        <button type="button" class="btn btn--secondary btn--sm" (click)="clearFilters()">
           <i class="ri-close-line" aria-hidden="true"></i>
           <span>Clear filters</span>
         </button>
@@ -209,13 +181,9 @@
           <thead>
             <tr>
               <th>Date</th>
-              <!-- <th>Ticket NO#</th> -->
               <th>Courier</th>
               <th>Phone</th>
-
-              <!-- ✅ replaced Residence with National ID -->
               <th>National ID</th>
-
               <th>Account</th>
               <th>Hub</th>
               <th>Zone</th>
@@ -228,12 +196,8 @@
           </thead>
 
           <tbody>
-            <tr
-              *ngFor="let row of paginated(); trackBy: trackById"
-              class="row"
-            >
+            <tr *ngFor="let row of paginated(); trackBy: trackById" class="row">
               <td>{{ row.date }}</td>
-              <!-- <td>{{ row.ticketNo }}</td> -->
 
               <td class="cell-primary">
                 <span class="cell-primary-name">
@@ -243,7 +207,6 @@
 
               <td>{{ row.phoneNumber }}</td>
 
-              <!-- ✅ National ID cell -->
               <td class="cell-mono">
                 {{ row.nationalId || '-' }}
               </td>
@@ -254,28 +217,22 @@
               <td>{{ row.vehicleType || '-' }}</td>
               <td>{{ row.interviewer || '-' }}</td>
 
-              <!-- HR Contract UX -->
               <td>
-                <span
-                  class="status-chip"
-                  [ngClass]="getSignedWithHrClass(row)"
-                >
+                <span class="status-chip" [ngClass]="getSignedWithHrClass(row)">
                   {{ getSignedWithHrLabel(row) }}
                 </span>
               </td>
 
-              <!-- ✅ Status UX improved -->
               <td>
                 <span
-                  class="status-chip status-chip--strong"
-                  [ngClass]="'status-chip--status ' + (row.courierStatus || 'unknown')"
+                  class="status-chip status-chip--strong status-chip--status"
+                  [ngClass]="getCourierStatusClass(row)"
                 >
-                  {{ row.courierStatus || 'Unknown' }}
+                  {{ getCourierStatusLabel(row) }}
                 </span>
               </td>
 
               <td class="cell-actions">
-                <!-- View / Details -->
                 <button
                   type="button"
                   class="icon-action icon-action--view"
@@ -286,7 +243,6 @@
                   <span class="sr-only">View interview details</span>
                 </button>
 
-                <!-- Edit -->
                 <button
                   type="button"
                   class="icon-action icon-action--edit"
@@ -297,7 +253,6 @@
                   <span class="sr-only">Edit interview</span>
                 </button>
 
-                <!-- Delete -->
                 <button
                   type="button"
                   class="icon-action icon-action--delete"
@@ -311,9 +266,7 @@
             </tr>
 
             <tr *ngIf="filtered().length === 0">
-              <td class="empty-cell" colspan="12">
-                No interviews match your search.
-              </td>
+              <td class="empty-cell" colspan="12">No interviews match your search.</td>
             </tr>
           </tbody>
         </table>
@@ -321,29 +274,20 @@
 
       <!-- Mobile cards -->
       <div class="cards-wrapper">
-        <article
-          class="interview-card"
-          *ngFor="let row of paginated(); trackBy: trackById"
-        >
+        <article class="interview-card" *ngFor="let row of paginated(); trackBy: trackById">
           <header class="interview-card-header">
-            <div class="card-date">
-              {{ row.date || '-' }}
-            </div>
+            <div class="card-date">{{ row.date || '-' }}</div>
 
             <div class="card-status">
-              <span
-                class="status-chip"
-                [ngClass]="getSignedWithHrClass(row)"
-              >
+              <span class="status-chip" [ngClass]="getSignedWithHrClass(row)">
                 {{ getSignedWithHrLabel(row) }}
               </span>
 
-              <!-- ✅ Status UX improved on cards too -->
               <span
-                class="status-chip status-chip--strong"
-                [ngClass]="'status-chip--status ' + (row.courierStatus || 'unknown')"
+                class="status-chip status-chip--strong status-chip--status"
+                [ngClass]="getCourierStatusClass(row)"
               >
-                {{ row.courierStatus || 'Unknown' }}
+                {{ getCourierStatusLabel(row) }}
               </span>
             </div>
           </header>
@@ -351,31 +295,23 @@
           <button
             type="button"
             class="interview-card-main"
+            (click)="openDetails(row)"
+            [disabled]="!row.id"
           >
-            <div class="card-name">
-              {{ row.courierName || 'Unnamed courier' }}
-            </div>
+            <div class="card-name">{{ row.courierName || 'Unnamed courier' }}</div>
 
-            <div class="card-phone" *ngIf="row.phoneNumber">
-              {{ row.phoneNumber }}
-            </div>
+            <div class="card-phone" *ngIf="row.phoneNumber">{{ row.phoneNumber }}</div>
 
             <div class="card-account">
               <span *ngIf="row.account">{{ row.account }}</span>
-              <span
-                class="card-location"
-                *ngIf="row.hub || row.zone"
-              >
+              <span class="card-location" *ngIf="row.hub || row.zone">
                 • {{ row.hub || '-' }}
-                <ng-container *ngIf="row.zone">
-                  - {{ row.zone }}
-                </ng-container>
+                <ng-container *ngIf="row.zone"> - {{ row.zone }}</ng-container>
               </span>
             </div>
           </button>
 
           <div class="interview-card-meta">
-            <!-- ✅ show National ID instead of residence -->
             <div class="meta-item" *ngIf="row.nationalId">
               <span class="meta-label">National ID</span>
               <span class="meta-value meta-value--mono">{{ row.nationalId }}</span>
@@ -393,18 +329,17 @@
           </div>
 
           <footer class="interview-card-footer">
-            <!-- View / Details -->
             <button
               type="button"
               class="icon-action icon-action--view"
               (click)="openDetails(row)"
+              [disabled]="!row.id"
               title="View details"
             >
               <i class="ri-eye-line" aria-hidden="true"></i>
               <span class="sr-only">View interview details</span>
             </button>
 
-            <!-- Edit -->
             <button
               type="button"
               class="icon-action icon-action--edit"
@@ -415,7 +350,6 @@
               <span class="sr-only">Edit interview</span>
             </button>
 
-            <!-- Delete -->
             <button
               type="button"
               class="icon-action icon-action--delete"
@@ -428,34 +362,21 @@
           </footer>
         </article>
 
-        <div
-          *ngIf="filtered().length === 0"
-          class="empty-cell empty-cell--card"
-        >
+        <div *ngIf="filtered().length === 0" class="empty-cell empty-cell--card">
           No interviews match your search.
         </div>
       </div>
 
       <!-- Pagination footer -->
       <div class="pagination" *ngIf="totalPages() > 1">
-        <div class="pagination-info">
-          Page {{ currentPage() }} of {{ totalPages() }}
-        </div>
+        <div class="pagination-info">Page {{ currentPage() }} of {{ totalPages() }}</div>
 
         <div class="pagination-controls">
-          <button
-            class="pagination-btn"
-            [disabled]="currentPage() === 1"
-            (click)="goToPage(1)"
-          >
+          <button class="pagination-btn" [disabled]="currentPage() === 1" (click)="goToPage(1)">
             <i class="ri-skip-left-line"></i>
           </button>
 
-          <button
-            class="pagination-btn"
-            [disabled]="currentPage() === 1"
-            (click)="previousPage()"
-          >
+          <button class="pagination-btn" [disabled]="currentPage() === 1" (click)="previousPage()">
             <i class="ri-arrow-left-line"></i>
           </button>
 
@@ -465,6 +386,7 @@
               class="pagination-page"
               [class.active]="page === currentPage()"
               (click)="goToPage(page)"
+              [disabled]="page === '...'"
             >
               {{ page }}
             </button>

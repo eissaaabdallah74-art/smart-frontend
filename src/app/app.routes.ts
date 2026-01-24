@@ -36,6 +36,47 @@ export const routes: Routes = [
     },
   },
 
+
+  // ===== Tracking (Operations) =====
+{
+  path: 'operations/tracking/gps',
+  loadComponent: () =>
+    import('./pages/operation pages/tracking-gps/tracking-gps.component').then(
+      (m) => m.TrackingGpsComponent
+    ),
+  canActivate: [permissionsGuard],
+  data: {
+    roles: ['operation', 'supply_chain', 'admin'],
+  },
+},
+{
+  path: 'operations/tracking/expired-drivers-data',
+  loadComponent: () =>
+    import(
+      './pages/operation pages/expired-drivers-data/expired-drivers-data.component'
+    ).then((m) => m.ExpiredDriversDataComponent),
+  canActivate: [permissionsGuard],
+  data: {
+    roles: ['operation', 'supply_chain', 'admin'],
+  },
+},
+
+// ===== Sub Contractors (Operations) =====
+{
+  path: 'operations/sub-contractors',
+  loadComponent: () =>
+    import(
+      './pages/operation pages/sub-contractors/sub-contractors.component'
+    ).then((m) => m.SubContractorsComponent),
+  canActivate: [permissionsGuard],
+  data: {
+    roles: ['operation', 'supply_chain', 'admin'],
+  },
+},
+
+
+
+
   {
     path: 'drivers-tracking',
     loadComponent: () =>
@@ -252,5 +293,141 @@ export const routes: Routes = [
     },
   },
 
+
+
+    // ===== HR Employees =====
+  {
+    path: 'hr/employees',
+    loadComponent: () =>
+      import('./pages/hr pages/employees/employees.component').then(
+        (m) => m.EmployeesComponent
+      ),
+    canActivate: [permissionsGuard],
+    data: {
+      roles: ['hr', 'admin'],
+    },
+  },
+
+  {
+    path: 'hr/employees/:id',
+    loadComponent: () =>
+      import('./pages/hr pages/employees/components/employee-details/employee-details.component').then(
+        (m) => m.EmployeeDetailsComponent
+      ),
+    canActivate: [permissionsGuard],
+    data: {
+      roles: ['hr', 'admin', 'finance'], // لو هتسمح payroll تبقى finance/admin
+    },
+  },
+
+
+  {
+  path: 'hr/deductions',
+  loadComponent: () =>
+    import('./pages/hr pages/deduction/deduction.component').then(
+      (m) => m.DeductionComponent
+    ),
+  canActivate: [permissionsGuard],
+  data: {
+    roles: ['hr', 'admin'],
+  },
+},
+
+
+// ===== Loans (Operation) =====
+
+// Loans Approvals (Manager/Supervisor view)
+{
+  path: 'operations/loans-approvals',
+  loadComponent: () =>
+    import('./pages/operation pages/loans-approvals/loans-approvals.component').then(
+      (m) => m.LoansApprovalsComponent
+    ),
+  canActivate: [permissionsGuard],
+  data: {
+    roles: ['operation'], // جوه الكومبوننت فلترة position
+  },
+},
+
+// Loans Request (Senior/Junior view)
+{
+  path: 'operations/loans-request',
+  loadComponent: () =>
+    import('./pages/operation pages/loans-request/loans-request.component').then(
+      (m) => m.LoansRequestComponent
+    ),
+  canActivate: [permissionsGuard],
+  data: {
+    roles: ['operation'],
+  },
+},
+
+{
+  path: 'hr/clients-contracts',
+  loadComponent: () =>
+    import('./pages/hr pages/clients-contracts/clients-contracts.component')
+      .then((m) => m.ClientsContractsComponent),
+  canActivate: [permissionsGuard],
+  data: {
+    roles: ['hr', 'admin'],
+  },
+},
+
+// ===== HR Attendance =====
+{
+  path: 'hr/attendance',
+  loadComponent: () =>
+    import('./pages/hr pages/attendance/hr-attendance/hr-attendance.component').then(
+      (m) => m.HrAttendanceComponent
+    ),
+  canActivate: [permissionsGuard],
+  data: { roles: ['hr', 'admin'] },
+},
+
+{
+  path: 'hr/attendance/import',
+  loadComponent: () =>
+    import('./pages/hr pages/attendance-import/hr-attendance-import/hr-attendance-import.component').then(
+      (m) => m.HrAttendanceImportComponent
+    ),
+  canActivate: [permissionsGuard],
+  data: { roles: ['hr', 'admin'] },
+},
+
+{
+  path: 'hr/attendance/mapping',
+  loadComponent: () =>
+    import('./pages/hr pages/attendance-mapping/hr-attendance-mapping/hr-attendance-mapping.component').then(
+      (m) => m.HrAttendanceMappingComponent
+    ),
+  canActivate: [permissionsGuard],
+  data: { roles: ['hr', 'admin'] },
+},
+
+// تفاصيل موظف واحد (اللي اشتغلنا عليها)
+{
+  path: 'hr/attendance/employee/:id',
+  loadComponent: () =>
+    import('./pages/hr pages/attendance-employee/hr-attendance-employee/hr-attendance-employee.component').then(
+      (m) => m.HrAttendanceEmployeeComponent
+    ),
+  canActivate: [permissionsGuard],
+  data: { roles: ['hr', 'admin'] },
+},
+
+{
+  path: 'hr/attendance/excuses',
+  loadComponent: () =>
+    import('./pages/hr pages/attendance-excuses/hr-attendance-excuses/hr-attendance-excuses.component').then(
+      (m) => m.HrAttendanceExcusesComponent
+    ),
+  canActivate: [permissionsGuard],
+  data: { roles: ['hr', 'admin'] },
+},
+
+
+
+
   { path: '**', redirectTo: '' },
 ];
+  

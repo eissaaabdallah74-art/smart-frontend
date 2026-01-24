@@ -1,1 +1,267 @@
-<p>deduction works!</p>
+<section class="page">
+  <header class="page-head">
+    <div>
+      <h1 class="title">Deductions</h1>
+      <p class="sub">Add, filter, and manage HR deductions.</p>
+    </div>
+
+    <button class="btn btn-primary" type="button" (click)="openCreate()">
+      <i class="ri-add-line" aria-hidden="true"></i>
+      <span>Add deduction</span>
+    </button>
+  </header>
+
+  <div *ngIf="errorMsg" class="alert alert-error">
+    {{ errorMsg }}
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="filter">
+      <label>Search</label>
+      <input
+        type="text"
+        [formControl]="filtersForm.controls.q"
+        placeholder="name / role / reason"
+      />
+    </div>
+
+    <div class="filter">
+      <label>User</label>
+      <select [formControl]="filtersForm.controls.userId">
+        <option [ngValue]="null">All users</option>
+        <option *ngFor="let u of users" [ngValue]="u.id">
+          {{ userLabel(u) }}
+        </option>
+      </select>
+    </div>
+
+    <div class="filter">
+      <label>Status</label>
+      <select [formControl]="filtersForm.controls.status">
+        <option value="">All</option>
+        <option value="active">Active</option>
+        <option value="voided">Voided</option>
+      </select>
+    </div>
+
+    <div class="filter">
+      <label>From</label>
+      <input type="date" [formControl]="filtersForm.controls.fromDate" />
+    </div>
+
+    <div class="filter">
+      <label>To</label>
+      <input type="date" [formControl]="filtersForm.controls.toDate" />
+    </div>
+
+    <div class="filter">
+      <label>Min amount</label>
+      <input type="number" [formControl]="filtersForm.controls.minAmount" placeholder="0" />
+    </div>
+
+    <div class="filter">
+      <label>Max amount</label>
+      <input type="number" [formControl]="filtersForm.controls.maxAmount" placeholder="0" />
+    </div>
+
+    <div class="filter-actions">
+      <button class="btn" type="button" (click)="applyFilters(true)" [disabled]="loading">
+        <i class="ri-filter-3-line" aria-hidden="true"></i>
+        Apply
+      </button>
+
+      <button class="btn btn-ghost" type="button" (click)="resetFilters()" [disabled]="loading">
+        <i class="ri-refresh-line" aria-hidden="true"></i>
+        Reset
+      </button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table class="table" *ngIf="rows.length > 0; else emptyState">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>User</th>
+          <th>Role</th>
+          <th>Effective date</th>
+          <th>Amount</th>
+          <th>Reason</th>
+          <th>Status</th>
+          <th class="th-actions">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr *ngFor="let r of rows; trackBy: trackById">
+          <td data-label="ID">#{{ r.id }}</td>
+          <td data-label="User">{{ r.userName }}</td>
+          <td data-label="Role">{{ r.userRole || '—' }}</td>
+          <td data-label="Effective date">{{ r.effectiveDate }}</td>
+          <td data-label="Amount">{{ r.amount }}</td>
+          <td data-label="Reason" class="td-reason">{{ r.reason }}</td>
+          <td data-label="Status">
+            <span class="badge" [class.badge-void]="r.status === 'voided'">
+              {{ r.status }}
+            </span>
+          </td>
+
+          <td data-label="Actions" class="td-actions">
+            <button class="icon-btn" type="button" (click)="openEdit(r)" aria-label="Edit">
+              <i class="ri-edit-2-line" aria-hidden="true"></i>
+            </button>
+
+            <button class="icon-btn icon-btn-danger" type="button" (click)="openDelete(r)" aria-label="Delete">
+              <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <ng-template #emptyState>
+      <div class="empty">
+        <i class="ri-file-list-3-line" aria-hidden="true"></i>
+        <div class="empty-title">No deductions found</div>
+        <div class="empty-sub">Try adjusting filters or add a new deduction.</div>
+
+        <button class="btn btn-primary" type="button" (click)="openCreate()">
+          <i class="ri-add-line" aria-hidden="true"></i>
+          Add deduction
+        </button>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pager">
+    <div class="pager-left">
+      <span class="pager-info">{{ pageInfo }}</span>
+
+      <div class="pager-size">
+        <label>Rows</label>
+        <select [value]="limit" (change)="setPageSize(($any($event.target).value))">
+          <option [value]="10">10</option>
+          <option [value]="20">20</option>
+          <option [value]="50">50</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="pager-right">
+      <button class="btn btn-ghost" type="button" (click)="prevPage()" [disabled]="offset === 0 || loading">
+        <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
+        Prev
+      </button>
+
+      <button class="btn btn-ghost" type="button" (click)="nextPage()" [disabled]="offset + limit >= total || loading">
+        Next
+        <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===================== -->
+  <!-- Form Modal (Add/Edit) -->
+  <!-- ===================== -->
+  <div class="modal-backdrop" *ngIf="formOpen" (click)="closeForm()"></div>
+
+  <div class="modal" *ngIf="formOpen" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <div class="modal-title">
+        {{ formMode === 'create' ? 'Add deduction' : 'Edit deduction' }}
+      </div>
+
+      <button class="icon-btn" type="button" (click)="closeForm()" aria-label="Close">
+        <i class="ri-close-line" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <form class="modal-body" [formGroup]="deductionForm" (ngSubmit)="submitForm()">
+      <div class="grid">
+        <div class="field">
+          <label>User *</label>
+          <select formControlName="userId">
+            <option [ngValue]="null">Select user</option>
+            <option *ngFor="let u of users" [ngValue]="u.id">{{ userLabel(u) }}</option>
+          </select>
+          <div class="err" *ngIf="deductionForm.controls.userId.touched && deductionForm.controls.userId.invalid">
+            User is required.
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Amount *</label>
+          <input type="number" formControlName="amount" placeholder="e.g. 250" />
+          <div class="err" *ngIf="deductionForm.controls.amount.touched && deductionForm.controls.amount.invalid">
+            Amount is required and must be >= 1.
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Effective date *</label>
+          <input type="date" formControlName="effectiveDate" />
+          <div class="err" *ngIf="deductionForm.controls.effectiveDate.touched && deductionForm.controls.effectiveDate.invalid">
+            Effective date is required.
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Status *</label>
+          <select formControlName="status">
+            <option value="active">Active</option>
+            <option value="voided">Voided</option>
+          </select>
+        </div>
+
+        <div class="field field-full">
+          <label>Reason *</label>
+          <textarea rows="3" formControlName="reason" placeholder="Write reason..."></textarea>
+          <div class="err" *ngIf="deductionForm.controls.reason.touched && deductionForm.controls.reason.invalid">
+            Reason is required (min 3 chars).
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-ghost" type="button" (click)="closeForm()">Cancel</button>
+        <button class="btn btn-primary" type="submit">
+          <i class="ri-save-3-line" aria-hidden="true"></i>
+          Save
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ===================== -->
+  <!-- Delete Confirm Modal   -->
+  <!-- ===================== -->
+  <div class="modal-backdrop" *ngIf="deleteOpen" (click)="closeDelete()"></div>
+
+  <div class="modal modal-sm" *ngIf="deleteOpen" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <div class="modal-title">Confirm delete</div>
+
+      <button class="icon-btn" type="button" (click)="closeDelete()" aria-label="Close">
+        <i class="ri-close-line" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <p class="confirm-text">
+        Are you sure you want to delete deduction
+        <strong *ngIf="deletingRow">#{{ deletingRow.id }}</strong>؟
+      </p>
+
+      <div class="modal-actions">
+        <button class="btn btn-ghost" type="button" (click)="closeDelete()">Cancel</button>
+        <button class="btn btn-danger" type="button" (click)="confirmDelete()">
+          <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</section>

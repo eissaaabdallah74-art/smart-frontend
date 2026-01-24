@@ -148,13 +148,13 @@
             <li
               class="item"
               *ngFor="let r of fulfillmentRows"
-              [class.active]="selected === (r.accountManager?.id ?? 'unassigned')"
-              (click)="onSelectAssignee(r.accountManager?.id ?? 'unassigned')"
+              [class.active]="selected === (r.accountManager.id ?? 'unassigned')"
+              (click)="onSelectAssignee(r.accountManager.id ?? 'unassigned')"
             >
               <div class="row">
-                <div class="name">{{ r.accountManager?.fullName || 'Unassigned' }}</div>
+                <div class="name">{{ r.accountManager.fullName || 'Unassigned' }}</div>
                 <div class="meta">
-                  <span class="pos">{{ r.accountManager?.position ? (r.accountManager.position | titlecase) : '—' }}</span>
+                  <span class="pos">{{ r.accountManager.position ? (r.accountManager.position | titlecase) : '—' }}</span>
                 </div>
               </div>
 
@@ -397,8 +397,8 @@
               </thead>
               <tbody>
                 <tr *ngFor="let r of fulfillmentRows">
-                  <td>{{ r.accountManager?.fullName || 'Unassigned' }}</td>
-                  <td>{{ r.accountManager?.position ? (r.accountManager.position | titlecase) : '—' }}</td>
+                  <td>{{ r.accountManager.fullName || 'Unassigned' }}</td>
+                  <td>{{ r.accountManager.position ? (r.accountManager.position | titlecase) : '—' }}</td>
                   <td class="num">{{ r.totals.fulfilled || 0 }}</td>
                   <td class="num">{{ r.totals.companyA || 0 }}</td>
                   <td class="num">{{ r.totals.companyB || 0 }}</td>
@@ -419,7 +419,7 @@
             <div class="ful-toolbar">
               <div class="left">
                 <div class="title">
-                  {{ fr.accountManager?.fullName || 'Unassigned' }}
+                  {{ fr.accountManager.fullName || 'Unassigned' }}
                 </div>
                 <div class="muted">
                   Weeks breakdown inside selected range.

@@ -1,0 +1,238 @@
+<div class="mapping-container">
+  <div class="page-header">
+    <div class="title">
+      <h1>Attendance Mapping</h1>
+      <p class="muted">
+        Link sheet identifiers (EmpNo / AC-No) to HR Employees. Fix unmatched rows then recompute.
+      </p>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-ghost" type="button" (click)="goToOverview()">
+        Back to overview
+      </button>
+      <button class="btn" type="button" (click)="goToImport()">
+        Import
+      </button>
+    </div>
+  </div>
+
+  <div class="top-bar" [formGroup]="form">
+    <div class="field">
+      <label>Month</label>
+      <input type="month" formControlName="month" />
+    </div>
+
+    <div class="info" *ngIf="importInfo() as info">
+      <div class="info-pill">
+        <span class="k">Working days</span>
+        <span class="v">{{ info.workingDaysCount }}</span>
+      </div>
+
+      <div class="info-pill">
+        <span class="k">Unmatched rows</span>
+        <span class="v warn">{{ info.data.length }}</span>
+      </div>
+
+      <div class="info-pill" *ngIf="info.importId">
+        <span class="k">Import</span>
+        <span class="v mono">#{{ info.importId }}</span>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <button class="btn btn-primary" type="button" (click)="recompute()" [disabled]="state() !== 'success'">
+      Recompute
+    </button>
+    <button class="btn" type="button" (click)="load()">
+      Refresh
+    </button>
+  </div>
+
+  <div *ngIf="state() === 'error' && errorMsg()" class="alert alert-error">
+    {{ errorMsg() }}
+  </div>
+
+  <div *ngIf="successMsg()" class="alert alert-success">
+    {{ successMsg() }}
+  </div>
+
+  <div *ngIf="state() === 'loading'" class="loading">
+    Loading…
+  </div>
+
+  <div class="grid" *ngIf="state() === 'success'">
+    <!-- LEFT: Unmatched list -->
+    <section class="card left">
+      <div class="card-head">
+        <div>
+          <h2>Unmatched rows</h2>
+          <p class="muted-sm">
+            Select a row, then choose an employee on the right to map.
+          </p>
+        </div>
+        <div class="count">
+          {{ filteredUnmatched().length }}
+        </div>
+      </div>
+
+      <div class="search" [formGroup]="form">
+        <input
+          type="text"
+          formControlName="unmatchedQ"
+          placeholder="Search EmpNo / AC-No / Name"
+        />
+      </div>
+
+      <div class="list" *ngIf="filteredUnmatched().length > 0; else allMatched">
+        <button
+          type="button"
+          class="row"
+          *ngFor="let r of filteredUnmatched()"
+          [class.is-active]="selectedRowKey() === r.key"
+          (click)="selectRow(r)"
+        >
+          <div class="row-title">
+            {{ r.name || 'Unknown name' }}
+          </div>
+          <div class="row-sub">
+            {{ formatRowTitle(r) }}
+          </div>
+
+          <div class="row-badges">
+            <span class="badge badge-warn" *ngIf="r.absent">Absent</span>
+            <span class="badge badge-muted" *ngIf="r.lateMinutes">
+              Late {{ r.lateMinutes }}m
+            </span>
+          </div>
+        </button>
+      </div>
+
+      <ng-template #allMatched>
+        <div class="empty">
+          No unmatched rows for this month.
+        </div>
+      </ng-template>
+    </section>
+
+    <!-- RIGHT: Employee picker + mapping -->
+    <section class="card right">
+      <div class="card-head">
+        <div>
+          <h2>Employee</h2>
+          <p class="muted-sm">
+            Search and select an employee to link with the selected row.
+          </p>
+        </div>
+
+        <span class="pill" [class.pill--ok]="selectedEmployeeId()">
+          {{ selectedEmployeeId() ? 'Selected' : 'Not selected' }}
+        </span>
+      </div>
+
+      <div class="row-details" *ngIf="selectedRow() as row; else noRow">
+        <div class="rd-title">Selected row</div>
+        <div class="rd-card">
+          <div class="rd-name">{{ row.name || 'Unknown name' }}</div>
+          <div class="rd-meta">
+            <span class="mono" *ngIf="row.empNo">EmpNo: {{ row.empNo }}</span>
+            <span class="dot" *ngIf="row.empNo && row.acNo">•</span>
+            <span class="mono" *ngIf="row.acNo">AC: {{ row.acNo }}</span>
+          </div>
+
+          <div class="rd-hints">
+            <span class="hint" *ngIf="row.absent">This row is marked as Absent (full day deduction).</span>
+            <span class="hint" *ngIf="row.lateMinutes">Late minutes detected: {{ row.lateMinutes }}.</span>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noRow>
+        <div class="empty">
+          Select an unmatched row from the left.
+        </div>
+      </ng-template>
+
+      <div class="divider"></div>
+
+      <div class="search" [formGroup]="form">
+        <div class="search-head">
+          <label>Search employees</label>
+          <span class="muted-sm">Total: {{ employeesTotal() }}</span>
+        </div>
+        <input type="text" formControlName="employeeQ" placeholder="Name / National ID" />
+      </div>
+
+      <div class="employees" *ngIf="employees().length > 0; else noEmployees">
+        <button
+          type="button"
+          class="emp"
+          *ngFor="let e of employees()"
+          [class.is-active]="selectedEmployeeId() === e.id"
+          (click)="selectEmployee(e)"
+        >
+          <div class="emp-main">
+            <div class="emp-name">{{ e.fullName }}</div>
+            <div class="emp-sub">
+              <span *ngIf="e.nationalId">NID: <span class="mono">{{ e.nationalId }}</span></span>
+              <span class="dot" *ngIf="e.nationalId && e.employment?.department">•</span>
+              <span *ngIf="e.employment?.department">Dept: {{ e.employment?.department }}</span>
+            </div>
+          </div>
+          <div class="emp-id mono">#{{ e.id }}</div>
+        </button>
+      </div>
+
+      <ng-template #noEmployees>
+        <div class="empty">
+          No employees found. Try a different search keyword.
+        </div>
+      </ng-template>
+
+      <div class="divider"></div>
+
+      <div class="mapping-options" [formGroup]="form">
+        <div class="opt-title">Mapping options</div>
+
+        <label class="check">
+          <input type="checkbox" formControlName="mapEmpNo" />
+          <span>Map EmpNo</span>
+        </label>
+
+        <label class="check">
+          <input type="checkbox" formControlName="mapAcNo" />
+          <span>Map AC-No</span>
+        </label>
+
+        <div class="opt-hint">
+          Choose which identifiers to store for this employee. At least one must be available in the selected row.
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button
+          class="btn btn-primary"
+          type="button"
+          [disabled]="!canMap() || saveState() === 'saving'"
+          (click)="mapSelected()"
+        >
+          Save mapping
+        </button>
+
+        <button
+          class="btn"
+          type="button"
+          [disabled]="saveState() === 'saving'"
+          (click)="clearEmployeeSelection()"
+        >
+          Clear selection
+        </button>
+      </div>
+
+      <div class="save-note" *ngIf="saveState() === 'saving'">
+        Saving…
+      </div>
+    </section>
+  </div>
+</div>
