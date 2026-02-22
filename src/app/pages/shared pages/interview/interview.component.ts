@@ -8,7 +8,11 @@ import { forkJoin } from 'rxjs';
 
 import { ExportButtonComponent } from '../../../shared/export-button/export-button';
 import { ImportButtonComponent } from '../../../shared/import-button/import-button.component';
-import { InterviewFormModalComponent } from './components/interview-form-modal/interview-form-modal.component';
+import {
+  InterviewFormModalComponent,
+  InterviewFormSubmitPayload,
+} from './components/interview-form-modal/interview-form-modal.component';
+import { AuditLogsComponent } from '../../../components/audit-logs/audit-logs.component';
 
 import {
   ApiInterview,
@@ -22,8 +26,11 @@ import { ApiUser, UsersServiceService } from '../../../services/users/users-serv
 
 import { ApiDriver, DriversServiceService } from '../../../services/drivers/drivers-service.service';
 
+import type { DriverContractStatus, SignedWithHrStatus, SecurityResult } from '../../../shared/enums/driver-enums';
+import { DRIVER_CONTRACT_STATUSES, SIGNED_WITH_HR_STATUSES } from '../../../shared/enums/driver-enums';
+
 export interface InterviewRow {
-  _id: number; // UI-only
+  _id: number;
   id?: number;
 
   date: string;
@@ -35,7 +42,6 @@ export interface InterviewRow {
   nationalId: string;
   residence: string;
 
-  // display fields
   account: string;
   hub: string;
   zone: string;
@@ -45,7 +51,7 @@ export interface InterviewRow {
   accountManager: string;
   interviewer: string;
 
-  signedWithHr: string;
+  signedWithHr: SignedWithHrStatus | '' | null;
   feedback: string;
   hrFeedback: string;
   crmFeedback: string;
@@ -53,10 +59,13 @@ export interface InterviewRow {
   followUp2: string;
   followUp3: string;
 
-  courierStatus: string;
+  courierStatus: DriverContractStatus | '' | null;
   notes: string;
 
-  // ids for edit/import/export
+  vLicenseExpiryDate: string;
+  dLicenseExpiryDate: string;
+  idExpiryDate: string;
+
   clientId?: number | null;
   hubId?: number | null;
   zoneId?: number | null;
@@ -64,7 +73,7 @@ export interface InterviewRow {
   accountManagerId?: number | null;
   interviewerId?: number | null;
 
-  securityResult?: string | null;
+  securityResult?: SecurityResult | null;
 }
 
 const MOCK_INTERVIEWS: InterviewRow[] = [];
@@ -78,6 +87,7 @@ const MOCK_INTERVIEWS: InterviewRow[] = [];
     ExportButtonComponent,
     ImportButtonComponent,
     InterviewFormModalComponent,
+    AuditLogsComponent,
   ],
   templateUrl: './interview.component.html',
   styleUrls: ['./interview.component.scss'],
@@ -96,8 +106,16 @@ export class InterviewComponent implements OnInit {
   // search + filters
   readonly search = signal<string>('');
   readonly accountFilter = signal<string>('');
-  readonly statusFilter = signal<string>('');
+
+  /**
+   * ✅ SignedWithHrFilter values:
+   * '' | 'signed' | 'think' | 'missing' | 'unqualified'
+   */
   readonly signedWithHrFilter = signal<string>('');
+
+  // ✅ interviewer/account manager filters
+  readonly interviewerFilter = signal<string>('');
+  readonly accountManagerFilter = signal<string>('');
 
   // pagination
   readonly pageSize = signal<number>(10);
@@ -124,12 +142,48 @@ export class InterviewComponent implements OnInit {
       .sort((a, b) => a.localeCompare(b)),
   );
 
-  readonly statusOptions: string[] = ['Active', 'Unreachable/Reschedule', 'Resigned', 'Hold zone'];
+  readonly interviewerOptions = computed<string[]>(() => {
+    const set = new Set<string>();
+    for (const r of this.interviews()) {
+      const v = (r.interviewer || '').trim();
+      if (v) set.add(v);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  });
+
+  readonly accountManagerOptions = computed<string[]>(() => {
+    const set = new Set<string>();
+    for (const r of this.interviews()) {
+      const v = (r.accountManager || '').trim();
+      if (v) set.add(v);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  });
+
+  // ✅ useful for UI selects if you want
+  readonly courierStatusOptions = [...DRIVER_CONTRACT_STATUSES];
+  readonly signedWithHrOptions = [...SIGNED_WITH_HR_STATUSES];
 
   ngOnInit(): void {
     this.loadClients();
     this.loadUsers();
     this.loadInterviews();
+  }
+
+  /* ========= Audit logs modal ========= */
+
+  readonly isAuditOpen = signal<boolean>(false);
+  readonly auditEntityId = signal<number | null>(null);
+
+  openAudit(row: InterviewRow): void {
+    if (!row.id) return;
+    this.auditEntityId.set(row.id);
+    this.isAuditOpen.set(true);
+  }
+
+  closeAudit(): void {
+    this.isAuditOpen.set(false);
+    this.auditEntityId.set(null);
   }
 
   /* ========= Load from API ========= */
@@ -190,16 +244,20 @@ export class InterviewComponent implements OnInit {
       accountManager: api.accountManager?.fullName ?? '',
       interviewer: api.interviewer?.fullName ?? '',
 
-      signedWithHr: api.signedWithHr ?? '',
-
+      signedWithHr: (api.signedWithHr ?? null) as any,
       feedback: api.feedback ?? '',
       hrFeedback: api.hrFeedback ?? '',
       crmFeedback: api.crmFeedback ?? '',
       followUp1: api.followUp1 ?? '',
       followUp2: api.followUp2 ?? '',
       followUp3: api.followUp3 ?? '',
-      courierStatus: api.courierStatus ?? '',
+
+      courierStatus: (api.courierStatus ?? null) as any,
       notes: api.notes ?? '',
+
+      vLicenseExpiryDate: api.vLicenseExpiryDate ?? '',
+      dLicenseExpiryDate: api.dLicenseExpiryDate ?? '',
+      idExpiryDate: api.idExpiryDate ?? '',
 
       clientId: (api as any).clientId ?? api.client?.id ?? null,
       hubId: api.hubId ?? null,
@@ -207,7 +265,7 @@ export class InterviewComponent implements OnInit {
       accountManagerId: (api as any).accountManagerId ?? api.accountManager?.id ?? null,
       interviewerId: (api as any).interviewerId ?? api.interviewer?.id ?? null,
 
-      securityResult: api.securityResult ?? null,
+      securityResult: (api.securityResult ?? null) as any,
     };
   }
 
@@ -223,33 +281,46 @@ export class InterviewComponent implements OnInit {
     this.currentPage.set(1);
   }
 
-  onStatusFilterChange(value: string): void {
-    this.statusFilter.set(value);
-    this.currentPage.set(1);
-  }
-
   onSignedWithHrFilterChange(value: string): void {
     this.signedWithHrFilter.set(value);
     this.currentPage.set(1);
   }
 
+  onInterviewerFilterChange(value: string): void {
+    this.interviewerFilter.set(value);
+    this.currentPage.set(1);
+  }
+
+  onAccountManagerFilterChange(value: string): void {
+    this.accountManagerFilter.set(value);
+    this.currentPage.set(1);
+  }
+
   hasActiveFilters(): boolean {
-    return !!this.search().trim() || !!this.accountFilter() || !!this.statusFilter() || !!this.signedWithHrFilter();
+    return (
+      !!this.search().trim() ||
+      !!this.accountFilter() ||
+      !!this.signedWithHrFilter() ||
+      !!this.interviewerFilter() ||
+      !!this.accountManagerFilter()
+    );
   }
 
   clearFilters(): void {
     this.search.set('');
     this.accountFilter.set('');
-    this.statusFilter.set('');
     this.signedWithHrFilter.set('');
+    this.interviewerFilter.set('');
+    this.accountManagerFilter.set('');
     this.currentPage.set(1);
   }
 
   readonly filtered = computed<InterviewRow[]>(() => {
     const term = this.search().toLowerCase().trim();
     const accountFilter = this.accountFilter();
-    const statusFilter = this.statusFilter();
     const hrFilter = this.signedWithHrFilter();
+    const interviewerFilter = this.interviewerFilter();
+    const accMgrFilter = this.accountManagerFilter();
 
     let rows = this.interviews();
 
@@ -265,22 +336,34 @@ export class InterviewComponent implements OnInit {
           safe(row.hub).includes(term) ||
           safe(row.zone).includes(term) ||
           safe(row.accountManager).includes(term) ||
+          safe(row.interviewer).includes(term) ||
           safe(row.courierStatus).includes(term)
         );
       });
     }
 
     if (accountFilter) rows = rows.filter((row) => row.account === accountFilter);
-    if (statusFilter) rows = rows.filter((row) => row.courierStatus === statusFilter);
 
+    // ✅ SignedWithHrFilter
     if (hrFilter) {
       rows = rows.filter((row) => {
-        const s = (row.signedWithHr || '').toLowerCase().trim();
-        if (hrFilter === 'signed') return s.startsWith('signed');
-        if (hrFilter === 'not_signed') return !s;
-        if (hrFilter === 'other') return !!s && !s.startsWith('signed');
+        const s = String(row.signedWithHr || '').toLowerCase().trim();
+
+        if (hrFilter === 'signed') return s.includes('signed a contract with hr');
+        if (hrFilter === 'think') return s.includes('think about');
+        if (hrFilter === 'missing') return s.includes('missing');
+        if (hrFilter === 'unqualified') return s.includes('unqualified');
+
         return true;
       });
+    }
+
+    if (interviewerFilter) {
+      rows = rows.filter((row) => (row.interviewer || '').trim() === interviewerFilter);
+    }
+
+    if (accMgrFilter) {
+      rows = rows.filter((row) => (row.accountManager || '').trim() === accMgrFilter);
     }
 
     return rows;
@@ -288,13 +371,19 @@ export class InterviewComponent implements OnInit {
 
   /* ========= Pagination ========= */
 
-  readonly totalPages = computed(() => (this.filtered().length ? Math.ceil(this.filtered().length / this.pageSize()) : 1));
+  readonly totalPages = computed(() =>
+    this.filtered().length ? Math.ceil(this.filtered().length / this.pageSize()) : 1,
+  );
 
   readonly startIndex = computed(() => (this.currentPage() - 1) * this.pageSize());
 
-  readonly endIndex = computed(() => Math.min(this.startIndex() + this.pageSize(), this.filtered().length));
+  readonly endIndex = computed(() =>
+    Math.min(this.startIndex() + this.pageSize(), this.filtered().length),
+  );
 
-  readonly paginated = computed<InterviewRow[]>(() => this.filtered().slice(this.startIndex(), this.endIndex()));
+  readonly paginated = computed<InterviewRow[]>(() =>
+    this.filtered().slice(this.startIndex(), this.endIndex()),
+  );
 
   readonly visiblePages = computed<(number | string)[]>(() => {
     const total = this.totalPages();
@@ -340,37 +429,32 @@ export class InterviewComponent implements OnInit {
   /* ========= Status UI helpers ========= */
 
   getSignedWithHrLabel(row: InterviewRow): string {
-    const raw = (row.signedWithHr || '').trim();
-    if (!raw) return 'Not signed';
-    const lower = raw.toLowerCase();
-    if (lower.startsWith('signed')) return 'Signed with HR';
-    return raw;
+    const raw = String(row.signedWithHr || '').trim();
+    return raw || '—';
   }
 
   getSignedWithHrClass(row: InterviewRow): string {
-    const raw = (row.signedWithHr || '').toLowerCase().trim();
+    const raw = String(row.signedWithHr || '').toLowerCase().trim();
     if (!raw) return 'status-chip--neutral';
-    if (raw.startsWith('signed')) return 'status-chip--positive';
-    if (raw.includes('unqualified') || raw.includes('reject')) return 'status-chip--danger';
+    if (raw.includes('signed a contract with hr')) return 'status-chip--positive';
+    if (raw.includes('unqualified')) return 'status-chip--danger';
     if (raw.includes('missing') || raw.includes('think')) return 'status-chip--warning';
     return 'status-chip--neutral';
   }
 
   getCourierStatusLabel(row: InterviewRow): string {
-    const raw = (row.courierStatus || '').trim();
-    return raw || 'PENDING';
+    const raw = String(row.courierStatus || '').trim();
+    return raw || '—';
   }
 
   getCourierStatusClass(row: InterviewRow): string {
     const v = this.getCourierStatusLabel(row).toLowerCase();
 
     if (v === 'active') return 'status--active';
-    if (v === 'unreachable/reschedule' || v === 'unreachable' || v.includes('reschedule')) {
-      return 'status--unreachable-reschedule';
-    }
+    if (v === 'inactive') return 'status--inactive';
+    if (v.includes('unreachable') || v.includes('reschedule')) return 'status--unreachable-reschedule';
     if (v === 'resigned') return 'status--resigned';
-    if (v === 'hold zone' || v === 'hold' || v.includes('hold')) return 'status--hold-zone';
-    if (v === 'pending') return 'status--pending';
+    if (v.includes('hold')) return 'status--hold-zone';
 
     return 'status--unknown';
   }
@@ -402,7 +486,7 @@ export class InterviewComponent implements OnInit {
       interviewer: r.interviewer,
       interviewerId: r.interviewerId ?? '',
 
-      signedWithHr: r.signedWithHr,
+      signedWithHr: r.signedWithHr || '',
       hrFeedback: r.hrFeedback,
       security_result: r.securityResult ?? '',
       crmFeedback: r.crmFeedback,
@@ -411,7 +495,7 @@ export class InterviewComponent implements OnInit {
       followUp2: r.followUp2,
       followUp3: r.followUp3,
 
-      courierStatus: r.courierStatus,
+      courierStatus: r.courierStatus || '',
       notes: r.notes,
     })),
   );
@@ -433,33 +517,50 @@ export class InterviewComponent implements OnInit {
     this.interviewToEdit.set(null);
   }
 
-  onFormSubmit(dto: CreateInterviewDto): void {
+  onFormSubmit(payload: InterviewFormSubmitPayload): void {
     const editing = this.interviewToEdit();
 
-    if (editing && editing.id != null) {
-      this.interviewsService.updateInterview(editing.id, dto as UpdateInterviewDto).subscribe({
+    if (payload.mode === 'edit') {
+      if (!editing?.id) return;
+
+      const patch = (payload.patch || {}) as UpdateInterviewDto;
+
+      this.interviewsService.updateInterview(editing.id, patch).subscribe({
         next: (updated: ApiInterview) => {
           this.interviews.update((list) =>
-            list.map((r) => (r._id === editing._id ? this.mapApiToRow(updated, editing._id) : r)),
+            list.map((r) =>
+              r._id === editing._id ? this.mapApiToRow(updated, editing._id) : r,
+            ),
           );
 
           this.syncDriverFromInterview(updated);
           this.closeModal();
+
+          // ✅ افتح الـ audit بعد UPDATE فقط
+          this.openAudit(this.mapApiToRow(updated, editing._id));
         },
         error: (err: unknown) => console.error('Failed to update interview', err),
       });
-    } else {
-      this.interviewsService.createInterview(dto).subscribe({
-        next: (created: ApiInterview) => {
-          const newRow = this.mapApiToRow(created, this._nextId++);
-          this.interviews.update((list) => [...list, newRow]);
 
-          this.syncDriverFromInterview(created);
-          this.closeModal();
-        },
-        error: (err: unknown) => console.error('Failed to create interview', err),
-      });
+      return;
     }
+
+    // CREATE
+    const dto = payload.createDto as CreateInterviewDto;
+
+    this.interviewsService.createInterview(dto).subscribe({
+      next: (created: ApiInterview) => {
+        const newRow = this.mapApiToRow(created, this._nextId++);
+
+        // new row ينزل أول القائمة
+        this.interviews.update((list) => [newRow, ...list]);
+        this.currentPage.set(1);
+
+        this.syncDriverFromInterview(created);
+        this.closeModal();
+      },
+      error: (err: unknown) => console.error('Failed to create interview', err),
+    });
   }
 
   deleteInterview(id: number | undefined): void {
@@ -515,7 +616,9 @@ export class InterviewComponent implements OnInit {
       if (lines.length < 2) return;
 
       const headers = this.parseCsvLine(lines[0]).map((h) => h.trim());
-      const data = lines.slice(1).map((ln) => this.parseCsvLine(ln).map((c) => c.trim()));
+      const data = lines
+        .slice(1)
+        .map((ln) => this.parseCsvLine(ln).map((c) => c.trim()));
 
       this.importFromTable(headers, data);
     };
@@ -537,7 +640,9 @@ export class InterviewComponent implements OnInit {
       if (!table.length || table.length < 2) return;
 
       const headers = (table[0] || []).map((x) => String(x ?? '').trim());
-      const data = table.slice(1).map((row) => (row || []).map((x) => String(x ?? '').trim()));
+      const data = table
+        .slice(1)
+        .map((row) => (row || []).map((x) => String(x ?? '').trim()));
 
       this.importFromTable(headers, data);
     };
@@ -553,7 +658,9 @@ export class InterviewComponent implements OnInit {
     forkJoin(requests).subscribe({
       next: (createdList: ApiInterview[]) => {
         const mapped = createdList.map((api) => this.mapApiToRow(api, this._nextId++));
-        this.interviews.update((current) => [...current, ...mapped]);
+        this.interviews.update((current) => [...mapped, ...current]);
+        this.currentPage.set(1);
+
         createdList.forEach((api) => this.syncDriverFromInterview(api));
         console.log(`Imported ${createdList.length} interviews successfully`);
       },
@@ -602,18 +709,15 @@ export class InterviewComponent implements OnInit {
     return -1;
   }
 
-  // Handles strings + dd/mm/yyyy + Excel serial-ish numeric strings
   private normalizeDateCell(raw: any): string {
-    const todayIso = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+    const todayIso = new Date().toISOString().slice(0, 10);
     if (raw == null) return todayIso;
 
     const asString = String(raw).trim();
     if (!asString) return todayIso;
 
-    // ISO
     if (/^\d{4}-\d{2}-\d{2}$/.test(asString)) return asString;
 
-    // dd/mm/yyyy or dd-mm-yyyy
     const m = asString.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
     if (m) {
       let d = parseInt(m[1], 10);
@@ -625,15 +729,13 @@ export class InterviewComponent implements OnInit {
       return `${y}-${pad(mn)}-${pad(d)}`;
     }
 
-    // Excel serial date stored as number or numeric string
     const n = Number(asString);
     if (Number.isFinite(n) && n > 20000 && n < 80000) {
-      const epoch = Date.UTC(1899, 11, 30); // Excel epoch
+      const epoch = Date.UTC(1899, 11, 30);
       const dt = new Date(epoch + n * 86400000);
       if (!isNaN(dt.getTime())) return dt.toISOString().slice(0, 10);
     }
 
-    // Last try
     const asDate = new Date(asString);
     if (!isNaN(asDate.getTime())) return asDate.toISOString().slice(0, 10);
 
@@ -649,7 +751,6 @@ export class InterviewComponent implements OnInit {
     const idxNationalId = this.findHeaderIndex(headers, 'nationalId', 'national_id', 'nid');
     const idxResidence = this.findHeaderIndex(headers, 'residence', 'area', 'city');
 
-    // account/client can be either name or numeric id
     const idxAccount = this.findHeaderIndex(headers, 'account', 'client', 'clientName', 'clientId', 'client_id');
 
     const idxHubId = this.findHeaderIndex(headers, 'hub_id', 'hubId');
@@ -661,9 +762,13 @@ export class InterviewComponent implements OnInit {
     const idxAccountManager = this.findHeaderIndex(headers, 'accountManager', 'account_manager');
     const idxInterviewer = this.findHeaderIndex(headers, 'interviewer', 'interviewerName');
 
-    const idxSignedWithHr = this.findHeaderIndex(headers, 'signedWithHr', 'hrContract');
+    const idxSignedWithHr = this.findHeaderIndex(headers, 'signedWithHr', 'signed_with_hr');
     const idxStatus = this.findHeaderIndex(headers, 'courierStatus', 'status');
     const idxHrFeedback = this.findHeaderIndex(headers, 'hrFeedback', 'hr_feedback');
+
+    const idxVLic = this.findHeaderIndex(headers, 'vLicenseExpiryDate', 'v_license_expiry_date', 'vehicleLicenseExpiry');
+    const idxDLic = this.findHeaderIndex(headers, 'dLicenseExpiryDate', 'd_license_expiry_date', 'driverLicenseExpiry');
+    const idxIdExp = this.findHeaderIndex(headers, 'idExpiryDate', 'id_expiry_date', 'nationalIdExpiry', 'idExpiry');
 
     const idxSecurityResult = this.findHeaderIndex(headers, 'security_result', 'securityResult');
 
@@ -674,7 +779,6 @@ export class InterviewComponent implements OnInit {
 
       if (!courierName && !phoneNumber) continue;
 
-      // clientId from account cell (id or name)
       const accCell = idxAccount >= 0 ? (cols[idxAccount] || '').trim() : '';
       let clientId: number | null = null;
 
@@ -743,7 +847,7 @@ export class InterviewComponent implements OnInit {
         accountManagerId: accountManagerUser?.id ?? null,
         interviewerId: interviewerUser?.id ?? null,
 
-        signedWithHr: idxSignedWithHr >= 0 && cols[idxSignedWithHr] ? cols[idxSignedWithHr] : null,
+        signedWithHr: (idxSignedWithHr >= 0 && cols[idxSignedWithHr] ? cols[idxSignedWithHr] : null) as any,
 
         feedback: null,
         hrFeedback: idxHrFeedback >= 0 && cols[idxHrFeedback] ? cols[idxHrFeedback] : null,
@@ -752,12 +856,16 @@ export class InterviewComponent implements OnInit {
         followUp2: null,
         followUp3: null,
 
-        courierStatus: idxStatus >= 0 && cols[idxStatus] ? cols[idxStatus] : null,
-        securityResult: securityResultVal,
+        courierStatus: (idxStatus >= 0 && cols[idxStatus] ? cols[idxStatus] : null) as any,
+        securityResult: securityResultVal as any,
         notes: null,
 
         ticketNo: undefined,
         ticketExpiresAt: undefined,
+
+        vLicenseExpiryDate: idxVLic >= 0 && cols[idxVLic] ? this.normalizeDateCell(cols[idxVLic]) : null,
+        dLicenseExpiryDate: idxDLic >= 0 && cols[idxDLic] ? this.normalizeDateCell(cols[idxDLic]) : null,
+        idExpiryDate: idxIdExp >= 0 && cols[idxIdExp] ? this.normalizeDateCell(cols[idxIdExp]) : null,
       };
 
       dtos.push(dto);
@@ -772,13 +880,20 @@ export class InterviewComponent implements OnInit {
     const status = (api.courierStatus || '').toLowerCase().trim();
     if (!status.startsWith('active')) return;
 
+    // ✅ IMPORTANT FIX:
+    // - contractStatus ← courierStatus (Active/Inactive/...)
+    // - signedWithHr  ← signedWithHr (HR enum)
     const payload: Partial<ApiDriver> = {
       name: api.courierName ?? '',
       courierPhone: api.phoneNumber ?? '',
       clientName: api.client?.name ?? '',
-      area: api.residence || api.zone?.name || api.hub?.name || '',
+
+      area: api.zone?.name || api.hub?.name || api.residence || '',
+
+      contractStatus: (api.courierStatus ?? 'Active') as any,
+      signedWithHr: (api.signedWithHr ?? null) as any,
+
       hiringStatus: api.courierStatus ?? 'Active',
-      contractStatus: api.signedWithHr ?? undefined,
     };
 
     if (!payload.name && !payload.courierPhone) return;

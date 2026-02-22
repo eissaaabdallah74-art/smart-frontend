@@ -1,0 +1,192 @@
+<!-- src/app/pages/.../client-page/components/details-driver-master/details-driver-master.component.html -->
+<div class="details-root">
+  <div class="topbar">
+    <div class="topbar-main">
+      <div class="kicker">DRIVER • DETAILS</div>
+      <div class="title-row">
+        <h4 class="title">{{ title() }}</h4>
+        <ng-container *ngIf="driver() as d">
+          <span [class]="pillClass($any(d).hiringStatus)">
+            {{ safe($any(d).hiringStatus) }}
+          </span>
+        </ng-container>
+      </div>
+      <div class="subtitle" *ngIf="driver() as d">
+        <span class="muted">Client:</span> <strong>{{ safe($any(d).clientName) }}</strong>
+        <span class="dot">•</span>
+        <span class="muted">Hub:</span> <strong>{{ safe($any(d).hub) }}</strong>
+        <span class="dot">•</span>
+        <span class="muted">Area:</span> <strong>{{ safe($any(d).area) }}</strong>
+      </div>
+    </div>
+
+    <button type="button" class="btn primary" (click)="onEdit()" [disabled]="loading() || !!error() || !driver()">
+      <i class="ri-pencil-line" aria-hidden="true"></i>
+      Update
+    </button>
+  </div>
+
+  <div class="loading" *ngIf="loading()">
+    <div class="sk-line w-70"></div>
+    <div class="sk-line w-45"></div>
+    <div class="sk-box"></div>
+  </div>
+
+  <div class="alert alert--error" *ngIf="!loading() && error()">
+    <div>
+      <div class="alert-title">Error</div>
+      <div class="alert-text">{{ error() }}</div>
+    </div>
+    <button type="button" class="btn" (click)="fetch()">
+      <i class="ri-refresh-line" aria-hidden="true"></i>
+      Retry
+    </button>
+  </div>
+
+  <ng-container *ngIf="!loading() && !error() && driver() as d">
+    <!-- Identity -->
+    <section class="section">
+      <div class="section-head">
+        <h5 class="section-title">Identity</h5>
+      </div>
+      <div class="grid">
+        <div class="field">
+          <div class="k">Name</div>
+          <div class="v">{{ safe($any(d).name) }}</div>
+        </div>
+        <div class="field">
+          <div class="k">Arabic Name</div>
+          <div class="v">{{ safe($any(d).fullNameArabic) }}</div>
+        </div>
+        <div class="field">
+          <div class="k">Email</div>
+          <div class="v">{{ safe($any(d).email) }}</div>
+        </div>
+        <div class="field">
+          <div class="k">Phone</div>
+          <div class="v">
+            <ng-container *ngIf="$any(d).courierPhone as ph; else noPhone">
+              <a class="link" [href]="'tel:' + ph">{{ ph }}</a>
+            </ng-container>
+            <ng-template #noPhone>—</ng-template>
+          </div>
+        </div>
+        <div class="field">
+          <div class="k">Courier ID</div>
+          <div class="v">{{ safe($any(d).courierId) }}</div>
+        </div>
+        <div class="field">
+          <div class="k">Courier Code</div>
+          <div class="v">{{ safe($any(d).courierCode) }}</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Work / Assignment -->
+    <section class="section">
+      <div class="section-head">
+        <h5 class="section-title">Assignment</h5>
+      </div>
+      <div class="grid">
+        <div class="field">
+          <div class="k">Client</div>
+          <div class="v">{{ safe($any(d).clientName) }}</div>
+        </div>
+        <div class="field">
+          <div class="k">Hub</div>
+          <div class="v">{{ safe($any(d).hub) }}</div>
+        </div>
+        <div class="field">
+          <div class="k">Area</div>
+          <div class="v">{{ safe($any(d).area) }}</div>
+        </div>
+        <div class="field">
+          <div class="k">Vehicle</div>
+          <div class="v">{{ safe($any(d).vehicleType) }}</div>
+        </div>
+        <div class="field">
+          <div class="k">Module</div>
+          <div class="v">{{ safe($any(d).module) }}</div>
+        </div>
+        <div class="field">
+          <div class="k">Residence</div>
+          <div class="v">{{ safe($any(d).residence) }}</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Hiring -->
+    <section class="section">
+      <div class="section-head">
+        <h5 class="section-title">Hiring</h5>
+      </div>
+      <div class="grid">
+        <div class="field">
+          <div class="k">Hiring Status</div>
+          <div class="v">
+            <span [class]="pillClass($any(d).hiringStatus)">{{ safe($any(d).hiringStatus) }}</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="k">Contract Status</div>
+          <div class="v">{{ safe($any(d).contractStatus) }}</div>
+        </div>
+        <div class="field">
+          <div class="k">Hiring Date</div>
+          <div class="v">{{ dateOnly($any(d).hiringDate) }}</div>
+        </div>
+        <div class="field">
+          <div class="k">Day 1 Date</div>
+          <div class="v">{{ dateOnly($any(d).day1Date) }}</div>
+        </div>
+        <div class="field">
+          <div class="k">Signed</div>
+          <div class="v">{{ yesNo($any(d).signed) }}</div>
+        </div>
+        <div class="field">
+          <div class="k">Liability Amount</div>
+          <div class="v">{{ safe($any(d).liabilityAmount) }}</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Compliance -->
+    <section class="section">
+      <div class="section-head">
+        <h5 class="section-title">Compliance</h5>
+      </div>
+      <div class="grid">
+        <div class="field">
+          <div class="k">Vehicle License Expiry</div>
+          <div class="v">{{ dateOnly($any(d).vLicenseExpiryDate) }}</div>
+        </div>
+        <div class="field">
+          <div class="k">Driver License Expiry</div>
+          <div class="v">{{ dateOnly($any(d).dLicenseExpiryDate) }}</div>
+        </div>
+        <div class="field">
+          <div class="k">ID Expiry</div>
+          <div class="v">{{ dateOnly($any(d).idExpiryDate) }}</div>
+        </div>
+        <div class="field">
+          <div class="k">Security Query Status</div>
+          <div class="v">{{ safe($any(d).securityQueryStatus) }}</div>
+        </div>
+        <div class="field span-2">
+          <div class="k">Security Query Comment</div>
+          <div class="v">{{ safe($any(d).securityQueryComment) }}</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Notes -->
+    <section class="section">
+      <div class="section-head">
+        <h5 class="section-title">Notes</h5>
+      </div>
+      <div class="notes">
+        {{ safe($any(d).notes) }}
+      </div>
+    </section>
+  </ng-container>
+</div>

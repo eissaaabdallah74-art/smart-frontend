@@ -1,0 +1,62 @@
+<section class="summary-card">
+  <div *ngIf="!summaryRows.length" class="empty-state">
+    <i class="ri-inbox-2-line empty-icon" aria-hidden="true"></i>
+    <h3>No data</h3>
+    <p>There are no clients or no requests to summarize yet.</p>
+  </div>
+
+  <div class="summary-wrap" *ngIf="summaryRows.length">
+    <div class="summary-table-wrap">
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th class="col-date">Date</th>
+            <th class="col-account">Account</th>
+
+            <th class="col-v" *ngFor="let t of vehicleTypeColumns">
+              {{ getVehicleLabel(t) }}
+            </th>
+
+            <th class="col-total">Total</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let r of summaryRows; trackBy: trackByClientId">
+            <td class="mono small">{{ r.date }}</td>
+
+            <td class="account-cell">
+              <div class="account-name">{{ r.accountName }}</div>
+              <div class="account-sub muted small">Client #{{ r.clientId }}</div>
+            </td>
+
+            <td class="num" *ngFor="let t of vehicleTypeColumns">
+              {{ r.counts[t] || 0 }}
+            </td>
+
+            <td class="num total-strong">{{ r.total || 0 }}</td>
+          </tr>
+        </tbody>
+
+        <tfoot>
+          <tr class="grand-row">
+            <td class="mono small">—</td>
+            <td class="grand-label">Grand total</td>
+
+            <td class="num" *ngFor="let t of vehicleTypeColumns">
+              {{ summaryGrandTotals.counts[t] || 0 }}
+            </td>
+
+            <td class="num total-strong">
+              {{ summaryGrandTotals.total || 0 }}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <p class="muted small summary-note">
+      This table uses the latest updated request per client.
+    </p>
+  </div>
+</section>

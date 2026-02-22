@@ -4,7 +4,7 @@
   display: block;
 }
 
-/* ===== Tokens (قريبة من ستايل داشبورداتكم) ===== */
+/* ===== Tokens ===== */
 .master-root {
   --bg: #ffffff;
   --muted: #6b7280;
@@ -83,6 +83,12 @@
   flex-wrap: wrap;
 }
 
+.toolbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .searchbox {
   flex: 1;
   min-width: 260px;
@@ -148,12 +154,87 @@
   background: #fff;
 }
 
+.btn.subtle {
+  background: var(--soft);
+  &:hover {
+    background: #f3f4f6;
+  }
+}
+
 .btn.danger {
   border-color: rgba(239, 68, 68, 0.35);
   color: #991b1b;
 
   &:hover {
     background: rgba(239, 68, 68, 0.06);
+  }
+}
+
+/* ===== Filters ===== */
+.filters {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px;
+}
+
+.filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: end;
+}
+
+.filter {
+  min-width: 160px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.filter-control {
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 0 10px;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  background: var(--soft);
+
+  &:focus {
+    border-color: rgba(37, 99, 235, 0.35);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+  }
+}
+
+.filters-meta {
+  margin-top: 10px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+
+  .meta {
+    font-size: 12px;
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    i {
+      font-size: 14px;
+    }
   }
 }
 
@@ -248,7 +329,6 @@
 .alert-text {
   color: #7f1d1d;
   font-size: 13px;
-  flex: 1;
   min-width: 240px;
 }
 
@@ -263,7 +343,7 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 980px;
+  min-width: 1120px;
 
   th,
   td {
@@ -312,6 +392,37 @@
 
   &:hover {
     text-decoration: underline;
+  }
+}
+
+.th-actions,
+.td-actions {
+  text-align: end;
+}
+
+.td-actions {
+  width: 110px;
+}
+
+.action-icon {
+  height: 34px;
+  width: 34px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-inline-start: 8px;
+
+  i {
+    font-size: 16px;
+    color: var(--text);
+  }
+
+  &:hover {
+    background: var(--soft);
   }
 }
 
@@ -424,6 +535,13 @@
   font-weight: 600;
 }
 
+.card-actions {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 .hide-sm {
   display: table-cell;
 }
@@ -455,4 +573,81 @@
   .card-grid {
     grid-template-columns: 1fr;
   }
+
+  .card-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Side Panel ===== */
+.panel-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.40);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 80;
+}
+
+.panel {
+  width: min(560px, 100%);
+  height: 100%;
+  background: #fff;
+  border-inline-start: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-head {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.panel-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.panel-kicker {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.panel-h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.panel-close {
+  height: 38px;
+  width: 38px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--soft);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  i {
+    font-size: 18px;
+  }
+
+  &:hover {
+    background: #f3f4f6;
+  }
+}
+
+.panel-body {
+  padding: 12px;
+  overflow: auto;
 }

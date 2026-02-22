@@ -1,0 +1,143 @@
+<div class="modal-backdrop" *ngIf="open" (click)="close.emit()">
+  <div class="modal" (click)="stop($event)">
+    <div class="modal-head">
+      <div class="title">{{ isEditMode ? 'Edit Request' : 'Create Request' }}</div>
+      <button class="icon-x" type="button" (click)="close.emit()">✕</button>
+    </div>
+
+    <form class="modal-body" [formGroup]="form" (ngSubmit)="submit.emit()">
+      <!-- Top fields -->
+      <div class="grid">
+        <div class="field">
+          <label>Client</label>
+          <select formControlName="clientId">
+            <option [ngValue]="null">Select client</option>
+            <option *ngFor="let c of clients" [ngValue]="c.id">{{ getClientLabel(c) }}</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Hub</label>
+          <select formControlName="hubId">
+            <option [ngValue]="null">—</option>
+            <option *ngFor="let h of hubs" [ngValue]="h.id">{{ getHubLabel(h) }}</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Zone</label>
+          <select formControlName="zoneId">
+            <option [ngValue]="null">—</option>
+            <option *ngFor="let z of zones" [ngValue]="z.id">{{ getZoneLabel(z) }}</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Request date</label>
+          <input type="date" formControlName="requestDate" />
+        </div>
+
+        <div class="field">
+          <label>Billing month</label>
+          <input type="text" placeholder="YYYY-MM" formControlName="billingMonth" />
+        </div>
+
+        <div class="field">
+          <label>Priority</label>
+          <select formControlName="priority">
+            <option *ngFor="let p of priorities" [ngValue]="p.value">{{ p.label }}</option>
+          </select>
+        </div>
+
+        <div class="field full">
+          <label>Notes</label>
+          <textarea rows="2" formControlName="notes" placeholder="Optional notes..."></textarea>
+        </div>
+      </div>
+
+      <!-- Items -->
+      <div class="items-head">
+        <div class="title2">Items</div>
+        <button type="button" class="action-btn btn-primary" (click)="addItem.emit()">+ Add item</button>
+      </div>
+
+      <div class="items" formArrayName="items">
+        <div class="item-card" *ngFor="let _ of itemsArray.controls; let i = index" [formGroupName]="i">
+          <div class="item-grid">
+            <div class="field">
+              <label>Vehicle</label>
+              <select formControlName="vehicleType">
+                <option [ngValue]="null">Select type</option>
+                <option *ngFor="let t of vehicleTypes" [ngValue]="t.value">{{ t.label }}</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Count</label>
+              <div class="count">
+                <button type="button" class="count-btn" (click)="decrement.emit(i)">−</button>
+                <input class="mono" type="number" min="1" formControlName="vehicleCount" />
+                <button type="button" class="count-btn" (click)="increment.emit(i)">+</button>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="inline">
+                <input type="checkbox" formControlName="useOrderPrice" />
+                Use order price
+              </label>
+              <input type="number" step="0.01" formControlName="orderPrice" placeholder="Order price" />
+            </div>
+
+            <div class="field">
+              <label class="inline">
+                <input type="checkbox" formControlName="useGuarantee" />
+                Use guarantee
+              </label>
+              <input type="number" formControlName="guaranteeMinOrders" placeholder="Min orders" />
+            </div>
+
+            <div class="field">
+              <label class="inline">
+                <input type="checkbox" formControlName="useFixedAmount" />
+                Use fixed
+              </label>
+              <input type="number" formControlName="fixedAmount" placeholder="Fixed amount" />
+            </div>
+
+            <div class="field">
+              <label class="inline">
+                <input type="checkbox" formControlName="useAllowanceAmount" />
+                Use allowance
+              </label>
+              <input type="number" formControlName="allowanceAmount" placeholder="Allowance amount" />
+            </div>
+
+            <div class="field">
+              <label class="inline">
+                <input type="checkbox" formControlName="useTotalAmount" />
+                Use total
+              </label>
+              <input type="number" formControlName="totalAmount" placeholder="Total amount" />
+            </div>
+
+            <div class="field actions">
+              <label>&nbsp;</label>
+              <button type="button" class="action-btn btn-danger" [disabled]="itemsArray.length === 1" (click)="removeItem.emit(i)">
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-actions">
+        <button type="button" class="action-btn btn-light" (click)="close.emit()" [disabled]="loading">Cancel</button>
+        <button type="submit" class="action-btn btn-primary" [disabled]="loading">
+          {{ loading ? 'Saving...' : (isEditMode ? 'Update' : 'Create') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

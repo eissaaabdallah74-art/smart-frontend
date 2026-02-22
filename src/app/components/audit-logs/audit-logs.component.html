@@ -1,0 +1,64 @@
+<!-- src/app/components/audit-logs/audit-logs.component.html -->
+<div class="modal-backdrop" (click)="onBackdropClick($event)">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Audit logs">
+    <div class="modal-header">
+      <div class="modal-title">
+        <h2>{{ title }}</h2>
+        <div class="modal-subtitle">{{ entity }} #{{ entityId }}</div>
+      </div>
+
+      <button type="button" class="icon-btn" (click)="close.emit()" aria-label="Close">
+        <i class="ri-close-line" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="state state--loading" *ngIf="loading()">
+        <div class="spinner" aria-hidden="true"></div>
+        <div>Loading logs...</div>
+      </div>
+
+      <div class="state state--error" *ngIf="!loading() && error()">
+        <div class="state-title">Something went wrong</div>
+        <div class="state-msg">{{ error() }}</div>
+      </div>
+
+      <div class="state state--empty" *ngIf="!loading() && !error() && !hasItems()">
+        No logs yet.
+      </div>
+
+      <div class="logs" *ngIf="!loading() && !error() && hasItems()">
+        <article class="log" *ngFor="let it of items()">
+          <header class="log-head">
+            <div class="log-left">
+              <span [class]="actionBadgeClass(it.action)">
+                {{ prettyAction(it.action) }}
+              </span>
+              <span class="actor">{{ actorDisplay(it) }}</span>
+            </div>
+
+            <div class="log-right">
+              <span class="muted">{{ formatDate(it.createdAt) }}</span>
+            </div>
+          </header>
+
+          <!-- ✅ Minimal changes: Field + After only -->
+          <div class="changes" *ngIf="hasVisibleChanges(it); else noChanges">
+            <div class="change-row" *ngFor="let c of visibleChanges(it)">
+              <div class="change-field">{{ fieldLabel(it.entity, c.field) }}</div>
+              <div class="change-value">{{ valuePreview(c.after, c.field) }}</div>
+            </div>
+          </div>
+
+          <ng-template #noChanges>
+            <div class="changes-empty">No changed fields captured.</div>
+          </ng-template>
+        </article>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn--secondary" (click)="close.emit()">Close</button>
+    </div>
+  </div>
+</div>

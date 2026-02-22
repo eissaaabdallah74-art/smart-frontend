@@ -35,10 +35,120 @@
         </button>
       </div>
 
-      <button type="button" class="btn ghost" (click)="refresh()">
-        <i class="ri-refresh-line" aria-hidden="true"></i>
-        Refresh
-      </button>
+      <div class="toolbar-actions">
+        <!-- Export -->
+        <export-button
+          class="export-btn"
+          [data]="exportData()"
+          filename="drivers_master_export.xlsx"
+        ></export-button>
+
+        <button type="button" class="btn ghost" (click)="refresh()">
+          <i class="ri-refresh-line" aria-hidden="true"></i>
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters" *ngIf="!loading() && !loadError()">
+      <div class="filters-row">
+        <div class="filter">
+          <label class="filter-label">Hiring Status</label>
+          <select
+            class="filter-control"
+            [value]="filterHiringStatus()"
+            (change)="filterHiringStatus.set(($any($event.target).value || '').toString())"
+          >
+            <option value="">All</option>
+            <option *ngFor="let s of hiringStatusOptions()" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+
+        <div class="filter">
+          <label class="filter-label">Hub</label>
+          <select
+            class="filter-control"
+            [value]="filterHub()"
+            (change)="filterHub.set(($any($event.target).value || '').toString())"
+          >
+            <option value="">All</option>
+            <option *ngFor="let h of hubOptions()" [value]="h">{{ h }}</option>
+          </select>
+        </div>
+
+        <div class="filter">
+          <label class="filter-label">Area</label>
+          <select
+            class="filter-control"
+            [value]="filterArea()"
+            (change)="filterArea.set(($any($event.target).value || '').toString())"
+          >
+            <option value="">All</option>
+            <option *ngFor="let a of areaOptions()" [value]="a">{{ a }}</option>
+          </select>
+        </div>
+
+        <div class="filter">
+          <label class="filter-label">Vehicle</label>
+          <select
+            class="filter-control"
+            [value]="filterVehicleType()"
+            (change)="filterVehicleType.set(($any($event.target).value || '').toString())"
+          >
+            <option value="">All</option>
+            <option *ngFor="let v of vehicleOptions()" [value]="v">{{ v }}</option>
+          </select>
+        </div>
+
+        <div class="filter">
+          <label class="filter-label">Contract Status</label>
+          <select
+            class="filter-control"
+            [value]="filterContractStatus()"
+            (change)="filterContractStatus.set(($any($event.target).value || '').toString())"
+          >
+            <option value="">All</option>
+            <option *ngFor="let c of contractStatusOptions()" [value]="c">{{ c }}</option>
+          </select>
+        </div>
+
+        <div class="filter">
+          <label class="filter-label">Signed</label>
+          <select
+            class="filter-control"
+            [value]="filterSigned()"
+            (change)="setSignedFilter(($any($event.target).value || '').toString())"
+          >
+            <option value="">All</option>
+            <option value="true">Signed</option>
+            <option value="false">Not signed</option>
+          </select>
+        </div>
+
+        <button
+          type="button"
+          class="btn subtle"
+          [disabled]="!hasActiveFilters()"
+          (click)="clearFilters()"
+          title="Clear filters"
+        >
+          <i class="ri-filter-off-line" aria-hidden="true"></i>
+          Clear
+        </button>
+      </div>
+
+      <div class="filters-meta">
+        <span class="meta">
+          Showing <strong>{{ viewDrivers().length }}</strong> of
+          <strong>{{ filteredByClient().length }}</strong>
+        </span>
+
+        <span class="meta" *ngIf="hasActiveFilters()">
+          <i class="ri-filter-3-line" aria-hidden="true"></i>
+          Filters applied
+        </span>
+      </div>
     </div>
 
     <div class="summary" *ngIf="!loading()">
@@ -63,8 +173,10 @@
   </div>
 
   <div *ngIf="!loading() && loadError()" class="alert alert--error">
-    <div class="alert-title">Error</div>
-    <div class="alert-text">{{ loadError() }}</div>
+    <div>
+      <div class="alert-title">Error</div>
+      <div class="alert-text">{{ loadError() }}</div>
+    </div>
     <button type="button" class="btn danger" (click)="refresh()">Try again</button>
   </div>
 
@@ -118,7 +230,7 @@
               </th>
 
               <th class="hide-sm sortable" (click)="setSort('day1Date')">
-                Day 1
+                Day 1 Date
                 <span class="sort-ind" *ngIf="sortKey() === 'day1Date'">
                   {{ sortDir() === 'asc' ? '▲' : '▼' }}
                 </span>
@@ -130,6 +242,9 @@
                   {{ sortDir() === 'asc' ? '▲' : '▼' }}
                 </span>
               </th>
+
+              <!-- Actions -->
+              <th class="th-actions">Actions</th>
             </tr>
           </thead>
 
@@ -153,17 +268,36 @@
               <td class="hide-sm">{{ vehicleLabel($any(d).vehicleType) }}</td>
 
               <td class="hide-sm">
-                {{
-                  $any(d).day1Date
-                    ? ($any(d).day1Date | date: 'yyyy-MM-dd')
-                    : '—'
-                }}
+                {{ $any(d).day1Date ? ($any(d).day1Date | date: 'yyyy-MM-dd') : '—' }}
               </td>
 
               <td>
                 <span [class]="statusPillClass($any(d).hiringStatus)">
                   {{ safeText($any(d).hiringStatus) }}
                 </span>
+              </td>
+
+              <!-- Actions -->
+              <td class="td-actions">
+                <button
+                  type="button"
+                  class="action-icon"
+                  title="Details"
+                  aria-label="Details"
+                  (click)="openDetails($any(d).id)"
+                >
+                  <i class="ri-eye-line" aria-hidden="true"></i>
+                </button>
+
+                <button
+                  type="button"
+                  class="action-icon"
+                  title="Update"
+                  aria-label="Update"
+                  (click)="openUpdate($any(d).id)"
+                >
+                  <i class="ri-pencil-line" aria-hidden="true"></i>
+                </button>
               </td>
             </tr>
           </tbody>
@@ -212,15 +346,22 @@
             </div>
 
             <div class="kv">
-              <div class="k">Day 1</div>
+              <div class="k">Day 1 Date</div>
               <div class="v">
-                {{
-                  $any(d).day1Date
-                    ? ($any(d).day1Date | date: 'yyyy-MM-dd')
-                    : '—'
-                }}
+                {{ $any(d).day1Date ? ($any(d).day1Date | date: 'yyyy-MM-dd') : '—' }}
               </div>
             </div>
+          </div>
+
+          <div class="card-actions">
+            <button type="button" class="btn subtle" (click)="openDetails($any(d).id)">
+              <i class="ri-eye-line" aria-hidden="true"></i>
+              Details
+            </button>
+            <button type="button" class="btn subtle" (click)="openUpdate($any(d).id)">
+              <i class="ri-pencil-line" aria-hidden="true"></i>
+              Update
+            </button>
           </div>
         </article>
       </div>
@@ -229,10 +370,41 @@
     <ng-template #emptyState>
       <div class="empty">
         <div class="empty-title">No drivers linked yet</div>
-        <div class="empty-text">
-          No drivers matched this client (by clientId/clientName).
-        </div>
+        <div class="empty-text">No drivers matched this client (by clientId/clientName).</div>
       </div>
     </ng-template>
   </ng-container>
+
+  <!-- Side Panel (Details / Update) -->
+  <div class="panel-backdrop" *ngIf="panelOpen()" (click)="closePanel()">
+    <div class="panel" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <div class="panel-head">
+        <div class="panel-title">
+          <span class="panel-kicker">DRIVER</span>
+          <h3 class="panel-h3">
+            {{ panelMode() === 'details' ? 'Details' : 'Update' }}
+          </h3>
+        </div>
+
+        <button type="button" class="panel-close" (click)="closePanel()" aria-label="Close">
+          <i class="ri-close-line" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="panel-body">
+        <app-details-driver-master
+          *ngIf="panelMode() === 'details'"
+          [driverId]="selectedDriverId()"
+          (requestEdit)="openUpdate(selectedDriverId())"
+        ></app-details-driver-master>
+
+        <app-update-driver-master
+          *ngIf="panelMode() === 'update'"
+          [driverId]="selectedDriverId()"
+          (saved)="onDriverSaved($event)"
+          (cancel)="openDetails(selectedDriverId())"
+        ></app-update-driver-master>
+      </div>
+    </div>
+  </div>
 </section>

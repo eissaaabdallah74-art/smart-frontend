@@ -1,0 +1,112 @@
+<header class="header">
+  <div class="header-main">
+    <p class="badge-label">LOGISTICS • PENDING REQUESTS</p>
+
+    <h1 class="title">Pending Requests</h1>
+
+    <p class="subtitle">
+      Excel import validates Client/Hub/Zone against DB before sending to backend.
+    </p>
+  </div>
+
+  <div class="header-actions">
+    <button
+      type="button"
+      class="btn ghost"
+      (click)="downloadTemplate.emit()"
+      [disabled]="loading"
+      title="Download Excel template"
+    >
+      <i class="ri-file-excel-2-line" aria-hidden="true"></i>
+      <span>Excel Template</span>
+    </button>
+
+    <button
+      type="button"
+      class="btn ghost"
+      (click)="exportExcel.emit()"
+      [disabled]="loading"
+      title="Export current list to Excel"
+    >
+      <i class="ri-download-2-line" aria-hidden="true"></i>
+      <span>Export Excel</span>
+    </button>
+
+    <input
+      #importFile
+      type="file"
+      accept=".xlsx,.xls"
+      hidden
+      (change)="onFileChanged($event)"
+    />
+
+    <button
+      type="button"
+      class="btn ghost"
+      (click)="onPickFile(importFile)"
+      [disabled]="loading"
+      title="Import Excel file"
+    >
+      <i class="ri-upload-2-line" aria-hidden="true"></i>
+      <span>Import Excel</span>
+    </button>
+
+    <button
+      type="button"
+      class="btn primary"
+      (click)="createNew.emit()"
+      [disabled]="loading"
+      title="Create new request"
+    >
+      <i class="ri-add-line" aria-hidden="true"></i>
+      <span>New Request</span>
+    </button>
+  </div>
+</header>
+
+<!-- Top Tabs: List / Summary -->
+<div class="tabs">
+  <button
+    type="button"
+    class="tab-btn"
+    [class.active]="activeTab === 'list'"
+    (click)="setTab('list')"
+    [disabled]="loading"
+  >
+    Pending Requests
+  </button>
+
+  <button
+    type="button"
+    class="tab-btn"
+    [class.active]="activeTab === 'summary'"
+    (click)="setTab('summary')"
+    [disabled]="loading"
+  >
+    Summary
+  </button>
+
+  <div class="tabs-meta">
+    <span class="muted small">Total: {{ totalRows }}</span>
+
+    <span class="muted small" *ngIf="summaryLastUpdatedAt">
+      Last update: <span class="mono badge">{{ lastUpdateLabel }}</span>
+    </span>
+  </div>
+</div>
+
+<!-- Client Tabs -->
+<div class="client-tabs" *ngIf="clientTabs?.length">
+  <button
+    type="button"
+    class="client-tab"
+    *ngFor="let t of clientTabs"
+    [class.active]="selectedClientId === t.id"
+    (click)="setClientTab(t.id)"
+    [disabled]="loading"
+    [title]="t.label"
+  >
+    <span class="label">{{ t.label }}</span>
+    <span class="count">{{ t.count ?? 0 }}</span>
+  </button>
+</div>

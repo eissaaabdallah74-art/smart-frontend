@@ -1,0 +1,140 @@
+<!-- src/app/pages/hr pages/hr-attendance-requests/hr-attendance-requests.component.html -->
+<div class="page">
+  <div class="header">
+    <div class="title">HR - Attendance Requests</div>
+
+    <form class="filters" [formGroup]="filterForm" (ngSubmit)="load()">
+      <label class="field">
+        <span>Month</span>
+        <input type="month" formControlName="month" />
+      </label>
+
+      <label class="field">
+        <span>Status</span>
+        <select formControlName="status">
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Employee ID (optional)</span>
+        <input type="number" formControlName="employeeId" placeholder="e.g. 12" />
+      </label>
+
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" [disabled]="loading">Apply</button>
+        <button class="btn btn-ghost" type="button" (click)="load()" [disabled]="loading">Refresh</button>
+      </div>
+    </form>
+  </div>
+
+  <div *ngIf="errorMsg" class="alert alert-error">{{ errorMsg }}</div>
+  <div *ngIf="successMsg" class="alert alert-ok">{{ successMsg }}</div>
+
+  <div class="card">
+    <div *ngIf="loading" class="muted">Loading...</div>
+
+    <div class="table-wrap" *ngIf="!loading">
+      <table class="table" *ngIf="rows.length; else empty">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Employee</th>
+            <th>Type</th>
+            <th>Note</th>
+            <th>Status</th>
+            <th>Decision</th>
+            <th class="right">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let r of rows; trackBy: trackById">
+            <td data-label="Date">{{ r.date }}</td>
+            <td data-label="Employee">{{ displayEmployee(r) }}</td>
+            <td data-label="Type">{{ displayType(r) }}</td>
+            <td data-label="Note" class="muted">{{ r.note || '-' }}</td>
+
+            <td data-label="Status">
+              <span [class]="badgeClass(r.status)">{{ r.status }}</span>
+            </td>
+
+            <td data-label="Decision" class="muted">
+              <div *ngIf="r.decidedAt; else noDecision">
+                {{ r.decidedAt | date: 'yyyy-MM-dd HH:mm' }}<br />
+                <span class="muted">{{ r.decisionNote || '' }}</span>
+              </div>
+              <ng-template #noDecision>-</ng-template>
+            </td>
+
+            <td data-label="Actions" class="right actions-cell">
+              <button
+                class="btn btn-ok"
+                type="button"
+                (click)="openDecision(r, 'approve')"
+                [disabled]="!canDecide(r)"
+              >
+                Approve
+              </button>
+
+              <button
+                class="btn btn-danger"
+                type="button"
+                (click)="openDecision(r, 'reject')"
+                [disabled]="!canDecide(r)"
+              >
+                Reject
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <ng-template #empty>
+        <div class="empty">No requests found.</div>
+      </ng-template>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="backdrop" *ngIf="modalOpen" (click)="closeModal()"></div>
+
+  <div class="modal" *ngIf="modalOpen" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-title">
+        {{ modalMode === 'approve' ? 'Approve Request' : 'Reject Request' }}
+      </div>
+      <button class="icon-btn" type="button" (click)="closeModal()">✕</button>
+    </div>
+
+    <form class="modal-body" *ngIf="modalRow" [formGroup]="decisionForm" (ngSubmit)="decide()">
+      <div class="kv">
+        <div><span>Date:</span> {{ modalRow.date }}</div>
+        <div><span>Employee:</span> {{ displayEmployee(modalRow) }}</div>
+        <div><span>Type:</span> {{ displayType(modalRow) }}</div>
+      </div>
+
+      <label class="field">
+        <span>Decision Note (optional)</span>
+        <input type="text" formControlName="decisionNote" placeholder="Why?" />
+      </label>
+
+      <div class="modal-actions">
+        <button class="btn btn-ghost" type="button" (click)="closeModal()" [disabled]="deciding">Cancel</button>
+
+        <button
+          class="btn"
+          [class.btn-ok]="modalMode === 'approve'"
+          [class.btn-danger]="modalMode === 'reject'"
+          type="submit"
+          [disabled]="deciding"
+        >
+          {{ deciding ? 'Saving...' : (modalMode === 'approve' ? 'Approve' : 'Reject') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

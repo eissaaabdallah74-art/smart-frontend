@@ -1,15 +1,23 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+
 import {
   Employee,
   MaritalStatus,
   Religion,
 } from '../../../../../services/employs/employs-service.service';
 
+import { StatusMsgComponent, StatusType } from '../../../../../components/status-msg/status-msg.component';
+
+export interface StatusState {
+  type: StatusType;
+  message: string;
+}
+
 export interface EmployeeFormEmployment {
   isWorking: boolean;
-  department: Department | null; // ✅ typed
+  department: Department | null;
   jobTitle: string | null;
   corporateEmail: string | null;
   hireDate: string | null;
@@ -21,7 +29,6 @@ export interface EmployeeFormEmployment {
   annualLeaveUsed: number;
   annualLeaveRemaining: number;
 
-  // Optional...
   nationalIdExpiryDate?: string | null;
   companyNumber?: string | null;
   personalPhone?: string | null;
@@ -29,10 +36,7 @@ export interface EmployeeFormEmployment {
   sheetLastUpdateAt?: string | null;
 }
 
-
-
 export type Department = 'crm' | 'operation' | 'hr' | 'finance' | 'supply_chain';
-
 
 const DEPARTMENT_OPTIONS: Array<{ key: Department; label: string }> = [
   { key: 'crm', label: 'CRM' },
@@ -59,12 +63,11 @@ export interface EmployeeFormValue {
 function createEmptyEmployment(): EmployeeFormEmployment {
   return {
     isWorking: true,
-    department: null, // ✅ dropdown starts empty
+    department: null,
     jobTitle: null,
     corporateEmail: null,
     hireDate: null,
     terminationDate: null,
-
     companyCode: null,
     adminNotes: null,
 
@@ -80,7 +83,6 @@ function createEmptyEmployment(): EmployeeFormEmployment {
   };
 }
 
-
 function createEmptyForm(): EmployeeFormValue {
   return {
     fullName: '',
@@ -88,7 +90,7 @@ function createEmptyForm(): EmployeeFormValue {
     birthDate: null,
     maritalStatus: 'unknown',
     religion: 'unknown',
-      nationality: 'Egyptian',
+    nationality: 'Egyptian',
     birthPlace: null,
     fullAddress: null,
     employment: createEmptyEmployment(),
@@ -100,18 +102,24 @@ function createEmptyForm(): EmployeeFormValue {
   selector: 'app-employee-form-modal',
   templateUrl: './employee-form-modal.component.html',
   styleUrls: ['./employee-form-modal.component.scss'],
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, StatusMsgComponent],
 })
 export class EmployeeFormModalComponent implements OnInit, OnChanges {
   @Input() employeeToEdit: Employee | null = null;
 
+  /** ✅ Status from parent (create/update errors) */
+  @Input() status: StatusState | null = null;
+
   @Output() close = new EventEmitter<void>();
   @Output() submit = new EventEmitter<EmployeeFormValue>();
 
-  form: EmployeeFormValue = createEmptyForm();
+  /** ✅ Let parent clear status */
+  @Output() clearStatus = new EventEmitter<void>();
 
+  form: EmployeeFormValue = createEmptyForm();
   departmentOptions = DEPARTMENT_OPTIONS;
 
+  submitted = false;
 
   ngOnInit(): void {
     this.resetFormFromInput();
@@ -120,6 +128,7 @@ export class EmployeeFormModalComponent implements OnInit, OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['employeeToEdit']) {
       this.resetFormFromInput();
+      this.submitted = false;
     }
   }
 
@@ -137,7 +146,6 @@ export class EmployeeFormModalComponent implements OnInit, OnChanges {
 
   private mapEmployeeToForm(e: Employee): EmployeeFormValue {
     const emp = (e as any).employment || {};
-    
 
     const balance = this.toNumber(emp.annualLeaveBalance, 21);
     const used = this.toNumber(emp.annualLeaveUsed, 0);
@@ -159,14 +167,12 @@ export class EmployeeFormModalComponent implements OnInit, OnChanges {
 
       employment: {
         ...createEmptyEmployment(),
-
         isWorking: emp.isWorking ?? true,
-department: (emp.department as Department) ?? null,
+        department: (emp.department as Department) ?? null,
         jobTitle: emp.jobTitle ?? null,
         corporateEmail: emp.corporateEmail ?? null,
         hireDate: emp.hireDate ?? null,
         terminationDate: emp.terminationDate ?? null,
-
         companyCode: emp.companyCode ?? null,
         adminNotes: emp.adminNotes ?? null,
 
@@ -191,7 +197,6 @@ department: (emp.department as Department) ?? null,
   }
 
   recalcAnnualLeave(): void {
-    // Ensure employment exists
     if (!this.form.employment) {
       this.form.employment = createEmptyEmployment();
     }
@@ -204,9 +209,8 @@ department: (emp.department as Department) ?? null,
     this.form.employment.annualLeaveRemaining = Math.max(bal - used, 0);
   }
 
-  // ===== UI Change handlers (بتحل مشاكل parsing + بتحول types) =====
+  // ===== UI Change handlers =====
   onWorkingChange(v: any): void {
-    // v بييجي boolean لو [ngValue] مستخدم، لكن نأمنه
     this.form.employment.isWorking = v === true || v === 'true';
   }
 
@@ -222,18 +226,20 @@ department: (emp.department as Department) ?? null,
 
   // ===== Submit =====
   onSubmit(): void {
+    this.submitted = true;
+
     const fullName = (this.form.fullName || '').trim();
     const nationalId = (this.form.nationalId || '').trim();
 
+    // لو في status قديم من السيرفر، نخليه يتقفل لما يبدأ تصحيح errors
+    if (this.status) this.clearStatus.emit();
+
     if (!fullName || !nationalId) {
-      alert('fullName and nationalId are required.');
-      return;
+      return; // field errors already shown
     }
 
-    // guarantee non-null remaining
     this.recalcAnnualLeave();
 
-    // Emit clean payload
     this.submit.emit({
       ...this.form,
       fullName,

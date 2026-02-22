@@ -2,24 +2,27 @@
 
 /* ثوابت الواجهة */
 :host {
-  --header-h: 72px;     /* ارتفاع الهيدر */
-  --sidebar-w: 256px;   /* عرض الشريط الجانبي */
-  --bg: #f5f7fb;        /* خلفية المحتوى */
-  --ink: #112535;       /* لون النص */
+  --header-h: 72px;
+  --sidebar-w: 256px;
+  --bg: #f5f7fb;
+  --ink: #112535;
   --border: #e5e7eb;
   display: block;
 }
 
-/* الحاوية الرئيسية: Sidebar + Main column */
+/* ✅ الحاوية الرئيسية تتمدد حسب أطول عمود */
 .app-shell {
   display: flex;
-  align-items: stretch;
+  align-items: stretch;  /* مهم: يخلي السايدبار يتمدد لطول المحتوى */
+  min-height: 100dvh;    /* أقل حاجة طول الشاشة */
   background: var(--bg);
 }
 
 /* عنصر <app-sidebar> */
 .sidenav {
   flex: 0 0 var(--sidebar-w);
+  align-self: stretch; /* مهم */
+  height: auto;        /* ما نربطوش بطول ثابت */
 }
 
 /* عمود الهيدر + المحتوى */
@@ -50,11 +53,11 @@
 /* ====== موبايل: إخفاء السايدبار ====== */
 @media (max-width: 768px) {
   .sidenav {
-    display: none; /* اختفاء تام للسايدبار على الموبايل */
+    display: none;
   }
 
   .content {
-    padding: 16px; /* padding مناسب للموبايل */
+    padding: 16px;
   }
 }
 
@@ -72,5 +75,5 @@ body {
 
 /* لون خلفية الجسم الأساسي (البراند) */
 body {
-  background: #FFF7ED; // brand-light
+  background: #fff7ed; // brand-light
 }

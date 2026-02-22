@@ -1,123 +1,139 @@
-// src/app/services/employs-loans-service/employs-loans-service.service.ts
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { AuthService } from '../auth/auth-service.service';
+import { Observable } from 'rxjs';
 
-export type LoanStatus = 'pending' | 'approved' | 'rejected';
+export type LoanStatus = 'pending' | 'approved' | 'rejected' | 'closed' | 'cancelled';
+export type LoanPolicyType = 'annual_75_once' | 'triple_30_three';
 
-export interface LoanApiUser {
-  id: number;
-  fullName: string;
-  email: string;
-  role: string;
-  position?: string | null;
-  isActive: boolean;
+export interface EmployeeLoanPolicyDto {
+  employeeId: number;
+  policyType: LoanPolicyType;
+  notes?: string | null;
 }
 
-export interface LoanApiRow {
+export interface EmployeeLoanEligibilityDto {
+  year: number;
+
+  // legacy
+  policyType: LoanPolicyType | null;
+  hasActiveLoan: boolean;
+
+  annual75Used: boolean;
+  triple30UsedCount: number;
+
+  maxPercent: number;
+  maxTimesPerYear: number;
+  allowedInstallments: number[];
+
+  grossSalary?: number | null;
+  maxAmountAllowed?: number | string | null;
+
+  message?: string | null;
+
+  // ✅ new
+  perPolicy?: Partial<
+    Record<
+      LoanPolicyType,
+      {
+        policyType: LoanPolicyType;
+        maxPercent: number;
+        maxTimesPerYear: number;
+        allowedInstallments: number[];
+        maxAmountAllowed?: number | string | null;
+
+        used?: number;
+        usedText?: string;
+
+        annual75Used?: boolean;
+        triple30UsedCount?: number;
+      }
+    >
+  >;
+}
+
+export interface EmployeeLoanDto {
   id: number;
-  requesterId: number;
-  amount: string | number;
+  employeeId: number;
+
+  policyType?: LoanPolicyType;
+
+  amount: number;
   note?: string | null;
+
   status: LoanStatus;
-
   managerNote?: string | null;
-  decidedAt?: string | null;
-  decidedById?: number | null;
 
-  // timestamps (حسب Sequelize underscored)
-  created_at?: string;
-  updated_at?: string;
+  installmentsCount: number;
+  startMonth?: string | null;
 
-  // sometimes may appear camelCase depending on your sequelize config
+  approvedAt?: string | null;
+  approvedById?: number | null;
+
   createdAt?: string;
   updatedAt?: string;
 
-  requester?: LoanApiUser;
-  decidedBy?: LoanApiUser | null;
+  employee?: { id: number; fullName: string; nationalId?: string };
 }
 
-@Injectable({
-  providedIn: 'root',
-})
-export class EmploysLoansServiceService {
+export interface EmployeeLoanListResponseDto {
+  total: number;
+  data: EmployeeLoanDto[];
+}
+
+@Injectable({ providedIn: 'root' })
+export class EmployeeLoansService {
   private http = inject(HttpClient);
-  private auth = inject(AuthService);
+  private baseUrl = `${environment.apiUrl}/employee-loans`;
 
-  private readonly baseUrl = `${environment.apiUrl}/operations/loans`;
-
-  private headers(): HttpHeaders {
-    return new HttpHeaders(this.auth.getAuthorizationHeader());
+  // ===== Employee side =====
+  getMySummary(year?: number): Observable<EmployeeLoanEligibilityDto> {
+    let params = new HttpParams();
+    if (year) params = params.set('year', String(year));
+    return this.http.get<EmployeeLoanEligibilityDto>(`${this.baseUrl}/me/summary`, { params });
   }
 
-  async createLoan(amount: number, note?: string): Promise<LoanApiRow> {
-    const res = await firstValueFrom(
-      this.http.post<LoanApiRow>(
-        `${this.baseUrl}`,
-        { amount, note: note || undefined },
-        { headers: this.headers() }
-      )
-    );
-    return res;
+  getMyLoans(params?: { month?: string; status?: LoanStatus; q?: string }): Observable<EmployeeLoanDto[]> {
+    let p = new HttpParams();
+    if (params?.month) p = p.set('month', params.month);
+    if (params?.status) p = p.set('status', params.status);
+    if (params?.q) p = p.set('q', params.q);
+    return this.http.get<EmployeeLoanDto[]>(`${this.baseUrl}/me`, { params: p });
   }
 
-  async getMyLoans(): Promise<LoanApiRow[]> {
-    const res = await firstValueFrom(
-      this.http.get<LoanApiRow[]>(`${this.baseUrl}/my`, {
-        headers: this.headers(),
-      })
-    );
-    return res;
+  createLoan(body: {
+    amount: number;
+    policyType: LoanPolicyType;
+    installmentsCount: 1 | 2 | 3;
+    note?: string;
+  }): Observable<EmployeeLoanDto> {
+    return this.http.post<EmployeeLoanDto>(`${this.baseUrl}`, body);
   }
 
-  async getLoans(params?: {
+  // ===== Admin/HR side =====
+  listLoans(params?: {
     status?: LoanStatus;
-    requesterId?: number;
+    month?: string;
+    employeeId?: number;
     q?: string;
-  }): Promise<LoanApiRow[]> {
-    const qp = new URLSearchParams();
-    if (params?.status) qp.set('status', params.status);
-    if (params?.requesterId) qp.set('requesterId', String(params.requesterId));
-    if (params?.q) qp.set('q', params.q);
-
-    const url = qp.toString() ? `${this.baseUrl}?${qp.toString()}` : this.baseUrl;
-
-    const res = await firstValueFrom(
-      this.http.get<LoanApiRow[]>(url, { headers: this.headers() })
-    );
-    return res;
+    limit?: number;
+    offset?: number;
+  }): Observable<EmployeeLoanListResponseDto> {
+    let p = new HttpParams();
+    if (params?.status) p = p.set('status', params.status);
+    if (params?.month) p = p.set('month', params.month);
+    if (params?.employeeId) p = p.set('employeeId', String(params.employeeId));
+    if (params?.q) p = p.set('q', params.q);
+    if (typeof params?.limit !== 'undefined') p = p.set('limit', String(params.limit));
+    if (typeof params?.offset !== 'undefined') p = p.set('offset', String(params.offset));
+    return this.http.get<EmployeeLoanListResponseDto>(`${this.baseUrl}`, { params: p });
   }
 
-  async getPendingLoans(): Promise<LoanApiRow[]> {
-    const res = await firstValueFrom(
-      this.http.get<LoanApiRow[]>(`${this.baseUrl}/pending`, {
-        headers: this.headers(),
-      })
-    );
-    return res;
+  approveLoan(id: number, body: { managerNote?: string; startMonth?: string }): Observable<EmployeeLoanDto> {
+    return this.http.patch<EmployeeLoanDto>(`${this.baseUrl}/${id}/approve`, body);
   }
 
-  async approve(id: number, managerNote?: string): Promise<LoanApiRow> {
-    const res = await firstValueFrom(
-      this.http.patch<LoanApiRow>(
-        `${this.baseUrl}/${id}/approve`,
-        { managerNote: managerNote || undefined },
-        { headers: this.headers() }
-      )
-    );
-    return res;
-  }
-
-  async reject(id: number, managerNote?: string): Promise<LoanApiRow> {
-    const res = await firstValueFrom(
-      this.http.patch<LoanApiRow>(
-        `${this.baseUrl}/${id}/reject`,
-        { managerNote: managerNote || undefined },
-        { headers: this.headers() }
-      )
-    );
-    return res;
+  rejectLoan(id: number, body: { managerNote?: string }): Observable<EmployeeLoanDto> {
+    return this.http.patch<EmployeeLoanDto>(`${this.baseUrl}/${id}/reject`, body);
   }
 }

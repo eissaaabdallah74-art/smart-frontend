@@ -1,0 +1,354 @@
+<section class="docs-page">
+  <div class="docs-card">
+    <!-- Status Message -->
+    <app-status-msg
+      *ngIf="statusMsg"
+      [type]="statusMsg.type"
+      [message]="statusMsg.message"
+      (close)="clearStatus()"
+    ></app-status-msg>
+
+    <!-- Header -->
+    <div class="docs-header">
+      <div class="docs-header-main">
+        <h1 class="docs-title">
+          Company Documents
+          <span class="docs-count">({{ paginationStats().totalItems }})</span>
+        </h1>
+        <p class="docs-subtitle">
+          Track company documents, validity, reminders, and statuses in one place.
+        </p>
+      </div>
+
+      <div class="docs-header-actions">
+        <export-button
+          class="export-btn"
+          [data]="filtered()"
+          filename="company_documents_export.xlsx"
+        ></export-button>
+
+  
+
+        <button
+          *ngIf="isAdmin"
+          type="button"
+          class="btn btn--primary"
+          (click)="openAddModal()"
+        >
+          <i class="ri-file-add-line" aria-hidden="true"></i>
+          <span>Add Document</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="docs-search">
+      <label for="docSearch" class="field-label">Search Documents</label>
+      <input
+        id="docSearch"
+        type="text"
+        class="field-input"
+        placeholder="Search by doc #, company, type, location..."
+        [ngModel]="q()"
+        (ngModelChange)="q.set($event); applyFilters()"
+      />
+    </div>
+
+    <!-- Filters -->
+    <div class="docs-filters">
+      <div class="filter-group">
+        <label for="statusFilter" class="field-label">Status</label>
+        <select
+          id="statusFilter"
+          class="field-input"
+          [ngModel]="filterStatus()"
+          (ngModelChange)="filterStatus.set($event); applyFilters()"
+        >
+          <option value="ALL">All</option>
+          <option value="ACTIVE">Active</option>
+          <option value="EXPIRING_SOON">Expiring Soon</option>
+          <option value="EXPIRED">Expired</option>
+          <option value="ONGOING">Ongoing</option>
+          <option value="NEW">New</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="typeFilter" class="field-label">Type</label>
+        <select
+          id="typeFilter"
+          class="field-input"
+          [ngModel]="typeIdFilter()"
+          (ngModelChange)="typeIdFilter.set($event); applyFilters()"
+        >
+          <option value="">All Types</option>
+          <option *ngFor="let t of types()" [value]="t.id">
+            {{ t.nameEn || t.name || t.code || ('Type #' + t.id) }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="companyFilter" class="field-label">Company</label>
+        <select
+          id="companyFilter"
+          class="field-input"
+          [ngModel]="companyIdFilter()"
+          (ngModelChange)="companyIdFilter.set($event); applyFilters()"
+        >
+          <option value="">All Companies</option>
+          <option *ngFor="let c of companies()" [value]="c.id">
+            {{ (c.code ? (c.code + ' — ') : '') + c.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group clear-filters">
+        <button type="button" class="btn btn--secondary" (click)="clearFilters()">
+          Clear Filters
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading/Error -->
+    <div class="alert alert--error" *ngIf="state() === 'error'">
+      {{ errorMsg() }}
+    </div>
+
+    <div class="card-skeleton" *ngIf="state() === 'loading'">
+      <div class="sk-row" *ngFor="let _ of [1,2,3,4,5,6,7]"></div>
+    </div>
+
+    <!-- Table Info & Page Size -->
+    <div class="table-controls" *ngIf="state() !== 'loading'">
+      <div class="table-info">
+        Showing {{ paginationStats().startItem }} to {{ paginationStats().endItem }}
+        of {{ paginationStats().totalItems }} documents
+      </div>
+
+      <div class="page-size-control">
+        <label for="pageSize" class="page-size-label">Show:</label>
+        <select
+          id="pageSize"
+          class="page-size-select"
+          [ngModel]="pageSize()"
+          (ngModelChange)="onPageSizeChange($event)"
+        >
+          <option *ngFor="let size of pageSizes()" [value]="size">
+            {{ size }}
+          </option>
+        </select>
+        <span class="page-size-text">per page</span>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper" *ngIf="state() !== 'loading'">
+      <table class="docs-table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Document #</th>
+            <th>Company</th>
+            <th>Expiry</th>
+            <th>Remaining</th>
+            <th>Status</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr
+            *ngFor="let r of paginatedRows(); trackBy: trackById"
+            class="row"
+            [class.row--inactive]="rowStatus(r) === 'EXPIRED'"
+          >
+            <td class="cell-primary" data-label="Type">
+              <div class="type-cell">
+                <div class="type-name">
+                  {{ r.type?.nameEn || r.type?.name || r.type?.code || '—' }}
+                </div>
+                <div class="type-code" *ngIf="r.type?.nameAr">{{ r.type?.nameAr }}</div>
+              </div>
+            </td>
+
+            <td class="cell-mono" data-label="Document #">
+              {{ r.documentNumber || '—' }}
+            </td>
+
+            <td data-label="Company">
+              <div class="company-cell">
+                <div class="company-code cell-mono">{{ r.company?.code || '—' }}</div>
+              </div>
+            </td>
+
+
+
+
+            <td class="cell-mono" data-label="Expiry">
+              {{ (r.computed?.computedExpiryDate || r.expiryDate) ? formatDate(r.computed?.computedExpiryDate || r.expiryDate) : '—' }}
+            </td>
+
+            <td data-label="Remaining">
+              <span class="remaining" *ngIf="r.computed?.remainingDays !== null && r.computed?.remainingDays !== undefined; else noRemaining">
+                {{ r.computed?.remainingDays }} day(s)
+              </span>
+              <ng-template #noRemaining>
+                <span class="muted">—</span>
+              </ng-template>
+            </td>
+
+            <td data-label="Status">
+              <span
+                class="status-badge"
+                [class.status-badge--active]="rowStatus(r) === 'ACTIVE'"
+                [class.status-badge--soon]="rowStatus(r) === 'EXPIRING_SOON'"
+                [class.status-badge--expired]="rowStatus(r) === 'EXPIRED'"
+                [class.status-badge--ongoing]="rowStatus(r) === 'ONGOING'"
+                [class.status-badge--new]="rowStatus(r) === 'NEW'"
+              >
+                <i class="status-icon" [class]="statusIcon(rowStatus(r))" aria-hidden="true"></i>
+                {{ statusLabel(rowStatus(r)) }}
+              </span>
+            </td>
+
+            <td class="cell-actions" data-label="Actions">
+              <div class="actions-group">
+<button
+  type="button"
+  class="icon-action icon-action--view"
+  (click)="goToDetails(r)"
+  title="View document"
+>
+  <i class="ri-eye-line" aria-hidden="true"></i>
+  <span class="sr-only">View</span>
+</button>
+
+
+                <button
+                  *ngIf="isAdmin"
+                  type="button"
+                  class="icon-action icon-action--edit"
+                  (click)="openEditModal(r)"
+                  title="Edit document"
+                >
+                  <i class="ri-edit-line" aria-hidden="true"></i>
+                  <span class="sr-only">Edit</span>
+                </button>
+
+                <button
+                  *ngIf="isAdmin"
+                  type="button"
+                  class="icon-action icon-action--delete"
+                  (click)="deleteRow(r)"
+                  title="Delete document"
+                >
+                  <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
+                  <span class="sr-only">Delete</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="filtered().length === 0">
+            <td class="empty-cell" [attr.colspan]="9">
+              <div class="empty-state">
+                <i class="ri-file-search-line empty-icon"></i>
+                <h3>No documents found</h3>
+                <p>No documents match your criteria. Try adjusting filters.</p>
+
+                <button *ngIf="isAdmin" class="btn btn--primary" (click)="openAddModal()">
+                  <i class="ri-file-add-line"></i>
+                  Add First Document
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="paginationStats().totalPages > 1 && state() !== 'loading'">
+      <div class="pagination-info">
+        Page {{ paginationStats().currentPage }} of {{ paginationStats().totalPages }}
+      </div>
+
+      <div class="pagination-controls">
+        <button
+          class="pagination-btn pagination-btn--prev"
+          [disabled]="!paginationStats().hasPrevious"
+          (click)="previousPage()"
+        >
+          <i class="ri-arrow-left-line"></i>
+          Previous
+        </button>
+
+        <div class="pagination-pages">
+          <button
+            class="pagination-page"
+            [class.pagination-page--active]="1 === paginationStats().currentPage"
+            (click)="goToPage(1)"
+          >
+            1
+          </button>
+
+          <span
+            class="pagination-ellipsis"
+            *ngIf="paginationStats().currentPage > 3 && paginationStats().totalPages > 5"
+          >
+            ...
+          </span>
+
+          <ng-container *ngFor="let page of numberPages()">
+            <button
+              *ngIf="page > 1 && page < paginationStats().totalPages"
+              class="pagination-page"
+              [class.pagination-page--active]="page === paginationStats().currentPage"
+              (click)="goToPage(page)"
+            >
+              {{ page }}
+            </button>
+          </ng-container>
+
+          <span
+            class="pagination-ellipsis"
+            *ngIf="paginationStats().currentPage < paginationStats().totalPages - 2 && paginationStats().totalPages > 5"
+          >
+            ...
+          </span>
+
+          <button
+            *ngIf="paginationStats().totalPages > 1"
+            class="pagination-page"
+            [class.pagination-page--active]="paginationStats().totalPages === paginationStats().currentPage"
+            (click)="goToPage(paginationStats().totalPages)"
+          >
+            {{ paginationStats().totalPages }}
+          </button>
+        </div>
+
+        <button
+          class="pagination-btn pagination-btn--next"
+          [disabled]="!paginationStats().hasNext"
+          (click)="nextPage()"
+        >
+          Next
+          <i class="ri-arrow-right-line"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <app-company-document-modal
+    [open]="isModalOpen()"
+    [mode]="modalMode()"
+    [companies]="companies()"
+    [types]="types()"
+    [value]="activeRow()"
+    [busy]="busy()"
+    (closed)="closeModal()"
+    (saved)="onModalSaved($event)"
+  ></app-company-document-modal>
+</section>

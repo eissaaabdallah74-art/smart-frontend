@@ -51,7 +51,7 @@ export class HrAttendanceComponent {
 
   readonly summary = signal<AttendanceMonthlySummaryResponseDto | null>(null);
 
-  readonly filteredRows = computed(() => {
+  readonly filteredRows = computed<AttendanceMonthlySummaryRowDto[]>(() => {
     const s = this.summary();
     if (!s) return [];
 
@@ -65,6 +65,73 @@ export class HrAttendanceComponent {
     });
   });
 
+  // ===== Pagination (مثل Users) =====
+  readonly currentPage = signal<number>(1);
+  readonly pageSize = signal<number>(10);
+  readonly pageSizes = signal<number[]>([5, 10, 20, 50]);
+
+  readonly paginatedRows = computed<AttendanceMonthlySummaryRowDto[]>(() => {
+    const startIndex = (this.currentPage() - 1) * this.pageSize();
+    const endIndex = startIndex + this.pageSize();
+    return this.filteredRows().slice(startIndex, endIndex);
+  });
+
+  readonly rowsPaginationStats = computed(() => {
+    const totalRows = this.filteredRows().length;
+    const size = Math.max(1, this.pageSize());
+    const totalPages = Math.max(1, Math.ceil(totalRows / size));
+
+    // clamp current page to avoid empty page after filter
+    const currentPage = Math.min(this.currentPage(), totalPages);
+    const startItem = totalRows === 0 ? 0 : (currentPage - 1) * size + 1;
+    const endItem = Math.min(currentPage * size, totalRows);
+
+    return {
+      totalRows,
+      totalPages,
+      currentPage,
+      startItem,
+      endItem,
+      hasPrevious: currentPage > 1,
+      hasNext: currentPage < totalPages,
+    };
+  });
+
+  /** أرقام الصفحات المعروضة (مع ellipsis) */
+  readonly visiblePages = computed<(number | string)[]>(() => {
+    const stats = this.rowsPaginationStats();
+    const totalPages = stats.totalPages;
+    const currentPage = stats.currentPage;
+
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    if (currentPage <= 4) {
+      return [1, 2, 3, 4, 5, '...', totalPages];
+    }
+
+    if (currentPage >= totalPages - 3) {
+      return [
+        1,
+        '...',
+        totalPages - 4,
+        totalPages - 3,
+        totalPages - 2,
+        totalPages - 1,
+        totalPages,
+      ];
+    }
+
+    return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+  });
+
+  /** الصفحات الرقمية فقط */
+  readonly numberPages = computed<number[]>(() => {
+    return this.visiblePages().filter((p) => typeof p === 'number') as number[];
+  });
+
+  // ===== KPIs =====
   readonly kpiEmployeesCount = computed(() => this.filteredRows().length);
 
   readonly kpiTotalPenaltyDays = computed(() => {
@@ -76,7 +143,7 @@ export class HrAttendanceComponent {
   });
 
   constructor() {
-    // ✅ 1) hydrate month from query param (if exists)
+    // ✅ hydrate month from query param (if exists)
     const qpMonth = this.route.snapshot.queryParamMap.get('month');
     if (qpMonth && /^\d{4}-\d{2}$/.test(qpMonth)) {
       this.form.controls.month.setValue(qpMonth, { emitEvent: false });
@@ -85,16 +152,25 @@ export class HrAttendanceComponent {
     // load initially + on month/includeSalary change
     this.form.controls.month.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef), distinctUntilChanged())
-      .subscribe(() => this.load());
+      .subscribe(() => {
+        this.currentPage.set(1);
+        this.load();
+      });
 
     this.form.controls.includeSalary.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef), distinctUntilChanged())
-      .subscribe(() => this.load());
+      .subscribe(() => {
+        this.currentPage.set(1);
+        this.load();
+      });
 
     // q is local filter فقط
     this.form.controls.q.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef), debounceTime(150))
-      .subscribe();
+      .subscribe(() => {
+        // لما البحث يتغير، رجّع لأول صفحة
+        this.currentPage.set(1);
+      });
 
     // initial
     this.load();
@@ -120,7 +196,7 @@ export class HrAttendanceComponent {
         const summary = await this.svc.getMonthlySummary(month, includeSalary).toPromise();
         this.summary.set(summary || null);
       } catch (e: any) {
-        // لو HR حاول includeSalary والـ backend رجّع 403 → نخفي salary تلقائيًا
+        // لو HR حاول includeSalary والـ backend رجّع 403/401 → نخفي salary تلقائيًا
         if (includeSalary && (e?.status === 403 || e?.status === 401)) {
           this.form.controls.includeSalary.setValue(false, { emitEvent: false });
           const summary = await this.svc.getMonthlySummary(month, false).toPromise();
@@ -130,12 +206,46 @@ export class HrAttendanceComponent {
         }
       }
 
+      // بعد تحميل الداتا: clamp للصفحة (لو كان في فلترة سببت totalPages أقل)
+      const totalPages = this.rowsPaginationStats().totalPages;
+      if (this.currentPage() > totalPages) this.currentPage.set(totalPages);
+
       this.state.set('success');
     } catch (e: any) {
       console.error('HrAttendance load error:', e);
       this.state.set('error');
       this.errorMsg.set(e?.error?.message || e?.message || 'Failed to load attendance data');
     }
+  }
+
+  // ===== Pagination actions =====
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.rowsPaginationStats().totalPages) {
+      this.currentPage.set(page);
+    }
+  }
+
+  nextPage(): void {
+    if (this.rowsPaginationStats().hasNext) {
+      this.currentPage.update((p) => p + 1);
+    }
+  }
+
+  previousPage(): void {
+    if (this.rowsPaginationStats().hasPrevious) {
+      this.currentPage.update((p) => p - 1);
+    }
+  }
+
+  onPageSizeChange(size: number): void {
+    const n = Number(size);
+    if (!Number.isFinite(n) || n <= 0) return;
+    this.pageSize.set(n);
+    this.currentPage.set(1);
+  }
+
+  trackByEmployeeId(_i: number, row: AttendanceMonthlySummaryRowDto): number {
+    return Number(row.employeeId);
   }
 
   // ✅ Navigation with month query param
@@ -154,20 +264,22 @@ export class HrAttendanceComponent {
     this.router.navigate(['/hr/attendance/excuses'], { queryParams: { month } });
   }
 
-  // ✅ FIX: route is /hr/attendance/employee/:id (not employees)
-openEmployee(row: AttendanceMonthlySummaryRowDto): void {
-  const month = this.form.controls.month.value;
-  this.router.navigate(['/hr/attendance/employee', row.employeeId], {
-    queryParams: { month },
-  });
-}
-
+  // ✅ route: /hr/attendance/employee/:id
+  openEmployee(row: AttendanceMonthlySummaryRowDto): void {
+    const month = this.form.controls.month.value;
+    this.router.navigate(['/hr/attendance/employee', row.employeeId], {
+      queryParams: { month },
+    });
+  }
 
   // Helpers
   formatMoney(v: any): string {
     const n = Number(v || 0);
     if (!Number.isFinite(n)) return '0.00';
-    return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return n.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   }
 
   private getCurrentMonth(): string {

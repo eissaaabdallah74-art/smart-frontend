@@ -6,14 +6,77 @@
     </div>
 
     <div class="head-actions">
-      <button class="btn btn--ghost" (click)="loadMyLoans()" [disabled]="loading">
-        Refresh
+      <button
+        class="btn btn--ghost"
+        (click)="refreshAll()"
+        [disabled]="loading || summaryLoading"
+      >
+        {{ loading || summaryLoading ? "Refreshing..." : "Refresh" }}
       </button>
     </div>
   </header>
 
   <div *ngIf="errorMsg" class="alert alert--danger">{{ errorMsg }}</div>
   <div *ngIf="successMsg" class="alert alert--success">{{ successMsg }}</div>
+
+  <!-- Summary / Eligibility -->
+  <div class="card" *ngIf="summary() as s">
+
+    <div class="summary-grid">
+      <div class="summary-item">
+        <div class="summary-label">Policy</div>
+        <div class="summary-value">{{ policyLabel() }}</div>
+      </div>
+
+      <div class="summary-item" *ngIf="maxPercentText()">
+        <div class="summary-label">Max percent</div>
+        <div class="summary-value">{{ maxPercentText() }}</div>
+      </div>
+
+      <div class="summary-item" *ngIf="maxAmountAllowed()">
+        <div class="summary-label">Max amount</div>
+        <div class="summary-value">{{ money(maxAmountAllowed()!) }}</div>
+      </div>
+
+      <div class="summary-item">
+        <div class="summary-label">Active loan</div>
+        <div class="summary-value" [class.is-bad]="s.hasActiveLoan">
+          {{ s.hasActiveLoan ? "Yes" : "No" }}
+        </div>
+      </div>
+
+      <div class="summary-item" *ngIf="policyType() === 'annual_75_once'">
+        <div class="summary-label">Annual used</div>
+        <div class="summary-value" [class.is-bad]="s.annual75Used">
+          {{ s.annual75Used ? "Yes" : "No" }}
+        </div>
+      </div>
+
+      <div
+        class="summary-item"
+        *ngIf="policyType() === 'triple_30_three'"
+      >
+        <div class="summary-label">30% used</div>
+        <div
+          class="summary-value"
+          [class.is-bad]="(s.triple30UsedCount || 0) >= 3"
+        >
+          {{ s.triple30UsedCount || 0 }}/3
+        </div>
+      </div>
+
+      <div class="summary-item">
+        <div class="summary-label">Allowed installments</div>
+        <div class="summary-value">
+          {{ allowedInstallments().join(", ") }}
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="summaryMsg" class="alert alert--info" style="margin-top: 10px">
+      {{ summaryMsg }}
+    </div>
+  </div>
 
   <!-- KPIs -->
   <div class="stats">
@@ -56,7 +119,40 @@
           name="amount"
           class="input"
           placeholder="e.g. 1500"
+          [attr.max]="maxAmountAllowed() || null"
         />
+        <span class="hint" *ngIf="maxAmountAllowed() as max">
+          Max: {{ money(max) }}
+        </span>
+      </label>
+
+      <label class="field">
+        <span class="label">Installments</span>
+        <select
+          class="input"
+          [(ngModel)]="installmentsCount"
+          name="installmentsCount"
+        >
+          <option *ngFor="let i of allowedInstallments()" [ngValue]="i">
+            {{ i }} {{ i === 1 ? "month" : "months" }}
+          </option>
+        </select>
+        <span class="hint" *ngIf="summary()"> Based on policy </span>
+      </label>
+
+      <label class="field">
+        <span class="label">Loan type</span>
+<select
+  class="input"
+  [ngModel]="policyType()"
+  (ngModelChange)="onPolicyChange($event)"
+  name="policyType"
+>
+  <option [ngValue]="'triple_30_three'">30% (up to 3 times per year)</option>
+  <option [ngValue]="'annual_75_once'">70/75% (once per year)</option>
+</select>
+
+        <span class="hint">You can choose per request</span>
       </label>
 
       <label class="field field--wide">
@@ -69,8 +165,13 @@
         />
       </label>
 
-      <button class="btn btn--primary" type="submit" [disabled]="submitting">
-        {{ submitting ? 'Submitting...' : 'Submit' }}
+      <button
+        class="btn btn--primary"
+        type="submit"
+        [disabled]="submitting || (summary() && !canRequest())"
+        [title]="summary() && !canRequest() ? 'Not eligible now' : ''"
+      >
+        {{ submitting ? "Submitting..." : "Submit" }}
       </button>
     </form>
   </div>
@@ -124,12 +225,18 @@
               <td class="mono">#{{ r.id }}</td>
               <td class="mono">{{ money(r.amount) }}</td>
               <td>
-                <span [class]="statusClass(r.status)">{{ statusLabel(r.status) }}</span>
+                <span [class]="statusClass(r.status)">{{
+                  statusLabel(r.status)
+                }}</span>
               </td>
               <td>{{ fmtDate(r.createdAt) }}</td>
               <td class="actions">
-                <button class="btn btn--ghost btn--sm" type="button" (click)="toggleDetails(r.id)">
-                  {{ expandedId === r.id ? 'Hide' : 'Details' }}
+                <button
+                  class="btn btn--ghost btn--sm"
+                  type="button"
+                  (click)="toggleDetails(r.id)"
+                >
+                  {{ expandedId === r.id ? "Hide" : "Details" }}
                 </button>
               </td>
             </tr>
@@ -139,12 +246,22 @@
                 <div class="details">
                   <div class="details-item">
                     <div class="details-label">Your note</div>
-                    <div class="details-value">{{ r.note || '—' }}</div>
+                    <div class="details-value">{{ r.note || "—" }}</div>
                   </div>
 
                   <div class="details-item">
                     <div class="details-label">Manager note</div>
-                    <div class="details-value">{{ r.managerNote || '—' }}</div>
+                    <div class="details-value">{{ r.managerNote || "—" }}</div>
+                  </div>
+
+                  <div class="details-item" *ngIf="r.installmentsCount">
+                    <div class="details-label">Installments</div>
+                    <div class="details-value">{{ r.installmentsCount }}</div>
+                  </div>
+
+                  <div class="details-item" *ngIf="r.startMonth">
+                    <div class="details-label">Start month</div>
+                    <div class="details-value">{{ r.startMonth }}</div>
                   </div>
                 </div>
               </td>

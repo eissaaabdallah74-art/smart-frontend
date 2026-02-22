@@ -1,26 +1,38 @@
+<!-- src/app/pages/.../interview/components/interview-driver-details/interview-driver-details.component.html -->
+
 <div class="backdrop" *ngIf="!isStandaloneRoute" (click)="onCloseClick()"></div>
 
 <div class="profile-container" [class.is-page]="isStandaloneRoute">
-  
+  <!-- Top Nav -->
   <header class="top-nav">
-    <button class="nav-back-btn" (click)="onCloseClick()">
-      <i class="ri-arrow-left-s-line"></i>
+    <button class="nav-back-btn" type="button" (click)="onCloseClick()">
+      <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
       <span>Back</span>
     </button>
-    
+
     <div class="nav-actions">
-        <span class="ticket-badge" *ngIf="interview?.ticketNo">
-            <i class="ri-ticket-line"></i> Ticket #{{ interview?.ticketNo }}
-        </span>
-        <button class="close-icon-btn" *ngIf="!isStandaloneRoute" (click)="onCloseClick()">
-            <i class="ri-close-line"></i>
-        </button>
+      <span class="ticket-badge" *ngIf="interview?.ticketNo">
+        <i class="ri-ticket-line" aria-hidden="true"></i>
+        Ticket #{{ interview?.ticketNo }}
+      </span>
+
+      <button
+        class="close-icon-btn"
+        type="button"
+        *ngIf="!isStandaloneRoute"
+        (click)="onCloseClick()"
+        aria-label="Close"
+        title="Close"
+      >
+        <i class="ri-close-line" aria-hidden="true"></i>
+      </button>
     </div>
   </header>
 
+  <!-- Content -->
   <ng-container *ngIf="interview as row; else loadingSkeleton">
     <div class="layout-grid">
-      
+      <!-- LEFT: Identity -->
       <aside class="col-identity">
         <div class="profile-card">
           <div class="profile-status" [ngClass]="statusClass">
@@ -34,177 +46,338 @@
           </div>
 
           <div class="highlights-row">
-             <div class="highlight-badge" *ngIf="row.vehicleType">
-                <i class="ri-motorbike-line" *ngIf="row.vehicleType.toLowerCase().includes('motor')"></i>
-                <i class="ri-car-line" *ngIf="!row.vehicleType.toLowerCase().includes('motor')"></i>
-                {{ row.vehicleType }}
-             </div>
-             <div class="highlight-badge secondary" *ngIf="row.residence">
-                <i class="ri-map-pin-user-line"></i> {{ row.residence }}
-             </div>
+            <div class="highlight-badge" *ngIf="row.vehicleType">
+              <i
+                class="ri-motorbike-line"
+                aria-hidden="true"
+                *ngIf="(row.vehicleType || '').toLowerCase().includes('bike') || (row.vehicleType || '').toLowerCase().includes('motor')"
+              ></i>
+              <i
+                class="ri-car-line"
+                aria-hidden="true"
+                *ngIf="!((row.vehicleType || '').toLowerCase().includes('bike') || (row.vehicleType || '').toLowerCase().includes('motor'))"
+              ></i>
+              {{ row.vehicleType }}
+            </div>
+
+            <div class="highlight-badge secondary" *ngIf="row.residence">
+              <i class="ri-map-pin-user-line" aria-hidden="true"></i>
+              {{ row.residence }}
+            </div>
           </div>
 
           <div class="divider"></div>
 
           <div class="contact-section">
-             <div class="contact-row">
-                <i class="ri-phone-line"></i>
-                <span>{{ row.phoneNumber || 'No Phone' }}</span>
-                <button class="copy-btn" title="Copy"><i class="ri-file-copy-line"></i></button>
-             </div>
-             <div class="contact-row">
-                <i class="ri-id-card-line"></i>
-                <span>{{ row.nationalId || 'No National ID' }}</span>
-             </div>
+            <div class="contact-row" *ngIf="row.phoneNumber">
+              <i class="ri-phone-line" aria-hidden="true"></i>
+              <span class="mono">{{ row.phoneNumber }}</span>
+
+              <button
+                class="copy-btn"
+                type="button"
+                title="Copy phone"
+(click)="copyToClipboard(row.phoneNumber)"
+              >
+                <i class="ri-file-copy-line" aria-hidden="true"></i>
+              </button>
+            </div>
+
+            <div class="contact-row" *ngIf="row.nationalId">
+              <i class="ri-id-card-line" aria-hidden="true"></i>
+              <span class="mono">{{ row.nationalId }}</span>
+
+              <button
+                class="copy-btn"
+                type="button"
+                title="Copy national ID"
+(click)="copyToClipboard(row.nationalId)"
+              >
+                <i class="ri-file-copy-line" aria-hidden="true"></i>
+              </button>
+            </div>
+
+            <!-- لو مفيش Phone ولا NationalId، نخفي البلوك كله -->
+            <div class="empty-mini" *ngIf="!row.phoneNumber && !row.nationalId">
+              No contact info available.
+            </div>
           </div>
 
-          <div class="profile-actions">
-             <button class="action-btn primary">
-                <i class="ri-phone-fill"></i> Call Candidate
-             </button>
+          <div class="profile-actions" *ngIf="row.phoneNumber">
+            <a class="action-btn primary" [href]="'tel:' + row.phoneNumber">
+              <i class="ri-phone-fill" aria-hidden="true"></i>
+              Call Candidate
+            </a>
           </div>
         </div>
       </aside>
 
+      <!-- RIGHT: Details -->
       <main class="col-details">
-        
+        <!-- Highlights Top -->
         <section class="highlights-grid">
-            
-            <div class="highlight-box brand-theme">
-                <div class="hb-icon"><i class="ri-building-4-line"></i></div>
-                <div class="hb-content">
-                    <label>Client Account</label>
-                    <div class="hb-value">{{ row.account || 'Not Assigned' }}</div>
-                    <div class="hb-sub">
-                        <i class="ri-user-star-line"></i> 
-                        Manager: <strong>{{ row.accountManager || '—' }}</strong>
-                    </div>
-                </div>
+          <div class="highlight-box brand-theme" *ngIf="row.account || row.accountManager">
+            <div class="hb-icon"><i class="ri-building-4-line" aria-hidden="true"></i></div>
+            <div class="hb-content">
+              <label>Client Account</label>
+              <div class="hb-value">{{ row.account || 'Not Assigned' }}</div>
+
+              <div class="hb-sub" *ngIf="row.accountManager">
+                <i class="ri-user-star-line" aria-hidden="true"></i>
+                Manager:
+                <strong>{{ row.accountManager }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="highlight-box blue-theme" *ngIf="row.interviewer">
+            <div class="hb-icon"><i class="ri-user-voice-line" aria-hidden="true"></i></div>
+            <div class="hb-content">
+              <label>Interviewer</label>
+              <div class="hb-value">{{ row.interviewer }}</div>
+              <div class="hb-sub">Technical Assessment</div>
+            </div>
+          </div>
+
+          <div
+            class="highlight-box status-theme"
+            *ngIf="row.signedWithHr"
+            [class.is-signed]="(row.signedWithHr || '').toLowerCase().includes('signed')"
+            [class.not-signed]="!(row.signedWithHr || '').toLowerCase().includes('signed')"
+          >
+            <div class="hb-icon">
+              <i class="ri-file-paper-2-line" aria-hidden="true" *ngIf="!(row.signedWithHr || '').toLowerCase().includes('signed')"></i>
+              <i class="ri-checkbox-circle-fill" aria-hidden="true" *ngIf="(row.signedWithHr || '').toLowerCase().includes('signed')"></i>
             </div>
 
-            <div class="highlight-box blue-theme">
-                <div class="hb-icon"><i class="ri-user-voice-line"></i></div>
-                <div class="hb-content">
-                    <label>Interviewer</label>
-                    <div class="hb-value">{{ row.interviewer || 'Not Assigned' }}</div>
-                    <div class="hb-sub">Technical Assessment</div>
-                </div>
+            <div class="hb-content">
+              <label>Contract Status</label>
+              <div class="hb-value">
+                {{ (row.signedWithHr || '').toLowerCase().includes('signed') ? 'Signed Contract' : row.signedWithHr }}
+              </div>
+              <div class="hb-sub" *ngIf="(row.signedWithHr || '').toLowerCase().includes('signed')">Ready for onboarding</div>
+              <div class="hb-sub" *ngIf="!(row.signedWithHr || '').toLowerCase().includes('signed')">HR Action Required</div>
             </div>
-
-            <div class="highlight-box status-theme" 
-                 [class.is-signed]="row.signedWithHr === 'Yes'"
-                 [class.not-signed]="row.signedWithHr !== 'Yes'">
-                <div class="hb-icon">
-                    <i class="ri-file-paper-2-line" *ngIf="row.signedWithHr !== 'Yes'"></i>
-                    <i class="ri-checkbox-circle-fill" *ngIf="row.signedWithHr === 'Yes'"></i>
-                </div>
-                <div class="hb-content">
-                    <label>Contract Status</label>
-                    <div class="hb-value">
-                        {{ row.signedWithHr === 'Yes' ? 'Signed Contract' : 'Pending Signature' }}
-                    </div>
-                    <div class="hb-sub" *ngIf="row.signedWithHr === 'Yes'">Ready for onboarding</div>
-                    <div class="hb-sub" *ngIf="row.signedWithHr !== 'Yes'">HR Action Required</div>
-                </div>
-            </div>
-
+          </div>
         </section>
 
-        <section class="content-card">
-            <h3 class="card-title"><i class="ri-map-pin-2-line"></i> Location & Date Details</h3>
-            <div class="info-grid">
-                <div class="info-box">
-                    <label>Hub / Branch</label>
-                    <div class="val">{{ row.hub || 'Not Assigned' }}</div>
-                </div>
-                <div class="info-box">
-                    <label>Zone / Area</label>
-                    <div class="val">{{ row.zone || 'Not Assigned' }}</div>
-                </div>
-                <div class="info-box">
-                    <label>Interview Date</label>
-                    <div class="val">{{ row.date }}</div>
-                </div>
+        <!-- Location & Date -->
+        <section class="content-card" *ngIf="row.hub || row.zone || row.date || row.notes">
+          <h3 class="card-title">
+            <i class="ri-map-pin-2-line" aria-hidden="true"></i>
+            Location & Date Details
+          </h3>
+
+          <div class="info-grid">
+            <div class="info-box" *ngIf="row.hub">
+              <label>Hub / Branch</label>
+              <div class="val">{{ row.hub }}</div>
             </div>
-             <div class="notes-block" *ngIf="row.notes">
-                <label>General Notes</label>
-                <p>{{ row.notes }}</p>
+
+            <div class="info-box" *ngIf="row.zone">
+              <label>Zone / Area</label>
+              <div class="val">{{ row.zone }}</div>
             </div>
+
+            <div class="info-box" *ngIf="row.date">
+              <label>Interview Date</label>
+              <div class="val mono">{{ row.date }}</div>
+            </div>
+          </div>
+
+          <div class="notes-block" *ngIf="row.notes">
+            <label>General Notes</label>
+            <p>{{ row.notes }}</p>
+          </div>
         </section>
 
-        <section class="content-card">
-            <h3 class="card-title"><i class="ri-chat-quote-line"></i> Evaluation & Feedback</h3>
-            
-            <div class="feedback-list">
-                <div class="feedback-item" *ngIf="row.feedback">
-                    <div class="feedback-avatar is-interviewer"><i class="ri-user-voice-line"></i></div>
-                    <div class="feedback-content">
-                        <div class="feedback-author">Technical Feedback</div>
-                        <div class="feedback-text">{{ row.feedback }}</div>
-                    </div>
+        <!-- ✅ Licenses & Compliance -->
+        <section class="content-card" *ngIf="row.vLicenseExpiryDate || row.dLicenseExpiryDate || row.idExpiryDate">
+          <h3 class="card-title">
+            <i class="ri-shield-check-line" aria-hidden="true"></i>
+            Licenses & Compliance
+          </h3>
+
+          <div class="licenses-grid">
+            <!-- Vehicle License -->
+            <div class="license-card" *ngIf="row.vLicenseExpiryDate">
+              <div class="lc-head">
+                <div class="lc-title">
+                  <i class="ri-truck-line" aria-hidden="true"></i>
+                  Vehicle License
                 </div>
 
-                <div class="feedback-item" *ngIf="row.hrFeedback">
-                    <div class="feedback-avatar is-hr"><i class="ri-shield-user-line"></i></div>
-                    <div class="feedback-content">
-                        <div class="feedback-author">HR Decision</div>
-                        <div class="feedback-text">{{ row.hrFeedback }}</div>
-                    </div>
+                <span class="chip" [ngClass]="getExpiryChipClass(row.vLicenseExpiryDate)">
+                  {{ getExpiryChipLabel(row.vLicenseExpiryDate) }}
+                </span>
+              </div>
+
+              <div class="lc-body">
+                <div class="kv">
+                  <span class="k">Expiry</span>
+                  <span class="v mono">{{ row.vLicenseExpiryDate }}</span>
                 </div>
 
-                <div class="feedback-item" *ngIf="row.crmFeedback">
-                    <div class="feedback-avatar is-crm"><i class="ri-customer-service-2-line"></i></div>
-                    <div class="feedback-content">
-                        <div class="feedback-author">CRM Check</div>
-                        <div class="feedback-text">{{ row.crmFeedback }}</div>
-                    </div>
+                <div class="kv" *ngIf="getDaysLeft(row.vLicenseExpiryDate) !== null">
+                  <span class="k">Days left</span>
+                  <span class="v mono">{{ getDaysLeft(row.vLicenseExpiryDate) }}</span>
                 </div>
-
-                <div class="empty-state" *ngIf="!row.feedback && !row.hrFeedback && !row.crmFeedback">
-                    No feedback recorded yet.
-                </div>
+              </div>
             </div>
+
+            <!-- Driver License -->
+            <div class="license-card" *ngIf="row.dLicenseExpiryDate">
+              <div class="lc-head">
+                <div class="lc-title">
+                  <i class="ri-steering-2-line" aria-hidden="true"></i>
+                  Driver License
+                </div>
+
+                <span class="chip" [ngClass]="getExpiryChipClass(row.dLicenseExpiryDate)">
+                  {{ getExpiryChipLabel(row.dLicenseExpiryDate) }}
+                </span>
+              </div>
+
+              <div class="lc-body">
+                <div class="kv">
+                  <span class="k">Expiry</span>
+                  <span class="v mono">{{ row.dLicenseExpiryDate }}</span>
+                </div>
+
+                <div class="kv" *ngIf="getDaysLeft(row.dLicenseExpiryDate) !== null">
+                  <span class="k">Days left</span>
+                  <span class="v mono">{{ getDaysLeft(row.dLicenseExpiryDate) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- National ID Expiry -->
+            <div class="license-card" *ngIf="row.idExpiryDate">
+              <div class="lc-head">
+                <div class="lc-title">
+                  <i class="ri-id-card-line" aria-hidden="true"></i>
+                  National ID Expiry
+                </div>
+
+                <span class="chip" [ngClass]="getExpiryChipClass(row.idExpiryDate)">
+                  {{ getExpiryChipLabel(row.idExpiryDate) }}
+                </span>
+              </div>
+
+              <div class="lc-body">
+                <div class="kv">
+                  <span class="k">Expiry</span>
+                  <span class="v mono">{{ row.idExpiryDate }}</span>
+                </div>
+
+                <div class="kv" *ngIf="getDaysLeft(row.idExpiryDate) !== null">
+                  <span class="k">Days left</span>
+                  <span class="v mono">{{ getDaysLeft(row.idExpiryDate) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
+        <!-- Feedback -->
+        <section class="content-card" *ngIf="row.feedback || row.hrFeedback || row.crmFeedback">
+          <h3 class="card-title">
+            <i class="ri-chat-quote-line" aria-hidden="true"></i>
+            Evaluation & Feedback
+          </h3>
+
+          <div class="feedback-list">
+            <div class="feedback-item" *ngIf="row.feedback">
+              <div class="feedback-avatar is-interviewer">
+                <i class="ri-user-voice-line" aria-hidden="true"></i>
+              </div>
+              <div class="feedback-content">
+                <div class="feedback-author">Technical Feedback</div>
+                <div class="feedback-text">{{ row.feedback }}</div>
+              </div>
+            </div>
+
+            <div class="feedback-item" *ngIf="row.hrFeedback">
+              <div class="feedback-avatar is-hr">
+                <i class="ri-shield-user-line" aria-hidden="true"></i>
+              </div>
+              <div class="feedback-content">
+                <div class="feedback-author">HR Decision</div>
+                <div class="feedback-text">{{ row.hrFeedback }}</div>
+              </div>
+            </div>
+
+            <div class="feedback-item" *ngIf="row.crmFeedback">
+              <div class="feedback-avatar is-crm">
+                <i class="ri-customer-service-2-line" aria-hidden="true"></i>
+              </div>
+              <div class="feedback-content">
+                <div class="feedback-author">CRM Check</div>
+                <div class="feedback-text">{{ row.crmFeedback }}</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Followups -->
         <section class="content-card" *ngIf="hasAnyFollowups">
-             <h3 class="card-title"><i class="ri-history-line"></i> Follow-up History</h3>
-             <div class="timeline-container">
-                <div class="timeline-step" *ngIf="row.followUp1">
-                    <div class="step-marker">1</div>
-                    <div class="step-content">
-                        <h4>First Attempt</h4>
-                        <p>{{ row.followUp1 }}</p>
-                    </div>
-                </div>
-                <div class="timeline-step" *ngIf="row.followUp2">
-                    <div class="step-marker">2</div>
-                    <div class="step-content">
-                        <h4>Second Attempt</h4>
-                        <p>{{ row.followUp2 }}</p>
-                    </div>
-                </div>
-                <div class="timeline-step" *ngIf="row.followUp3">
-                    <div class="step-marker">3</div>
-                    <div class="step-content">
-                        <h4>Third Attempt</h4>
-                        <p>{{ row.followUp3 }}</p>
-                    </div>
-                </div>
-             </div>
+          <h3 class="card-title">
+            <i class="ri-history-line" aria-hidden="true"></i>
+            Follow-up History
+          </h3>
+
+          <div class="timeline-container">
+            <div class="timeline-step" *ngIf="row.followUp1">
+              <div class="step-marker">1</div>
+              <div class="step-content">
+                <h4>First Attempt</h4>
+                <p>{{ row.followUp1 }}</p>
+              </div>
+            </div>
+
+            <div class="timeline-step" *ngIf="row.followUp2">
+              <div class="step-marker">2</div>
+              <div class="step-content">
+                <h4>Second Attempt</h4>
+                <p>{{ row.followUp2 }}</p>
+              </div>
+            </div>
+
+            <div class="timeline-step" *ngIf="row.followUp3">
+              <div class="step-marker">3</div>
+              <div class="step-content">
+                <h4>Third Attempt</h4>
+                <p>{{ row.followUp3 }}</p>
+              </div>
+            </div>
+          </div>
         </section>
 
+        <!-- Empty state (لو كل الداتا فاضية) -->
+        <section
+          class="content-card empty-state-wide"
+          *ngIf="
+            !row.account && !row.hub && !row.zone && !row.date && !row.notes &&
+            !row.vLicenseExpiryDate && !row.dLicenseExpiryDate && !row.idExpiryDate &&
+            !row.feedback && !row.hrFeedback && !row.crmFeedback &&
+            !hasAnyFollowups
+          "
+        >
+          No details available for this interview yet.
+        </section>
       </main>
     </div>
   </ng-container>
 
+  <!-- Skeleton -->
   <ng-template #loadingSkeleton>
     <div class="skeleton-loader">
-        <div class="sk-side"></div>
-        <div class="sk-main">
-            <div class="sk-grid-3"></div>
-            <div class="sk-card"></div>
-        </div>
+      <div class="sk-side"></div>
+      <div class="sk-main">
+        <div class="sk-grid-3"></div>
+        <div class="sk-card"></div>
+        <div class="sk-card"></div>
+      </div>
     </div>
   </ng-template>
-
 </div>

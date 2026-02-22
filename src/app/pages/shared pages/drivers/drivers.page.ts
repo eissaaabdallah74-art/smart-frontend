@@ -4,23 +4,28 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { ExportButtonComponent } from '../../../shared/export-button/export-button';
-import { ImportButtonComponent } from '../../../shared/import-button/import-button.component'; // 👈 جديد
+import { ImportButtonComponent } from '../../../shared/import-button/import-button.component';
 
-import {
-  DriversServiceService,
-  ApiDriver,
-} from '../../../services/drivers/drivers-service.service';
+
+
+
 import {
   ClientsServiceService,
   ApiClient,
 } from '../../../services/clients/clients-service.service';
+
 import {
   UsersServiceService,
   ApiUser,
 } from '../../../services/users/users-service.service';
-import { DriversFormModalComponent, DriverToEdit, DriverFormValue } from './components/drivers-form-modal/drivers-form-modal.component';
 
-
+import {
+  DriversFormModalComponent,
+  DriverToEdit,
+  DriverFormValue,
+} from './components/drivers-form-modal/drivers-form-modal.component';
+import { ApiDriver, DriversServiceService, UpdateDriverDto, CreateDriverDto } from '../../../services/drivers/drivers-service.service';
+import { SignedWithHrStatus, DriverContractStatus } from '../../../shared/enums/driver-enums';
 
 @Component({
   standalone: true,
@@ -32,67 +37,63 @@ import { DriversFormModalComponent, DriverToEdit, DriverFormValue } from './comp
     FormsModule,
     ExportButtonComponent,
     DriversFormModalComponent,
-        ImportButtonComponent,   // 👈 جديد
-
+    ImportButtonComponent,
   ],
 })
 export class DriversPage implements OnInit {
   // مؤقتًا: اربطها بالـ AuthService بعدين
   isAdmin = true;
 
-  // البيانات
   drivers = signal<ApiDriver[]>([]);
   search = signal<string>('');
 
-  // من الـ clients
   private clients = signal<ApiClient[]>([]);
-
-  // من users
   private operationUsers = signal<ApiUser[]>([]);
   private hrUsers = signal<ApiUser[]>([]);
 
-  // مودال الإضافة/التعديل
   isModalOpen = signal<boolean>(false);
   driverToEdit = signal<DriverToEdit | null>(null);
 
-  // أسماء العملاء
   clientNames = computed<string[]>(() =>
-    this.clients()
+    (this.clients() || [])
       .map((c) => c.name)
-      .sort((a, b) => a.localeCompare(b))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b)),
   );
 
-  // أسماء الـ operation (POC / AM / Interviewer)
   operationNames = computed<string[]>(() =>
-    this.operationUsers()
+    (this.operationUsers() || [])
       .map((u) => u.fullName)
-      .sort((a, b) => a.localeCompare(b))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b)),
   );
 
-  // أسماء الـ HR
   hrNames = computed<string[]>(() =>
-    this.hrUsers()
+    (this.hrUsers() || [])
       .map((u) => u.fullName)
-      .sort((a, b) => a.localeCompare(b))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b)),
   );
 
-  // بعد التصفية
   filtered = computed<ApiDriver[]>(() => {
     const term = this.search().toLowerCase().trim();
     if (!term) return this.drivers();
 
-    return this.drivers().filter((d) =>
-      (d.name || '').toLowerCase().includes(term) ||
-      (d.courierPhone || '').toLowerCase().includes(term) ||
-      (d.clientName || '').toLowerCase().includes(term) ||
-      (d.area || '').toLowerCase().includes(term)
+    const safe = (v: any) => String(v ?? '').toLowerCase();
+    return this.drivers().filter(
+      (d) =>
+        safe(d.name).includes(term) ||
+        safe(d.courierPhone).includes(term) ||
+        safe(d.clientName).includes(term) ||
+        safe(d.area).includes(term),
     );
   });
 
-  private driversService = inject(DriversServiceService);
-  private clientsService = inject(ClientsServiceService);
-  private usersService = inject(UsersServiceService);
-  private router = inject(Router);
+  // ✅ typed injections (fix TS2571 unknown)
+  private driversService: DriversServiceService = inject(DriversServiceService);
+  private clientsService: ClientsServiceService = inject(ClientsServiceService);
+  private usersService: UsersServiceService = inject(UsersServiceService);
+  private router: Router = inject(Router);
 
   ngOnInit(): void {
     this.loadDrivers();
@@ -103,33 +104,34 @@ export class DriversPage implements OnInit {
 
   private loadDrivers(): void {
     this.driversService.getDrivers().subscribe({
-      next: (list: ApiDriver[]) => this.drivers.set(list),
+      next: (list: ApiDriver[]) => this.drivers.set(list || []),
       error: (err: unknown) => console.error('Failed to load drivers', err),
     });
   }
 
   private loadClients(): void {
     this.clientsService.getClients().subscribe({
-      next: (list: ApiClient[]) => this.clients.set(list),
+      next: (list: ApiClient[]) => this.clients.set(list || []),
       error: (err: unknown) => console.error('Failed to load clients', err),
     });
   }
 
   private loadOperationUsers(): void {
     this.usersService.getUsers({ role: 'operation', active: true }).subscribe({
-      next: (list: ApiUser[]) => this.operationUsers.set(list),
-      error: (err: unknown) => console.error('Failed to load operation users', err),
+      next: (list: ApiUser[]) => this.operationUsers.set(list || []),
+      error: (err: unknown) =>
+        console.error('Failed to load operation users', err),
     });
   }
 
   private loadHrUsers(): void {
     this.usersService.getUsers({ role: 'hr', active: true }).subscribe({
-      next: (list: ApiUser[]) => this.hrUsers.set(list),
+      next: (list: ApiUser[]) => this.hrUsers.set(list || []),
       error: (err: unknown) => console.error('Failed to load hr users', err),
     });
   }
 
-  // ===== مودال الإضافة/التعديل =====
+  // ===== Modal =====
   openAddModal(): void {
     this.driverToEdit.set(null);
     this.isModalOpen.set(true);
@@ -150,27 +152,32 @@ export class DriversPage implements OnInit {
     const editing = this.driverToEdit();
 
     if (editing) {
-      this.driversService.updateDriver(editing.id, value).subscribe({
+      const patch: UpdateDriverDto = this.toUpdateDto(value);
+
+      this.driversService.updateDriver(editing.id, patch).subscribe({
         next: (updated: ApiDriver) => {
           this.drivers.update((list) =>
-            list.map((d) => (d.id === updated.id ? updated : d))
+            (list || []).map((d) => (d.id === updated.id ? updated : d)),
           );
           this.closeModal();
         },
         error: (err: unknown) => console.error('Failed to update driver', err),
       });
-    } else {
-      this.driversService.createDriver(value as any).subscribe({
-        next: (created: ApiDriver) => {
-          this.drivers.update((list) => [...list, created]);
-          this.closeModal();
-        },
-        error: (err: unknown) => console.error('Failed to create driver', err),
-      });
+
+      return;
     }
+
+    const dto: CreateDriverDto = this.toCreateDto(value);
+
+    this.driversService.createDriver(dto).subscribe({
+      next: (created: ApiDriver) => {
+        this.drivers.update((list) => [...(list || []), created]);
+        this.closeModal();
+      },
+      error: (err: unknown) => console.error('Failed to create driver', err),
+    });
   }
 
-  // ===== عرض التفاصيل في صفحة =====
   viewDetails(driver: ApiDriver): void {
     this.router.navigate(['/drivers', driver.id]);
   }
@@ -179,9 +186,7 @@ export class DriversPage implements OnInit {
     if (!confirm('Are you sure you want to delete this driver?')) return;
 
     this.driversService.deleteDriver(id).subscribe({
-      next: () => {
-        this.drivers.update((list) => list.filter((d) => d.id !== id));
-      },
+      next: () => this.drivers.update((list) => (list || []).filter((d) => d.id !== id)),
       error: (err: unknown) => console.error('Failed to delete driver', err),
     });
   }
@@ -190,15 +195,11 @@ export class DriversPage implements OnInit {
     return item.id;
   }
 
-  // ===== Import Drivers (XLSX / CSV) =====
+  // ===== Import =====
   onDriversImport(file: File): void {
     const ext = file.name.split('.').pop()?.toLowerCase();
-
-    if (ext === 'xlsx' || ext === 'xls') {
-      this.importFromXlsx(file);
-    } else {
-      this.importFromCsv(file);
-    }
+    if (ext === 'xlsx' || ext === 'xls') this.importFromXlsx(file);
+    else this.importFromCsv(file);
   }
 
   private importFromXlsx(file: File): void {
@@ -216,10 +217,7 @@ export class DriversPage implements OnInit {
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const json: any[] = XLSX.utils.sheet_to_json(worksheet, {
-          defval: null,
-        });
-
+        const json: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: null });
         this.applyImportedDrivers(json, file.name);
       } catch (err) {
         console.error('Failed to import XLSX', err);
@@ -242,17 +240,15 @@ export class DriversPage implements OnInit {
     reader.readAsText(file);
   }
 
-  /** هنا بننضف الـ rows شوية وبنبعتها للـ backend bulkUpsert */
   private applyImportedDrivers(rows: any[], fileName: string): void {
     if (!rows || !rows.length) {
       console.warn('No data found in imported file:', fileName);
       return;
     }
 
-    const mappedRows = rows.map((raw) => {
+    const mappedRows: Partial<ApiDriver>[] = rows.map((raw) => {
       const row: any = { ...raw };
 
-      // نحاول نطابق شوية أسامي أعمدة محتملة
       row.name =
         row.name ||
         row.Name ||
@@ -274,22 +270,35 @@ export class DriversPage implements OnInit {
         row['Client Name'] ||
         '';
 
-      row.area =
-        row.area ||
-        row.Area ||
-        '';
+      row.area = row.area || row.Area || '';
 
       row.hiringStatus =
         row.hiringStatus ||
         row['Hiring Status'] ||
         row.hiring_status ||
-        '';
+        null;
 
       row.contractStatus =
         row.contractStatus ||
         row['Contract Status'] ||
         row.contract_status ||
-        '';
+        null;
+
+      row.signedWithHr =
+        row.signedWithHr ||
+        row['SignedWithHr'] ||
+        row['Signed With HR'] ||
+        null;
+
+      // ✅ normalize / cast
+      row.name = this.s(row.name);
+      row.courierPhone = this.nullIfEmpty(row.courierPhone);
+      row.clientName = this.nullIfEmpty(row.clientName);
+      row.area = this.nullIfEmpty(row.area);
+
+      row.hiringStatus = this.nullIfEmpty(row.hiringStatus);
+      row.contractStatus = this.toDriverContractStatusOrNull(row.contractStatus);
+      row.signedWithHr = this.toSignedWithHrStatusOrNull(row.signedWithHr);
 
       return row as Partial<ApiDriver>;
     });
@@ -298,22 +307,16 @@ export class DriversPage implements OnInit {
       next: (updatedOrCreated: ApiDriver[]) => {
         this.drivers.update((current) => {
           const byId = new Map<number, ApiDriver>();
-          current.forEach((d) => byId.set(d.id, d));
-          updatedOrCreated.forEach((d) => byId.set(d.id, d));
+          (current || []).forEach((d) => byId.set(d.id, d));
+          (updatedOrCreated || []).forEach((d) => byId.set(d.id, d));
           return Array.from(byId.values()).sort((a, b) => a.id - b.id);
         });
 
-        console.log(
-          `Imported/updated ${updatedOrCreated.length} drivers from ${fileName}.`
-        );
+        console.log(`Imported/updated ${updatedOrCreated.length} drivers from ${fileName}.`);
       },
-      error: (err: unknown) => {
-        console.error('Failed to bulk import drivers', err);
-      },
+      error: (err: unknown) => console.error('Failed to bulk import drivers', err),
     });
   }
-
-  // ===== أدوات CSV بسيطة =====
 
   private parseCsv(text: string): any[] {
     const lines = text
@@ -329,9 +332,7 @@ export class DriversPage implements OnInit {
     for (let i = 1; i < lines.length; i++) {
       const cols = this.parseCsvLine(lines[i]);
       const row: any = {};
-      headers.forEach((h, idx) => {
-        row[h] = cols[idx] ?? '';
-      });
+      headers.forEach((h, idx) => (row[h] = cols[idx] ?? ''));
       rows.push(row);
     }
 
@@ -365,40 +366,131 @@ export class DriversPage implements OnInit {
     return result;
   }
 
-  // 🔹 نفس اللوجيك بتاع التفاصيل – يدي لون حسب الحالة
   getBadgeClass(status?: string | null): string {
     if (!status) return 'badge--neutral';
     const s = status.toLowerCase();
 
-    if (
-      s.includes('active') ||
-      s.includes('cleared') ||
-      s.includes('signed') ||
-      s.includes('hired') ||
-      s.includes('ongoing')
-    ) {
+    if (s.includes('active') || s.includes('cleared') || s.includes('signed') || s.includes('hired') || s.includes('ongoing')) {
       return 'badge--success';
     }
 
-    if (
-      s.includes('pending') ||
-      s.includes('probation') ||
-      s.includes('in progress') ||
-      s.includes('on hold')
-    ) {
+    if (s.includes('pending') || s.includes('probation') || s.includes('in progress') || s.includes('on hold')) {
       return 'badge--warning';
     }
 
-    if (
-      s.includes('rejected') ||
-      s.includes('terminated') ||
-      s.includes('failed') ||
-      s.includes('blocked') ||
-      s.includes('inactive')
-    ) {
+    if (s.includes('rejected') || s.includes('terminated') || s.includes('failed') || s.includes('blocked') || s.includes('inactive')) {
       return 'badge--danger';
     }
 
     return 'badge--neutral';
+  }
+
+  // =====================
+  // DTO builders
+  // =====================
+
+  private toCreateDto(value: DriverFormValue): CreateDriverDto {
+    const v: any = value;
+
+    // ✅ لازم يبقى موجود (على الأقل null)
+    const dto: CreateDriverDto = {
+      name: this.s(v.name),
+      fullNameArabic: this.nullIfEmpty(v.fullNameArabic),
+      email: this.nullIfEmpty(v.email),
+
+      courierPhone: this.nullIfEmpty(v.courierPhone),
+      courierId: this.nullIfEmpty(v.courierId),
+      residence: this.nullIfEmpty(v.residence),
+      courierCode: this.nullIfEmpty(v.courierCode),
+
+      clientName: this.nullIfEmpty(v.clientName),
+      hub: this.nullIfEmpty(v.hub),
+      area: this.nullIfEmpty(v.area),
+      module: this.nullIfEmpty(v.module),
+
+      vehicleType: this.nullIfEmpty(v.vehicleType),
+      contractor: this.nullIfEmpty(v.contractor),
+      pointOfContact: this.nullIfEmpty(v.pointOfContact),
+      accountManager: this.nullIfEmpty(v.accountManager),
+      interviewer: this.nullIfEmpty(v.interviewer),
+      hrRepresentative: this.nullIfEmpty(v.hrRepresentative),
+
+      hiringDate: this.nullIfEmpty(v.hiringDate),
+      day1Date: this.nullIfEmpty(v.day1Date),
+
+      vLicenseExpiryDate: this.nullIfEmpty(v.vLicenseExpiryDate),
+      dLicenseExpiryDate: this.nullIfEmpty(v.dLicenseExpiryDate),
+      idExpiryDate: this.nullIfEmpty(v.idExpiryDate),
+
+      liabilityAmount: this.toNumberOrNull(v.liabilityAmount),
+      signed: !!v.signed,
+
+      // ✅ typed unions
+      signedWithHr: this.toSignedWithHrStatusOrNull(v.signedWithHr),
+      contractStatus: this.toDriverContractStatusOrNull(v.contractStatus),
+
+      hiringStatus: this.nullIfEmpty(v.hiringStatus),
+      securityQueryStatus: this.nullIfEmpty(v.securityQueryStatus),
+      securityQueryComment: this.nullIfEmpty(v.securityQueryComment),
+
+      exceptionBy: this.nullIfEmpty(v.exceptionBy),
+      notes: this.nullIfEmpty(v.notes),
+    };
+
+    return dto;
+  }
+
+  private toUpdateDto(value: DriverFormValue): UpdateDriverDto {
+    // UpdateDriverDto = Partial<CreateDriverDto> (حسب عندك)
+    // هنا نقدر نرجّع نفس create dto عادي، أو نرجّع partial.
+    return this.toCreateDto(value) as unknown as UpdateDriverDto;
+  }
+
+  // =====================
+  // Utils / casters
+  // =====================
+
+  private s(v: any): string {
+    return String(v ?? '').trim();
+  }
+
+  private nullIfEmpty(v: any): string | null {
+    const s = String(v ?? '').trim();
+    return s ? s : null;
+  }
+
+  private toNumberOrNull(v: any): number | null {
+    if (v == null || v === '') return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  private toSignedWithHrStatusOrNull(v: any): SignedWithHrStatus | null {
+    const s = String(v ?? '').trim();
+    if (!s) return null;
+
+    const allowed: readonly SignedWithHrStatus[] = [
+      'Signed A Contract With HR',
+      'Will Think About Our Offers',
+      'Missing documents',
+      'Unqualified',
+    ];
+
+    return (allowed as readonly string[]).includes(s) ? (s as SignedWithHrStatus) : null;
+  }
+
+  private toDriverContractStatusOrNull(v: any): DriverContractStatus | null {
+    const s = String(v ?? '').trim();
+    if (!s) return null;
+
+    const allowed: readonly DriverContractStatus[] = [
+      'Active',
+      'Inactive',
+      'Unreachable/Reschedule',
+      'Resigned',
+      'Hold zone',
+    ];
+
+    return (allowed as readonly string[]).includes(s) ? (s as DriverContractStatus) : null;
   }
 }

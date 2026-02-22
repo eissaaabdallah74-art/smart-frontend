@@ -12,7 +12,13 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
-import { ApiInterview, UpdateInterviewDto, SecurityResult } from '../../../../../services/interviews/interviews-service.service';
+
+import {
+  ApiInterview,
+  UpdateInterviewDto,
+  SecurityResult,
+} from '../../../../../services/interviews/interviews-service.service';
+import { SignedWithHrStatus, DriverContractStatus } from '../../../../../shared/enums/driver-enums';
 
 
 
@@ -23,7 +29,9 @@ import { ApiInterview, UpdateInterviewDto, SecurityResult } from '../../../../..
   templateUrl: './form-modal-security-background-check.component.html',
   styleUrl: './form-modal-security-background-check.component.scss',
 })
-export class FormModalSecurityBackgroundCheckComponent implements OnChanges, AfterViewInit {
+export class FormModalSecurityBackgroundCheckComponent
+  implements OnChanges, AfterViewInit
+{
   @Input({ required: true }) interviewToEdit!: ApiInterview;
 
   @Input() saving = false;
@@ -34,6 +42,7 @@ export class FormModalSecurityBackgroundCheckComponent implements OnChanges, Aft
 
   @ViewChild('securitySelect') securitySelect?: ElementRef<HTMLSelectElement>;
 
+  // ===== Model (UI strings) =====
   model = {
     courierName: '',
     phoneNumber: '',
@@ -49,6 +58,7 @@ export class FormModalSecurityBackgroundCheckComponent implements OnChanges, Aft
 
     securityResult: null as SecurityResult | null,
 
+    // keep as string for template binding, cast before sending
     signedWithHr: '',
     courierStatus: '',
 
@@ -63,6 +73,22 @@ export class FormModalSecurityBackgroundCheckComponent implements OnChanges, Aft
     notes: '',
   };
 
+  // ===== Allowed enums (single source of truth) =====
+  private readonly signedWithHrAllowed: readonly SignedWithHrStatus[] = [
+    'Signed A Contract With HR',
+    'Will Think About Our Offers',
+    'Missing documents',
+    'Unqualified',
+  ];
+
+  private readonly courierStatusAllowed: readonly DriverContractStatus[] = [
+    'Active',
+    'Inactive',
+    'Unreachable/Reschedule',
+    'Resigned',
+    'Hold zone',
+  ];
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['interviewToEdit'] && this.interviewToEdit) {
       const i = this.interviewToEdit;
@@ -73,17 +99,17 @@ export class FormModalSecurityBackgroundCheckComponent implements OnChanges, Aft
         residence: i.residence ?? '',
         nationalId: i.nationalId ?? '',
 
-        clientId: i.clientId ?? null,
-        hubId: i.hubId ?? null,
-        zoneId: i.zoneId ?? null,
+        clientId: (i as any).clientId ?? i.clientId ?? null,
+        hubId: (i as any).hubId ?? i.hubId ?? null,
+        zoneId: (i as any).zoneId ?? i.zoneId ?? null,
 
         position: i.position ?? '',
         vehicleType: i.vehicleType ?? '',
 
         securityResult: i.securityResult ?? null,
 
-        signedWithHr: i.signedWithHr ?? '',
-        courierStatus: i.courierStatus ?? '',
+        signedWithHr: (i.signedWithHr ?? '') as any,
+        courierStatus: (i.courierStatus ?? '') as any,
 
         hrFeedback: i.hrFeedback ?? '',
         feedback: i.feedback ?? '',
@@ -120,7 +146,6 @@ export class FormModalSecurityBackgroundCheckComponent implements OnChanges, Aft
 
   onSubmit(form: NgForm): void {
     if (this.saving) return;
-
     if (!this.interviewToEdit?.id) return;
 
     if (form.invalid) {
@@ -129,7 +154,7 @@ export class FormModalSecurityBackgroundCheckComponent implements OnChanges, Aft
     }
 
     const toNullIfEmpty = (v: string) => {
-      const s = (v ?? '').trim();
+      const s = String(v ?? '').trim();
       return s ? s : null;
     };
 
@@ -148,8 +173,9 @@ export class FormModalSecurityBackgroundCheckComponent implements OnChanges, Aft
 
       securityResult: this.model.securityResult ?? null,
 
-      signedWithHr: toNullIfEmpty(this.model.signedWithHr),
-      courierStatus: toNullIfEmpty(this.model.courierStatus),
+      // ✅ fixed: cast string -> union enum or null
+      signedWithHr: this.toSignedWithHrStatusOrNull(this.model.signedWithHr),
+      courierStatus: this.toDriverContractStatusOrNull(this.model.courierStatus),
 
       hrFeedback: toNullIfEmpty(this.model.hrFeedback),
       feedback: toNullIfEmpty(this.model.feedback),
@@ -163,5 +189,25 @@ export class FormModalSecurityBackgroundCheckComponent implements OnChanges, Aft
     };
 
     this.submit.emit({ id: this.interviewToEdit.id, dto });
+  }
+
+  // ===== Casters (string -> enum | null) =====
+
+  private toSignedWithHrStatusOrNull(v: any): SignedWithHrStatus | null {
+    const s = String(v ?? '').trim();
+    if (!s) return null;
+
+    return (this.signedWithHrAllowed as readonly string[]).includes(s)
+      ? (s as SignedWithHrStatus)
+      : null;
+  }
+
+  private toDriverContractStatusOrNull(v: any): DriverContractStatus | null {
+    const s = String(v ?? '').trim();
+    if (!s) return null;
+
+    return (this.courierStatusAllowed as readonly string[]).includes(s)
+      ? (s as DriverContractStatus)
+      : null;
   }
 }

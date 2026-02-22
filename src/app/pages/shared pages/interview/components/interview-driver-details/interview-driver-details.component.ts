@@ -1,12 +1,6 @@
 // src/app/pages/.../interview/components/interview-driver-details/interview-driver-details.component.ts
 import { CommonModule } from '@angular/common';
-import {
-  Component,
-  EventEmitter,
-  Input,
-  Output,
-  OnInit,
-} from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { InterviewRow } from '../../interview.component';
@@ -14,6 +8,8 @@ import {
   InterviewsServiceService,
   ApiInterview,
 } from '../../../../../services/interviews/interviews-service.service';
+
+type ExpiryChipClass = 'chip--ok' | 'chip--soon' | 'chip--expired' | 'chip--unknown';
 
 @Component({
   selector: 'app-interview-driver-details',
@@ -25,6 +21,9 @@ import {
 export class InterviewDriverDetailsComponent implements OnInit {
   @Input() interview: InterviewRow | null = null;
   @Output() close = new EventEmitter<void>();
+
+  /** Thresholds */
+  private readonly SOON_DAYS = 30;
 
   constructor(
     private route: ActivatedRoute,
@@ -64,25 +63,15 @@ export class InterviewDriverDetailsComponent implements OnInit {
   get statusClass(): string {
     const status = (this.interview?.courierStatus || '').toLowerCase().trim();
 
-    if (status.startsWith('active')) {
-      return 'status-pill--hired';
-    }
-    if (status.startsWith('unreachable') || status.includes('reschedule')) {
-      return 'status-pill--in-progress';
-    }
-    if (status.startsWith('hold')) {
-      return 'status-pill--hold';
-    }
-    if (status.startsWith('resigned')) {
-      return 'status-pill--rejected';
-    }
+    if (status.startsWith('active')) return 'status-pill--hired';
+    if (status.startsWith('unreachable') || status.includes('reschedule')) return 'status-pill--in-progress';
+    if (status.startsWith('hold')) return 'status-pill--hold';
+    if (status.startsWith('resigned')) return 'status-pill--rejected';
 
     // Backward compatibility
     if (status.includes('hire')) return 'status-pill--hired';
     if (status.includes('progress')) return 'status-pill--in-progress';
-    if (status.includes('reject') || status.includes('unqualified')) {
-      return 'status-pill--rejected';
-    }
+    if (status.includes('reject') || status.includes('unqualified')) return 'status-pill--rejected';
     if (status.includes('new')) return 'status-pill--new';
 
     return 'status-pill--new';
@@ -102,6 +91,107 @@ export class InterviewDriverDetailsComponent implements OnInit {
     } else {
       this.close.emit();
     }
+  }
+
+  /* =========================
+     Clipboard helpers
+     ========================= */
+
+  async copyToClipboard(text?: string | null): Promise<void> {
+    const value = (text ?? '').trim();
+    if (!value) return;
+
+    try {
+      // Modern clipboard API
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+        return;
+      }
+
+      // Fallback (older browsers)
+      const ta = document.createElement('textarea');
+      ta.value = value;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.style.top = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    } catch {
+      // intentionally silent (UI feedback optional)
+    }
+  }
+
+  /* =========================
+     Expiry helpers (Licenses)
+     ========================= */
+
+  /**
+   * Returns days left (>=0) or negative if expired.
+   * Returns null if date invalid / empty.
+   */
+  getDaysLeft(dateStr?: string | null): number | null {
+    const d = this.parseAnyDate(dateStr);
+    if (!d) return null;
+
+    const today = this.startOfDay(new Date());
+    const target = this.startOfDay(d);
+    const diffMs = target.getTime() - today.getTime();
+    // Convert ms to days (integer)
+    return Math.round(diffMs / (1000 * 60 * 60 * 24));
+  }
+
+  getExpiryChipClass(dateStr?: string | null): ExpiryChipClass {
+    const days = this.getDaysLeft(dateStr);
+    if (days === null) return 'chip--unknown';
+    if (days < 0) return 'chip--expired';
+    if (days <= this.SOON_DAYS) return 'chip--soon';
+    return 'chip--ok';
+  }
+
+  getExpiryChipLabel(dateStr?: string | null): string {
+    const days = this.getDaysLeft(dateStr);
+    if (days === null) return 'Unknown';
+    if (days < 0) return 'Expired';
+    if (days === 0) return 'Expires today';
+    if (days <= this.SOON_DAYS) return 'Expiring soon';
+    return 'Valid';
+  }
+
+  /**
+   * Accepts:
+   * - "YYYY-MM-DD"
+   * - ISO: "2026-01-24T00:00:00.000Z"
+   * - Any Date.parse compatible string
+   */
+  private parseAnyDate(dateStr?: string | null): Date | null {
+    const raw = (dateStr ?? '').trim();
+    if (!raw) return null;
+
+    // Handle YYYY-MM-DD safely as local date
+    const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) {
+      const y = Number(m[1]);
+      const mo = Number(m[2]); // 1-12
+      const d = Number(m[3]);  // 1-31
+      const dt = new Date(y, mo - 1, d);
+      // validate
+      if (dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d) return dt;
+      return null;
+    }
+
+    // Fallback to Date.parse
+    const t = Date.parse(raw);
+    if (Number.isNaN(t)) return null;
+    return new Date(t);
+  }
+
+  private startOfDay(d: Date): Date {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    return x;
   }
 
   /* ====== Load interview when used as page ====== */
@@ -152,6 +242,11 @@ export class InterviewDriverDetailsComponent implements OnInit {
       followUp3: api.followUp3 ?? '',
       courierStatus: api.courierStatus ?? '',
       notes: api.notes ?? '',
+
+      // ✅ Licenses
+      vLicenseExpiryDate: api.vLicenseExpiryDate ?? '',
+      dLicenseExpiryDate: api.dLicenseExpiryDate ?? '',
+      idExpiryDate: api.idExpiryDate ?? '',
     };
   }
 }

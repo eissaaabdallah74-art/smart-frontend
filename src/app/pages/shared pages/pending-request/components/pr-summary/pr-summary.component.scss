@@ -1,0 +1,216 @@
+:host {
+  --surface: #ffffff;
+  --surface-alt: #f9fafb;
+  --border: #e5e7eb;
+  --ink-main: #111827;
+  --ink-muted: #6b7280;
+  --brand: #ef7f1a;      /* Users */
+  --brand-dark: #112535; /* Users */
+  --shadow-card: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+/* Outer card (same vibe as UsersCard) */
+.summary-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  box-shadow: var(--shadow-card);
+  padding: 1rem;
+  overflow: hidden;
+
+  @media (max-width: 480px) {
+    padding: 0.85rem;
+  }
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+
+  .empty-icon {
+    font-size: 3rem;
+    color: #cbd5e1;
+    margin-bottom: 0.75rem;
+  }
+
+  h3 {
+    margin: 0 0 0.4rem;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--ink-main);
+  }
+
+  p {
+    margin: 0;
+    color: var(--ink-muted);
+    font-size: 0.9rem;
+  }
+}
+
+/* Summary */
+.summary-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.summary-table-wrap {
+  overflow: auto;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+  position: relative;
+
+  /* nicer scrollbar */
+  scroll-behavior: smooth;
+
+  &::-webkit-scrollbar {
+    height: 9px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #e5e7eb;
+    border-radius: 999px;
+  }
+
+  /* subtle edge fade for overflow */
+  &::before,
+  &::after {
+    content: "";
+    position: sticky;
+    top: 0;
+    width: 18px;
+    height: 100%;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  &::before {
+    left: 0;
+    float: left;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0));
+  }
+  &::after {
+    right: 0;
+    float: right;
+    background: linear-gradient(to left, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0));
+  }
+}
+
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 980px;
+
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    text-align: left;
+    padding: 0.65rem 0.8rem;
+    font-weight: 900;
+    color: #64748b;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    font-size: 0.75rem;
+    background: var(--surface-alt);
+  }
+
+  tbody td,
+  tfoot td {
+    padding: 0.65rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    white-space: nowrap;
+    font-size: 0.85rem;
+    color: var(--ink-main);
+  }
+
+  /* zebra */
+  tbody tr:nth-child(even) {
+    background: var(--surface-alt);
+  }
+
+  /* hover */
+  tbody tr:hover {
+    background: rgba(239, 127, 26, 0.06);
+  }
+}
+
+/* Account cell */
+.account-cell {
+  .account-name {
+    font-weight: 900;
+    color: var(--brand-dark);
+    max-width: 360px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .account-sub {
+    margin-top: 2px;
+  }
+}
+
+/* Grand total row - brand accent */
+.grand-row {
+  background: rgba(239, 127, 26, 0.10);
+
+  td {
+    border-bottom: none;
+  }
+}
+
+.grand-label {
+  font-weight: 900;
+  color: #9a3412;
+}
+
+/* Note */
+.summary-note {
+  margin: 0;
+  padding-left: 0.2rem;
+}
+
+/* Utilities */
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  font-size: 0.8rem;
+
+  &.small {
+    font-size: 0.72rem;
+  }
+
+  &.badge {
+    padding: 0.12rem 0.48rem;
+    border-radius: 999px;
+    background: rgba(239, 127, 26, 0.12);
+    color: #9a3412;
+    border: 1px solid rgba(239, 127, 26, 0.20);
+    font-weight: 900;
+  }
+}
+
+.muted {
+  font-size: 0.8rem;
+  color: #9ca3af;
+
+  &.small {
+    font-size: 0.72rem;
+  }
+}
+
+.num {
+  text-align: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  font-size: 0.82rem;
+  color: var(--ink-main);
+}
+
+.total-strong {
+  font-weight: 900;
+  color: var(--brand-dark);
+}

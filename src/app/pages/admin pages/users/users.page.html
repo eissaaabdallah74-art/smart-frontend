@@ -32,6 +32,7 @@
           type="button"
           class="btn btn--primary"
           (click)="openAddModal()"
+          [disabled]="saving()"
         >
           <i class="ri-user-add-line" aria-hidden="true"></i>
           <span>Add User</span>
@@ -48,7 +49,7 @@
         class="field-input"
         placeholder="Search by name, email, department, position..."
         [ngModel]="search()"
-        (ngModelChange)="search.set($event)"
+        (ngModelChange)="search.set($event); applyFilters()"
       />
     </div>
 
@@ -59,8 +60,8 @@
         <select
           id="departmentFilter"
           class="field-input"
-          [(ngModel)]="departmentFilter"
-          (ngModelChange)="applyFilters()"
+          [ngModel]="departmentFilter()"
+          (ngModelChange)="departmentFilter.set($event); applyFilters()"
         >
           <option value="">All Departments</option>
           <option *ngFor="let role of roles" [value]="role">
@@ -74,8 +75,8 @@
         <select
           id="statusFilter"
           class="field-input"
-          [(ngModel)]="statusFilter"
-          (ngModelChange)="applyFilters()"
+          [ngModel]="statusFilter()"
+          (ngModelChange)="statusFilter.set($event); applyFilters()"
         >
           <option value="">All Status</option>
           <option value="active">Active</option>
@@ -88,8 +89,8 @@
         <select
           id="positionFilter"
           class="field-input"
-          [(ngModel)]="positionFilter"
-          (ngModelChange)="applyFilters()"
+          [ngModel]="positionFilter()"
+          (ngModelChange)="positionFilter.set($event); applyFilters()"
         >
           <option value="">All Positions</option>
           <option value="manager">Manager</option>
@@ -104,6 +105,7 @@
           type="button"
           class="btn btn--secondary"
           (click)="clearFilters()"
+          [disabled]="saving()"
         >
           Clear Filters
         </button>
@@ -113,9 +115,10 @@
     <!-- Table Info & Page Size -->
     <div class="table-controls">
       <div class="table-info">
-        Showing {{ paginationStats().startItem }} to {{ paginationStats().endItem }} of {{ paginationStats().totalUsers }} users
+        Showing {{ paginationStats().startItem }} to {{ paginationStats().endItem }} of
+        {{ paginationStats().totalUsers }} users
       </div>
-      
+
       <div class="page-size-control">
         <label for="pageSize" class="page-size-label">Show:</label>
         <select
@@ -158,14 +161,17 @@
                 <div class="user-email-mobile">{{ user.email }}</div>
               </div>
             </td>
+
             <td class="cell-email" data-label="Email">
               {{ user.email }}
             </td>
+
             <td class="cell-role" data-label="Department">
               <span class="department-badge" [class]="'department-' + user.role">
                 {{ formatRole(user.role) }}
               </span>
             </td>
+
             <td class="cell-position" data-label="Position">
               <span class="position-tag" *ngIf="user.position; else noPosition">
                 {{ user.position | titlecase }}
@@ -174,6 +180,7 @@
                 <span class="no-position">—</span>
               </ng-template>
             </td>
+
             <td class="cell-date" data-label="Hire Date">
               <div class="date-info">
                 <div class="date-main">{{ formatDate(user.hireDate) }}</div>
@@ -182,6 +189,7 @@
                 </div>
               </div>
             </td>
+
             <td class="cell-status" data-label="Status">
               <span
                 class="status-badge"
@@ -191,10 +199,12 @@
                 <i class="status-icon" [class]="user.isActive ? 'ri-check-line' : 'ri-close-line'"></i>
                 {{ user.isActive ? 'Active' : 'Inactive' }}
               </span>
+
               <div class="termination-date" *ngIf="!user.isActive && user.terminationDate">
                 Since {{ formatDate(user.terminationDate) }}
               </div>
             </td>
+
             <td *ngIf="isAdmin" class="cell-actions" data-label="Actions">
               <div class="actions-group">
                 <button
@@ -202,15 +212,18 @@
                   class="icon-action icon-action--edit"
                   (click)="openEditModal(user)"
                   title="Edit user"
+                  [disabled]="saving()"
                 >
                   <i class="ri-edit-line" aria-hidden="true"></i>
                   <span class="sr-only">Edit user</span>
                 </button>
+
                 <button
                   type="button"
                   class="icon-action icon-action--delete"
                   (click)="deleteUser(user.id)"
                   title="Delete user"
+                  [disabled]="saving()"
                 >
                   <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
                   <span class="sr-only">Delete user</span>
@@ -225,10 +238,12 @@
                 <i class="ri-user-search-line empty-icon"></i>
                 <h3>No users found</h3>
                 <p>No users match your search criteria. Try adjusting your filters.</p>
+
                 <button
                   *ngIf="isAdmin"
                   class="btn btn--primary"
                   (click)="openAddModal()"
+                  [disabled]="saving()"
                 >
                   <i class="ri-user-add-line"></i>
                   Add First User
@@ -240,81 +255,76 @@
       </table>
     </div>
 
-<!-- Pagination -->
-<div class="pagination" *ngIf="paginationStats().totalPages > 1">
-  <div class="pagination-info">
-    Page {{ paginationStats().currentPage }} of {{ paginationStats().totalPages }}
-  </div>
-  
-  <div class="pagination-controls">
-    <button
-      class="pagination-btn pagination-btn--prev"
-      [disabled]="!paginationStats().hasPrevious"
-      (click)="previousPage()"
-    >
-      <i class="ri-arrow-left-line"></i>
-      Previous
-    </button>
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="paginationStats().totalPages > 1">
+      <div class="pagination-info">
+        Page {{ paginationStats().currentPage }} of {{ paginationStats().totalPages }}
+      </div>
 
-    <div class="pagination-pages">
-      <!-- الصفحة الأولى -->
-      <button
-        class="pagination-page"
-        [class.pagination-page--active]="1 === paginationStats().currentPage"
-        (click)="goToPage(1)"
-      >
-        1
-      </button>
-
-      <!-- Ellipsis بعد الصفحة الأولى إذا لزم -->
-      <span 
-        class="pagination-ellipsis" 
-        *ngIf="paginationStats().currentPage > 3 && paginationStats().totalPages > 5"
-      >
-        ...
-      </span>
-
-      <!-- الصفحات الوسطى -->
-      <ng-container *ngFor="let page of numberPages()">
+      <div class="pagination-controls">
         <button
-          *ngIf="page > 1 && page < paginationStats().totalPages"
-          class="pagination-page"
-          [class.pagination-page--active]="page === paginationStats().currentPage"
-          (click)="goToPage(page)"
+          class="pagination-btn pagination-btn--prev"
+          [disabled]="!paginationStats().hasPrevious"
+          (click)="previousPage()"
         >
-          {{ page }}
+          <i class="ri-arrow-left-line"></i>
+          Previous
         </button>
-      </ng-container>
 
-      <!-- Ellipsis قبل الصفحة الأخيرة إذا لزم -->
-      <span 
-        class="pagination-ellipsis" 
-        *ngIf="paginationStats().currentPage < paginationStats().totalPages - 2 && paginationStats().totalPages > 5"
-      >
-        ...
-      </span>
+        <div class="pagination-pages">
+          <button
+            class="pagination-page"
+            [class.pagination-page--active]="1 === paginationStats().currentPage"
+            (click)="goToPage(1)"
+          >
+            1
+          </button>
 
-      <!-- الصفحة الأخيرة -->
-      <button
-        *ngIf="paginationStats().totalPages > 1"
-        class="pagination-page"
-        [class.pagination-page--active]="paginationStats().totalPages === paginationStats().currentPage"
-        (click)="goToPage(paginationStats().totalPages)"
-      >
-        {{ paginationStats().totalPages }}
-      </button>
+          <span
+            class="pagination-ellipsis"
+            *ngIf="paginationStats().currentPage > 3 && paginationStats().totalPages > 5"
+          >
+            ...
+          </span>
+
+          <ng-container *ngFor="let page of numberPages()">
+            <button
+              *ngIf="page > 1 && page < paginationStats().totalPages"
+              class="pagination-page"
+              [class.pagination-page--active]="page === paginationStats().currentPage"
+              (click)="goToPage(page)"
+            >
+              {{ page }}
+            </button>
+          </ng-container>
+
+          <span
+            class="pagination-ellipsis"
+            *ngIf="paginationStats().currentPage < paginationStats().totalPages - 2 && paginationStats().totalPages > 5"
+          >
+            ...
+          </span>
+
+          <button
+            *ngIf="paginationStats().totalPages > 1"
+            class="pagination-page"
+            [class.pagination-page--active]="paginationStats().totalPages === paginationStats().currentPage"
+            (click)="goToPage(paginationStats().totalPages)"
+          >
+            {{ paginationStats().totalPages }}
+          </button>
+        </div>
+
+        <button
+          class="pagination-btn pagination-btn--next"
+          [disabled]="!paginationStats().hasNext"
+          (click)="nextPage()"
+        >
+          Next
+          <i class="ri-arrow-right-line"></i>
+        </button>
+      </div>
     </div>
-
-    <button
-      class="pagination-btn pagination-btn--next"
-      [disabled]="!paginationStats().hasNext"
-      (click)="nextPage()"
-    >
-      Next
-      <i class="ri-arrow-right-line"></i>
-    </button>
-  </div>
-</div>
   </div>
 
   <!-- Modal -->
@@ -322,6 +332,9 @@
     *ngIf="isModalOpen()"
     [userToEdit]="userToEdit()"
     [roles]="roles"
+    [saving]="saving()"
+    [apiError]="modalApiError()"
+    [submitSuccessTick]="submitSuccessTick()"
     (close)="closeModal()"
     (submit)="submitForm($event)"
   ></app-users-form-modal>

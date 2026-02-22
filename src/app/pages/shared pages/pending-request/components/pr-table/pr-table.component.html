@@ -1,0 +1,183 @@
+<section class="pr-page">
+  <div class="pr-card">
+    <!-- Loading / Status strip -->
+    <div class="loading-bar" *ngIf="loading">Loading...</div>
+
+    <div class="table-controls">
+      <div class="table-info">
+        Showing {{ rows?.length || 0 }} requests
+      </div>
+      <!-- لو عندك page size/pagination بعدين هتحطها هنا بنفس ستايل users -->
+    </div>
+
+    <div class="table-wrapper">
+      <table class="pr-table">
+        <thead>
+          <tr>
+            <th class="th-expand"></th>
+            <th>#</th>
+            <th>Client</th>
+            <th>Hub / Zone</th>
+            <th>Priority</th>
+            <th class="th-total">Total</th>
+            <th>Vehicles</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <ng-container *ngFor="let row of rows; trackBy: trackById">
+            <!-- Main row -->
+            <tr
+              class="row"
+              (click)="toggleRowExpanded(row, $event)"
+              [class.row--open]="isRowExpanded(row)"
+            >
+              <td class="cell-expand" data-label="">
+                <button
+                  class="icon-action icon-action--chev"
+                  type="button"
+                  (click)="toggleRowExpanded(row, $event)"
+                  [attr.aria-expanded]="isRowExpanded(row)"
+                  title="Toggle details"
+                >
+                  <i
+                    class="ri-arrow-right-s-line"
+                    [class.rotate]="isRowExpanded(row)"
+                    aria-hidden="true"
+                  ></i>
+                  <span class="sr-only">Toggle details</span>
+                </button>
+              </td>
+
+              <td class="cell-id mono" data-label="#">
+                #{{ row.id || '—' }}
+              </td>
+
+              <td class="cell-primary" data-label="Client">
+                <div class="cell-stack">
+                  <div class="cell-title">
+                    {{ row.client?.name || ('Client #' + row.clientId) }}
+                  </div>
+                  <div class="cell-sub mono">{{ row.requestDate }}</div>
+                </div>
+              </td>
+
+              <td data-label="Hub / Zone">
+                <div class="cell-stack">
+                  <div class="cell-title">
+                    {{ row.hub?.name || (row.hubId ? ('Hub #' + row.hubId) : '—') }}
+                  </div>
+                  <div class="cell-sub">
+                    {{ row.zone?.name || (row.zoneId ? ('Zone #' + row.zoneId) : '—') }}
+                  </div>
+                </div>
+              </td>
+
+              <td data-label="Priority">
+                <span class="priority-badge" [ngClass]="priorityClass(row)">
+                  {{ priorityLabel(row) }}
+                </span>
+              </td>
+
+              <td class="cell-total mono" data-label="Total">
+                {{ getRowTotal(row) }}
+              </td>
+
+              <td data-label="Vehicles">
+                <div class="chips">
+                  <ng-container *ngFor="let chip of getVehicleChips(row)">
+                    <span class="chip">
+                      {{ chip.label }} <span class="mono">×{{ chip.count }}</span>
+                    </span>
+                  </ng-container>
+                  <span class="muted" *ngIf="!getVehicleChips(row).length">—</span>
+                </div>
+              </td>
+
+              <td class="cell-actions" data-label="Actions" (click)="$event.stopPropagation()">
+                <div class="actions-group">
+                  <button class="icon-action icon-action--info" type="button" (click)="details.emit(row)" title="Details">
+                    <i class="ri-eye-line" aria-hidden="true"></i>
+                    <span class="sr-only">Details</span>
+                  </button>
+
+                  <button class="icon-action icon-action--edit" type="button" (click)="edit.emit(row)" title="Edit">
+                    <i class="ri-edit-line" aria-hidden="true"></i>
+                    <span class="sr-only">Edit</span>
+                  </button>
+
+                  <button class="icon-action icon-action--delete" type="button" (click)="remove.emit(row)" title="Delete">
+                    <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
+                    <span class="sr-only">Delete</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Expanded row -->
+            <tr class="row-details" *ngIf="isRowExpanded(row)">
+              <td [attr.colspan]="8" class="details-cell">
+                <div class="details-wrap">
+                  <div class="details-head">
+                    <div class="title">Vehicles breakdown</div>
+                    <div class="muted">Click decrement to reduce one item quickly</div>
+                  </div>
+
+                  <div class="vehicles-grid">
+                    <div class="vehicle-card" *ngFor="let g of getVehicleGroups(row)">
+                      <div class="vehicle-card-head">
+                        <div class="name">{{ getVehicleLabel(g.type) }}</div>
+                        <div class="count mono">×{{ g.count }}</div>
+                      </div>
+
+                      <table class="mini-table">
+                        <thead>
+                          <tr>
+                            <th *ngFor="let c of g.cols">{{ getPricingColLabel(c) }}</th>
+                            <th class="mini-actions">Quick</th>
+                          </tr>
+                        </thead>
+
+                        <tbody>
+                          <tr>
+                            <td *ngFor="let c of g.cols" class="mono">{{ g.values[c] }}</td>
+                            <td class="mini-actions">
+                              <button
+                                class="btn btn--secondary btn--sm"
+                                type="button"
+                                (click)="onQuickDecrement(row, findItemIndexByVehicleType(row, g.type), $event)"
+                                [disabled]="findItemIndexByVehicleType(row, g.type) < 0"
+                              >
+                                -1
+                              </button>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div class="notes" *ngIf="row.notes">
+                    <div class="label">Notes</div>
+                    <div class="text">{{ row.notes }}</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+
+          <tr *ngIf="!loading && (!rows || rows.length === 0)">
+            <td colspan="8" class="empty-cell">
+              <div class="empty-state">
+                <i class="ri-inbox-2-line empty-icon"></i>
+                <h3>No requests found</h3>
+                <p>No pending requests to show right now.</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

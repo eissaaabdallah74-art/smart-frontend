@@ -14,6 +14,27 @@ export type UserRole =
 
 export type UserPosition = 'manager' | 'supervisor' | 'senior' | 'junior';
 
+/** NEW: employee dropdown item */
+export interface EmployeeOption {
+  id: number;
+  fullName: string;
+  authUserId: number | null;
+  corporateEmail: string | null;
+  department: string | null;
+  jobTitle: string | null;
+  isWorking: boolean | null;
+}
+
+/** NEW: optional employee profile returned when includeEmployee=true */
+export interface EmployeeProfileSummary {
+  id: number;
+  authUserId?: number | null;
+  fullName?: string;
+  employment?: {
+    corporateEmail?: string | null;
+  } | null;
+}
+
 export interface ApiUser {
   id: number;
   fullName: string;
@@ -21,11 +42,14 @@ export interface ApiUser {
   role: UserRole;
   position?: UserPosition | null;
   isActive: boolean;
-  hireDate?: string | null; // جديد
-  terminationDate?: string | null; // جديد
-  creationDate: string; // جديد
+  hireDate?: string | null;
+  terminationDate?: string | null;
+  creationDate: string;
   created_at?: string;
   updated_at?: string;
+
+  /** NEW */
+  employeeProfile?: EmployeeProfileSummary | null;
 }
 
 export interface CreateUserDto {
@@ -35,8 +59,11 @@ export interface CreateUserDto {
   role?: UserRole;
   position?: UserPosition | null;
   isActive?: boolean;
-  hireDate?: string | null; // جديد
-  terminationDate?: string | null; // جديد
+  hireDate?: string | null;
+  terminationDate?: string | null;
+
+  /** NEW */
+  employeeId?: number | null;
 }
 
 export interface UpdateUserDto {
@@ -46,8 +73,11 @@ export interface UpdateUserDto {
   role?: UserRole;
   position?: UserPosition | null;
   isActive?: boolean;
-  hireDate?: string | null; // جديد
-  terminationDate?: string | null; // جديد
+  hireDate?: string | null;
+  terminationDate?: string | null;
+
+  /** NEW */
+  employeeId?: number | null;
 }
 
 @Injectable({
@@ -62,6 +92,9 @@ export class UsersServiceService {
     role?: UserRole;
     active?: boolean;
     q?: string;
+
+    /** NEW */
+    includeEmployee?: boolean;
   }): Observable<ApiUser[]> {
     let httpParams = new HttpParams();
     if (params?.role) httpParams = httpParams.set('role', params.role);
@@ -69,11 +102,20 @@ export class UsersServiceService {
       httpParams = httpParams.set('active', String(params.active));
     if (params?.q) httpParams = httpParams.set('q', params.q);
 
+    // NEW
+    if (params?.includeEmployee !== undefined) {
+      httpParams = httpParams.set('includeEmployee', String(params.includeEmployee));
+    }
+
     return this.http.get<ApiUser[]>(this.baseUrl, { params: httpParams });
   }
 
-  getUser(id: number): Observable<ApiUser> {
-    return this.http.get<ApiUser>(`${this.baseUrl}/${id}`);
+  getUser(id: number, params?: { includeEmployee?: boolean }): Observable<ApiUser> {
+    let httpParams = new HttpParams();
+    if (params?.includeEmployee !== undefined) {
+      httpParams = httpParams.set('includeEmployee', String(params.includeEmployee));
+    }
+    return this.http.get<ApiUser>(`${this.baseUrl}/${id}`, { params: httpParams });
   }
 
   createUser(body: CreateUserDto): Observable<ApiUser> {
@@ -86,5 +128,26 @@ export class UsersServiceService {
 
   deleteUser(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  // ================= NEW: Employees dropdown =================
+  // GET /api/auth/employees/available?q=&isWorking=&department=&includeLinked=
+  getAvailableEmployees(params?: {
+    q?: string;
+    isWorking?: boolean;
+    department?: string;
+    includeLinked?: boolean;
+  }): Observable<EmployeeOption[]> {
+    const url = `${environment.apiUrl}/auth/employees/available`;
+    let httpParams = new HttpParams();
+
+    if (params?.q) httpParams = httpParams.set('q', params.q);
+    if (typeof params?.isWorking !== 'undefined')
+      httpParams = httpParams.set('isWorking', String(params.isWorking));
+    if (params?.department) httpParams = httpParams.set('department', params.department);
+    if (typeof params?.includeLinked !== 'undefined')
+      httpParams = httpParams.set('includeLinked', String(params.includeLinked));
+
+    return this.http.get<EmployeeOption[]>(url, { params: httpParams });
   }
 }

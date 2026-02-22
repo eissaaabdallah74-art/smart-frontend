@@ -1,129 +1,274 @@
-<div class="attendance-container">
-  <div class="page-header">
-    <div class="title">
-      <h1>Attendance Deductions</h1>
-      <p class="muted">
-        Import sheet → compute grace/penalties → review per employee.
-      </p>
-    </div>
-
-    <div class="actions">
-      <button class="btn btn-primary" type="button" (click)="goToImport()">
-        Import sheet
-      </button>
-      <button class="btn" type="button" (click)="goToMapping()">
-        Mapping
-      </button>
-      <button class="btn" type="button" (click)="goToExcuses()">
-        Excuses
-      </button>
-    </div>
-  </div>
-
-  <div class="filters-bar" [formGroup]="form">
-    <div class="field">
-      <label>Month</label>
-      <input type="month" formControlName="month" />
-    </div>
-
-    <div class="field">
-      <label>Search</label>
-      <input type="text" formControlName="q" placeholder="Employee name / National ID" />
-    </div>
-
-    <div class="field checkbox">
-      <label class="check">
-        <input type="checkbox" formControlName="includeSalary" />
-        <span>Include salary (Finance/Admin)</span>
-      </label>
-    </div>
-
-    <button class="btn btn-ghost" type="button" (click)="load()">Refresh</button>
-  </div>
-
-  <div *ngIf="state() === 'error' && errorMsg()" class="alert alert-error">
-    {{ errorMsg() }}
-  </div>
-
-  <div *ngIf="state() === 'loading'" class="loading">
-    Loading...
-  </div>
-
-  <ng-container *ngIf="state() === 'success' && summary() as s">
-    <div class="kpis">
-      <div class="kpi">
-        <div class="kpi-title">Working days (from sheet)</div>
-        <div class="kpi-value">{{ s.workingDaysCount }}</div>
+<section class="users-page">
+  <div class="users-card">
+    <!-- Header -->
+    <div class="users-header">
+      <div class="users-header-main">
+        <h1 class="users-title">
+          Attendance Deductions
+          <span class="users-count"
+            >({{ (summary()?.data?.length || 0) }})</span
+          >
+        </h1>
+        <p class="users-subtitle">
+          Import sheet → compute grace/penalties → review per employee.
+        </p>
       </div>
 
-      <div class="kpi">
-        <div class="kpi-title">Employees</div>
-        <div class="kpi-value">{{ kpiEmployeesCount() }}</div>
-      </div>
+      <div class="users-header-actions">
+        <button class="btn btn--secondary" type="button" (click)="goToMapping()">
+          <i class="ri-git-branch-line" aria-hidden="true"></i>
+          <span>Mapping</span>
+        </button>
 
-      <div class="kpi">
-        <div class="kpi-title">Total penalty days</div>
-        <div class="kpi-value">{{ kpiTotalPenaltyDays() | number: '1.0-2' }}</div>
-      </div>
+        <button class="btn btn--secondary" type="button" (click)="goToExcuses()">
+          <i class="ri-time-line" aria-hidden="true"></i>
+          <span>Excuses</span>
+        </button>
 
-      <div class="kpi" *ngIf="form.controls.includeSalary.value">
-        <div class="kpi-title">Total deduction amount</div>
-        <div class="kpi-value">{{ formatMoney(kpiTotalDeductionAmount()) }}</div>
+        <button class="btn btn--primary" type="button" (click)="goToImport()">
+          <i class="ri-upload-2-line" aria-hidden="true"></i>
+          <span>Import sheet</span>
+        </button>
       </div>
     </div>
 
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Employee</th>
-            <th class="num">Penalty days</th>
-            <th class="num">Absent days</th>
-            <th class="num">Grace used</th>
-            <th class="num">Excuse minutes</th>
+    <!-- Filters (نفس ستايل users-filters) -->
+    <div class="users-filters" [formGroup]="form">
+      <div class="filter-group">
+        <label class="field-label" for="month">Month</label>
+        <input id="month" class="field-input" type="month" formControlName="month" />
+      </div>
 
-            <th class="num" *ngIf="form.controls.includeSalary.value">Day rate</th>
-            <th class="num" *ngIf="form.controls.includeSalary.value">Deduction</th>
+      <div class="filter-group">
+        <label class="field-label" for="q">Search</label>
+        <input
+          id="q"
+          class="field-input"
+          type="text"
+          formControlName="q"
+          placeholder="Employee name / National ID"
+        />
+      </div>
 
-            <th class="actions-col">Action</th>
-          </tr>
-        </thead>
+      <div class="filter-group checkbox-group">
+        <label class="check">
+          <input type="checkbox" formControlName="includeSalary" />
+          <span>Include salary (Finance/Admin)</span>
+        </label>
+      </div>
 
-        <tbody>
-          <tr *ngFor="let r of filteredRows()">
-            <td>
-              <div class="emp">
-                <div class="name">{{ r.employee?.fullName || ('Employee #' + r.employeeId) }}</div>
-                <div class="meta" *ngIf="r.employee?.nationalId">NID: {{ r.employee?.nationalId }}</div>
-              </div>
-            </td>
+      <div class="filter-group clear-filters">
+        <button class="btn btn--secondary" type="button" (click)="load()">
+          Refresh
+        </button>
+      </div>
+    </div>
 
-            <td class="num">{{ r.totalPenaltyDays | number: '1.0-2' }}</td>
-            <td class="num">{{ r.absentDays }}</td>
-            <td class="num">{{ r.graceUsedCount }}</td>
-            <td class="num">{{ r.totalExcuseMinutes }}</td>
+    <!-- Status -->
+    <div *ngIf="state() === 'error' && errorMsg()" class="alert alert-error">
+      {{ errorMsg() }}
+    </div>
 
-            <td class="num" *ngIf="form.controls.includeSalary.value">
-              {{ formatMoney(r.dayRate) }}
-            </td>
-            <td class="num" *ngIf="form.controls.includeSalary.value">
-              {{ formatMoney(r.deductionAmount) }}
-            </td>
+    <div *ngIf="state() === 'loading'" class="loading">
+      Loading...
+    </div>
 
-            <td class="actions-col">
-              <button class="btn btn-small" type="button" (click)="openEmployee(r)">
-                View
+    <!-- KPIs -->
+    <ng-container *ngIf="state() === 'success' && summary() as s">
+      <div class="kpis users-kpis">
+        <div class="kpi">
+          <div class="kpi-title">Working days (from sheet)</div>
+          <div class="kpi-value">{{ s.workingDaysCount }}</div>
+        </div>
+
+        <div class="kpi">
+          <div class="kpi-title">Employees</div>
+          <div class="kpi-value">{{ kpiEmployeesCount() }}</div>
+        </div>
+
+        <div class="kpi">
+          <div class="kpi-title">Total penalty days</div>
+          <div class="kpi-value">{{ kpiTotalPenaltyDays() | number: '1.0-2' }}</div>
+        </div>
+
+        <div class="kpi" *ngIf="form.controls.includeSalary.value">
+          <div class="kpi-title">Total deduction amount</div>
+          <div class="kpi-value">{{ formatMoney(kpiTotalDeductionAmount()) }}</div>
+        </div>
+      </div>
+
+      <!-- Table Info (نفس ستايل table-controls) -->
+      <div class="table-controls">
+        <div class="table-info">
+          Showing {{ filteredRows().length }} employees for {{ form.controls.month.value }}
+        </div>
+
+        <div class="page-size-control">
+          <span class="page-size-text">
+            Salary columns: {{ form.controls.includeSalary.value ? 'ON' : 'OFF' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrapper">
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th class="num">Penalty days</th>
+              <th class="num">Absent days</th>
+              <th class="num">Grace used</th>
+              <th class="num">Excuse minutes</th>
+
+              <th class="num" *ngIf="form.controls.includeSalary.value">Day rate</th>
+              <th class="num" *ngIf="form.controls.includeSalary.value">Deduction</th>
+
+              <th class="th-actions">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let r of paginatedRows(); trackBy: trackByEmployeeId" class="row">
+              <td class="cell-primary" data-label="Employee">
+                <div class="user-info">
+                  <div class="user-name">
+                    {{ r.employee?.fullName || ('Employee #' + r.employeeId) }}
+                  </div>
+                  <div class="user-email-mobile" *ngIf="r.employee?.nationalId">
+                    NID: {{ r.employee?.nationalId }}
+                  </div>
+                </div>
+              </td>
+
+              <td class="num" data-label="Penalty days">
+                {{ r.totalPenaltyDays | number: '1.0-2' }}
+              </td>
+
+              <td class="num" data-label="Absent days">
+                {{ r.absentDays }}
+              </td>
+
+              <td class="num" data-label="Grace used">
+                {{ r.graceUsedCount }}
+              </td>
+
+              <td class="num" data-label="Excuse minutes">
+                {{ r.totalExcuseMinutes }}
+              </td>
+
+              <td class="num" data-label="Day rate" *ngIf="form.controls.includeSalary.value">
+                {{ formatMoney(r.dayRate) }}
+              </td>
+
+              <td class="num" data-label="Deduction" *ngIf="form.controls.includeSalary.value">
+                {{ formatMoney(r.deductionAmount) }}
+              </td>
+
+              <td class="cell-actions" data-label="Actions">
+                <div class="actions-group">
+                  <button
+                    type="button"
+                    class="btn btn--secondary btn--sm"
+                    (click)="openEmployee(r)"
+                    title="View details"
+                  >
+                    <i class="ri-eye-line" aria-hidden="true"></i>
+                    <span>View</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <tr *ngIf="filteredRows().length === 0">
+              <td class="empty-cell" [attr.colspan]="form.controls.includeSalary.value ? 8 : 6">
+                <div class="empty-state">
+                  <i class="ri-file-search-line empty-icon"></i>
+                  <h3>No data found</h3>
+                  <p>No attendance data for the selected month or your search.</p>
+                  <button class="btn btn--primary" (click)="goToImport()">
+                    <i class="ri-upload-2-line"></i>
+                    Import sheet
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination (نفس ستايل users) -->
+      <div class="pagination" *ngIf="rowsPaginationStats().totalPages > 1">
+        <div class="pagination-info">
+          Page {{ rowsPaginationStats().currentPage }} of
+          {{ rowsPaginationStats().totalPages }}
+        </div>
+
+        <div class="pagination-controls">
+          <button
+            class="pagination-btn pagination-btn--prev"
+            [disabled]="!rowsPaginationStats().hasPrevious"
+            (click)="previousPage()"
+          >
+            <i class="ri-arrow-left-line"></i>
+            Previous
+          </button>
+
+          <div class="pagination-pages">
+            <button
+              class="pagination-page"
+              [class.pagination-page--active]="1 === rowsPaginationStats().currentPage"
+              (click)="goToPage(1)"
+            >
+              1
+            </button>
+
+            <span
+              class="pagination-ellipsis"
+              *ngIf="rowsPaginationStats().currentPage > 3 && rowsPaginationStats().totalPages > 5"
+              >...</span
+            >
+
+            <ng-container *ngFor="let page of numberPages()">
+              <button
+                *ngIf="page > 1 && page < rowsPaginationStats().totalPages"
+                class="pagination-page"
+                [class.pagination-page--active]="page === rowsPaginationStats().currentPage"
+                (click)="goToPage(page)"
+              >
+                {{ page }}
               </button>
-            </td>
-          </tr>
+            </ng-container>
 
-          <tr *ngIf="filteredRows().length === 0">
-            <td [attr.colspan]="form.controls.includeSalary.value ? 8 : 6" class="empty">
-              No data for selected month.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </ng-container>
-</div>
+            <span
+              class="pagination-ellipsis"
+              *ngIf="
+                rowsPaginationStats().currentPage < rowsPaginationStats().totalPages - 2 &&
+                rowsPaginationStats().totalPages > 5
+              "
+              >...</span
+            >
+
+            <button
+              *ngIf="rowsPaginationStats().totalPages > 1"
+              class="pagination-page"
+              [class.pagination-page--active]="rowsPaginationStats().totalPages === rowsPaginationStats().currentPage"
+              (click)="goToPage(rowsPaginationStats().totalPages)"
+            >
+              {{ rowsPaginationStats().totalPages }}
+            </button>
+          </div>
+
+          <button
+            class="pagination-btn pagination-btn--next"
+            [disabled]="!rowsPaginationStats().hasNext"
+            (click)="nextPage()"
+          >
+            Next
+            <i class="ri-arrow-right-line"></i>
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</section>

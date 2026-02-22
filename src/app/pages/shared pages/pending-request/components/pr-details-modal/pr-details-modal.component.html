@@ -1,0 +1,78 @@
+<div class="modal-backdrop" *ngIf="open" (click)="close.emit()">
+  <div class="modal" (click)="stop($event)">
+    <div class="modal-head">
+      <div class="title">
+        Request Details <span class="mono" *ngIf="row?.id">#{{ row?.id }}</span>
+      </div>
+      <button class="icon-x" type="button" (click)="close.emit()">✕</button>
+    </div>
+
+    <ng-container *ngIf="row; else noRowTpl">
+      <div class="meta">
+        <div class="meta-card">
+          <div class="k">Client</div>
+          <div class="v">{{ row.client?.name || ('Client #' + row.clientId) }}</div>
+        </div>
+
+        <div class="meta-card">
+          <div class="k">Hub</div>
+          <div class="v">{{ row.hub?.name || (row.hubId ? ('Hub #' + row.hubId) : '—') }}</div>
+        </div>
+
+        <div class="meta-card">
+          <div class="k">Zone</div>
+          <div class="v">{{ row.zone?.name || (row.zoneId ? ('Zone #' + row.zoneId) : '—') }}</div>
+        </div>
+
+        <div class="meta-card">
+          <div class="k">Priority</div>
+          <div class="v">
+            <span class="priority-pill" [ngClass]="priorityClass(row)">{{ priorityLabel(row) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Items</div>
+
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>Vehicle</th>
+              <th class="mono">Count</th>
+              <th class="mono">Order</th>
+              <th class="mono">Guarantee</th>
+              <th class="mono">Fixed</th>
+              <th class="mono">Allowance</th>
+              <th class="mono">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let it of row.items || []">
+              <td>{{ getVehicleLabel(it.vehicleType) }}</td>
+              <td class="mono">{{ it.vehicleCount ?? 0 }}</td>
+              <td class="mono">{{ it.orderPrice ?? '—' }}</td>
+              <td class="mono">{{ it.guaranteeMinOrders ?? '—' }}</td>
+              <td class="mono">{{ it.fixedAmount ?? '—' }}</td>
+              <td class="mono">{{ it.allowanceAmount ?? '—' }}</td>
+              <td class="mono">{{ it.totalAmount ?? '—' }}</td>
+            </tr>
+
+            <tr *ngIf="!(row.items?.length)">
+              <td colspan="7" class="empty">No items</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section" *ngIf="row.notes">
+        <div class="section-title">Notes</div>
+        <div class="notes">{{ row.notes }}</div>
+      </div>
+    </ng-container>
+
+    <ng-template #noRowTpl>
+      <div class="empty-block">No data</div>
+    </ng-template>
+  </div>
+</div>

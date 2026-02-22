@@ -1,8 +1,16 @@
 // src/app/components/sidebar/sidebar.component.ts
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnInit, computed, inject } from '@angular/core';
+import {
+  Component,
+  Input,
+  OnInit,
+  computed,
+  inject,
+  DestroyRef,
+} from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { filter } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { Permissions } from '../../models/types';
 import { AuthRole, AuthPosition } from '../../services/auth/auth-service.service';
@@ -22,58 +30,44 @@ export class SidebarComponent implements OnInit {
   @Input() role!: AuthRole;
   @Input() position: AuthPosition | null = null;
 
-  // جروب واحد بس يبقى مفتوح
-  openGroup: SidebarGroup = 'operations';
-
-  // nested contracts تحت HR (لو عندك استخدام له بعدين)
-  hrContractsOpen = false;
+  openGroup: SidebarGroup = null;
 
   private readonly bgFollowService = inject(BackgroundFollowUpService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+
+  private currentUrl = '';
 
   readonly bgFollowUpCount = computed(() => this.bgFollowService.pendingCount());
 
   ngOnInit(): void {
+    // background follow-up badge
     this.bgFollowService.refresh();
 
-    this.syncMenusWithUrl(this.router.url);
+    // init url + group
+    this.currentUrl = this.router.url || '';
+    this.syncMenusWithUrl(this.currentUrl);
 
+    // keep syncing on navigation
     this.router.events
-      .pipe(filter((e) => e instanceof NavigationEnd))
+      .pipe(
+        filter((e) => e instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe((e) => {
         const ev = e as NavigationEnd;
-        const url = ev.urlAfterRedirects || ev.url;
+        const url = ev.urlAfterRedirects || ev.url || '';
+        this.currentUrl = url;
         this.syncMenusWithUrl(url);
       });
-  }
 
-  private syncMenusWithUrl(url: string): void {
-    // Tracking top-level
-    if (url.startsWith('/operations/tracking')) {
-      this.openGroup = 'tracking';
-      return;
-    }
-
-    // Sub Contractors under Operations
-    if (url.startsWith('/operations/sub-contractors')) {
-      this.openGroup = 'operations';
-      return;
-    }
-
-    // Drivers page exists but hidden from sidebar for now
-    if (url.startsWith('/drivers')) {
-      this.openGroup = 'operations';
-      return;
-    }
-
-    // any other operations pages
-    if (url.startsWith('/operations')) {
-      this.openGroup = 'operations';
-      return;
+    // default open group (if no match happened)
+    if (!this.openGroup) {
+      this.openGroup = this.getDefaultGroupByRole();
     }
   }
 
-  // ===== Helpers بحسب الـ role =====
+  // ===== Role helpers =====
   get isAdmin(): boolean {
     return this.role === 'admin';
   }
@@ -94,7 +88,7 @@ export class SidebarComponent implements OnInit {
     return this.role === 'crm';
   }
 
-  // ===== Positions داخل Operations =====
+  // ===== positions داخل operations =====
   get isOperationManagerOrSupervisor(): boolean {
     if (this.role !== 'operation') return false;
     return this.position === 'manager' || this.position === 'supervisor';
@@ -105,12 +99,112 @@ export class SidebarComponent implements OnInit {
     return this.position === 'senior' || this.position === 'junior';
   }
 
-  // ===== Top-level accordion =====
+  // ===== Menu visibility (logical) =====
+  get canSeeOperationsGroup(): boolean {
+    // group contains shared pages (pending/interviews) + operations pages
+    return this.isAdmin || this.isOperations || this.isHr || this.isCrm || this.isFinance;
+  }
+
+  get canSeeCrmGroup(): boolean {
+    // /clients is allowed for crm + operation + finance (and admin often)
+    return this.isAdmin || this.isCrm || this.isOperations || this.isFinance;
+  }
+
+  get canSeePendingRequests(): boolean {
+    // based on your route data
+    return this.isAdmin || this.isHr || this.isOperations || this.isCrm || this.isFinance;
+  }
+
+  get canSeeInterviews(): boolean {
+    // based on your route data (hr/admin/operation/supply_chain/crm/finance)
+    return this.isAdmin || this.isHr || this.isOperations || this.isCrm || this.isFinance;
+  }
+
+  // ===== UI actions =====
   toggleGroup(group: Exclude<SidebarGroup, null>): void {
     this.openGroup = this.openGroup === group ? null : group;
   }
 
-  toggleHrContracts(): void {
-    this.hrContractsOpen = !this.hrContractsOpen;
+  // highlight parent group as active when any child route is active
+  isGroupActive(group: Exclude<SidebarGroup, null>): boolean {
+    const url = this.currentUrl || '';
+    const hasAnyPrefix = (prefixes: string[]) =>
+      prefixes.some((p) => url === p || url.startsWith(p + '/') || url.startsWith(p + '?'));
+
+    switch (group) {
+      case 'hr':
+        return hasAnyPrefix(['/hr', '/attendance/requests', '/employment-contracts-status', '/security-background-check']);
+      case 'tracking':
+        return hasAnyPrefix(['/operations/tracking', '/drivers-tracking', '/drivers-tracking-details']);
+      case 'crm':
+        return hasAnyPrefix(['/clients', '/crm']);
+      case 'finance':
+        return hasAnyPrefix(['/finance']);
+      case 'operations':
+        return hasAnyPrefix([
+          '/pending-requests',
+          '/interviews',
+          '/calls',
+          '/my-calls',
+          '/operations',
+        ]);
+      default:
+        return false;
+    }
+  }
+
+  private syncMenusWithUrl(url: string): void {
+    // HR pages + My attendance requests
+    if (
+      url.startsWith('/hr') ||
+      url.startsWith('/attendance/requests') ||
+      url.startsWith('/employment-contracts-status') ||
+      url.startsWith('/security-background-check')
+    ) {
+      this.openGroup = 'hr';
+      return;
+    }
+
+    // Tracking
+    if (
+      url.startsWith('/operations/tracking') ||
+      url.startsWith('/drivers-tracking') ||
+      url.startsWith('/drivers-tracking-details')
+    ) {
+      this.openGroup = 'tracking';
+      return;
+    }
+
+    // CRM
+    if (url.startsWith('/clients') || url.startsWith('/crm')) {
+      this.openGroup = 'crm';
+      return;
+    }
+
+    // Finance
+    if (url.startsWith('/finance')) {
+      this.openGroup = 'finance';
+      return;
+    }
+
+    // Operations
+    if (
+      url.startsWith('/operations') ||
+      url.startsWith('/pending-requests') ||
+      url.startsWith('/interviews') ||
+      url.startsWith('/calls') ||
+      url.startsWith('/my-calls')
+    ) {
+      this.openGroup = 'operations';
+      return;
+    }
+  }
+
+  private getDefaultGroupByRole(): Exclude<SidebarGroup, null> {
+    if (this.isHr) return 'hr';
+    if (this.isFinance) return 'finance';
+    if (this.isCrm) return 'crm';
+    if (this.isOperations) return 'operations';
+    return 'hr'; // safe default (because it contains "My attendance requests")
   }
 }

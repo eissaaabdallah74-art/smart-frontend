@@ -1,6 +1,6 @@
 <div class="modal-backdrop" (click)="close.emit()"></div>
 
-<div class="modal">
+<div class="modal" (click)="$event.stopPropagation()">
   <div class="modal-head">
     <div class="title">
       {{ employeeToEdit ? 'Edit Employee' : 'Add Employee' }}
@@ -11,16 +11,31 @@
   </div>
 
   <div class="modal-body">
+    <!-- ✅ Status INSIDE the form -->
+    <app-status-msg
+      *ngIf="status"
+      class="modal-status"
+      [type]="status.type"
+      [message]="status.message"
+      (close)="clearStatus.emit()"
+    ></app-status-msg>
+
     <div class="grid">
       <!-- ===== Personal ===== -->
       <div class="field">
         <label>Full Name *</label>
-        <input [(ngModel)]="form.fullName" />
+        <input [(ngModel)]="form.fullName" [class.invalid]="submitted && !form.fullName.trim()" />
+        <div class="field-error" *ngIf="submitted && !form.fullName.trim()">
+          Full name is required.
+        </div>
       </div>
 
       <div class="field">
         <label>National ID *</label>
-        <input [(ngModel)]="form.nationalId" />
+        <input [(ngModel)]="form.nationalId" [class.invalid]="submitted && !form.nationalId.trim()" />
+        <div class="field-error" *ngIf="submitted && !form.nationalId.trim()">
+          National ID is required.
+        </div>
       </div>
 
       <div class="field">
@@ -79,16 +94,15 @@
         </select>
       </div>
 
-<div class="field">
-  <label>Department</label>
-  <select [(ngModel)]="form.employment.department">
-    <option [ngValue]="null">— Select department —</option>
-    <option *ngFor="let d of departmentOptions" [ngValue]="d.key">
-      {{ d.label }}
-    </option>
-  </select>
-</div>
-
+      <div class="field">
+        <label>Department</label>
+        <select [(ngModel)]="form.employment.department">
+          <option [ngValue]="null">— Select department —</option>
+          <option *ngFor="let d of departmentOptions" [ngValue]="d.key">
+            {{ d.label }}
+          </option>
+        </select>
+      </div>
 
       <div class="field">
         <label>Job Title</label>

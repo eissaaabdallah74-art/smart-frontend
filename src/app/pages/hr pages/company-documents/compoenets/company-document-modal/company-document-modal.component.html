@@ -1,0 +1,184 @@
+<!-- src/app/pages/hr pages/company-documents/components/company-document-modal/company-document-modal.component.html -->
+
+<div *ngIf="open" class="modal-backdrop" (click)="requestClose()"></div>
+
+<section
+  *ngIf="open"
+  class="modal"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Company document modal"
+  (click)="$event.stopPropagation()"
+>
+  <header class="modal-head">
+    <div class="modal-head__title">
+      <h3 class="modal-title">{{ title() }}</h3>
+      <p class="modal-sub">
+        {{ isView() ? 'Viewing document details.' : 'Fill the form — save will update the list instantly.' }}
+      </p>
+    </div>
+
+    <button
+      class="icon-btn"
+      type="button"
+      (click)="requestClose()"
+      [disabled]="busy"
+      aria-label="Close"
+      title="Close"
+    >
+      ×
+    </button>
+  </header>
+
+  <!-- Smart Preview (UX) -->
+  <div class="smart-preview" *ngIf="previewText() as p">
+    <i class="ri-magic-line" aria-hidden="true"></i>
+    <div class="smart-preview__text">
+      <div class="smart-preview__main">{{ p.main }}</div>
+      <div class="smart-preview__sub" *ngIf="p.sub">{{ p.sub }}</div>
+    </div>
+  </div>
+
+  <form class="modal-body" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="form-grid">
+      <!-- Company -->
+      <div class="form-group">
+        <label class="form-label">
+          Company <span class="req">*</span>
+        </label>
+        <select class="form-input" formControlName="companyId" data-autofocus="1">
+          <option value="">Select company</option>
+          <option *ngFor="let c of companies" [value]="c.id">
+            {{ (c.code ? (c.code + ' — ') : '') + c.name }}
+          </option>
+        </select>
+        <div class="error-message" *ngIf="form.get('companyId')?.touched && form.get('companyId')?.invalid">
+          Required
+        </div>
+      </div>
+
+      <!-- Type -->
+      <div class="form-group">
+        <label class="form-label">
+          Document Type <span class="req">*</span>
+        </label>
+        <select class="form-input" formControlName="typeId">
+          <option value="">Select type</option>
+          <option *ngFor="let t of types" [value]="t.id">
+            {{ t.nameEn || t.name || t.code || ('Type #' + t.id) }}
+          </option>
+        </select>
+        <div class="error-message" *ngIf="form.get('typeId')?.touched && form.get('typeId')?.invalid">
+          Required
+        </div>
+      </div>
+
+      <!-- Doc number -->
+      <div class="form-group">
+        <label class="form-label">Document Number</label>
+        <input class="form-input" formControlName="documentNumber" placeholder="e.g. 27917 / 709-326-777" />
+      </div>
+
+      <!-- Issue date -->
+      <div class="form-group">
+        <label class="form-label">Issue Date</label>
+        <input class="form-input" type="date" formControlName="issueDate" />
+      </div>
+
+      <!-- Ongoing toggle (smart UX) -->
+      <div class="form-group form-group--full">
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="isOngoing" />
+          <span>Ongoing (no expiry)</span>
+        </label>
+        <div class="help-text">
+          If enabled, expiry date & validity years will be cleared/disabled.
+        </div>
+      </div>
+
+      <!-- Expiry date -->
+      <div class="form-group">
+        <label class="form-label">Expiry Date</label>
+        <input class="form-input" type="date" formControlName="expiryDate" />
+        <div class="help-text">
+          Tip: If validity years is set + issue date, expiry can auto-calc.
+        </div>
+      </div>
+
+      <!-- Validity years -->
+      <div class="form-group">
+        <label class="form-label">Validity (years)</label>
+        <input class="form-input" type="number" formControlName="validityYears" placeholder="e.g. 25" />
+        <div class="help-text">
+          Useful for incorporation contracts (25 years) and similar docs.
+        </div>
+      </div>
+
+      <!-- Location -->
+      <div class="form-group form-group--full">
+        <label class="form-label">Current Location</label>
+        <input class="form-input" formControlName="currentLocation" placeholder="e.g. Admin safe / Lawyer office" />
+      </div>
+
+      <!-- Custodian role -->
+      <div class="form-group">
+        <label class="form-label">Custodian Role</label>
+        <select class="form-input" formControlName="custodianRole">
+          <option value="">—</option>
+          <option value="LAWYER">LAWYER</option>
+          <option value="EMPLOYEE">EMPLOYEE</option>
+          <option value="OTHER">OTHER</option>
+        </select>
+      </div>
+
+      <!-- Custodian name -->
+      <div class="form-group">
+        <label class="form-label">Custodian Name</label>
+        <input class="form-input" formControlName="custodianName" placeholder="e.g. Mr. Ahmed" />
+      </div>
+
+      <!-- Custodian phone -->
+      <div class="form-group">
+        <label class="form-label">Custodian Phone</label>
+        <input class="form-input" formControlName="custodianPhone" placeholder="010xxxxxxxx" />
+      </div>
+
+      <!-- Custodian org -->
+      <div class="form-group">
+        <label class="form-label">Custodian Organization</label>
+        <input class="form-input" formControlName="custodianOrganization" placeholder="e.g. Office name" />
+      </div>
+
+      <!-- Reminder date -->
+      <div class="form-group">
+        <label class="form-label">Reminder Date</label>
+        <input class="form-input" type="date" formControlName="remindAt" />
+        <div class="help-text">
+          If empty + expiry exists, reminder can auto-set using type default days.
+        </div>
+      </div>
+
+      <!-- Reminder note -->
+      <div class="form-group">
+        <label class="form-label">Reminder Note</label>
+        <input class="form-input" formControlName="remindNote" placeholder="e.g. Renew after 3 months" />
+      </div>
+
+      <!-- Notes -->
+      <div class="form-group form-group--full">
+        <label class="form-label">Notes</label>
+        <textarea class="form-input" formControlName="notes" rows="3" placeholder="Internal notes..."></textarea>
+      </div>
+    </div>
+
+    <footer class="modal-foot">
+      <button type="button" class="btn btn--secondary" (click)="requestClose()" [disabled]="busy">
+        Cancel
+      </button>
+
+      <button *ngIf="!isView()" type="submit" class="btn btn--primary" [disabled]="busy">
+        {{ mode === 'CREATE' ? 'Add Document' : 'Save Changes' }}
+      </button>
+    </footer>
+  </form>
+</section>

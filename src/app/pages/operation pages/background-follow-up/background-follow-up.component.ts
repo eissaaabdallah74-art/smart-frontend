@@ -1,4 +1,3 @@
-// src/app/pages/operation pages/background-follow-up/background-follow-up.component.ts
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
@@ -11,6 +10,9 @@ import {
 } from '../../../services/interviews/interviews-service.service';
 
 import { ExportButtonComponent } from '../../../shared/export-button/export-button';
+
+import type { DriverContractStatus, SignedWithHrStatus } from '../../../shared/enums/driver-enums';
+import { DRIVER_CONTRACT_STATUSES } from '../../../shared/enums/driver-enums';
 
 type HrFeedback = string | null;
 
@@ -30,7 +32,7 @@ interface FollowUpRow {
 
   vehicleType: string | null;
 
-  courierStatus: string | null;
+  courierStatus: DriverContractStatus | null;
 
   feedback: string | null;
   hrFeedback: HrFeedback;
@@ -40,7 +42,7 @@ interface FollowUpRow {
   followUp2: string | null;
   followUp3: string | null;
 
-  signedWithHr: string | null;
+  signedWithHr: SignedWithHrStatus | null;
 
   securityResult: SecurityResult | null;
   notes: string | null;
@@ -85,13 +87,8 @@ export class BackgroundFollowUpComponent implements OnInit {
   readonly saving = signal<boolean>(false);
   readonly errorMessage = signal<string>('');
 
-  // status options (لو عندك enum ثابتة في السيستم عدّلها)
-  readonly statusOptions = [
-    'PENDING',
-    'ON_HOLD',
-    'INACTIVE',
-    'ACTIVE',
-  ];
+  // ✅ Enum options (new)
+  readonly statusOptions: DriverContractStatus[] = [...DRIVER_CONTRACT_STATUSES];
 
   ngOnInit(): void {
     this.load();
@@ -103,7 +100,7 @@ export class BackgroundFollowUpComponent implements OnInit {
     this.interviewsService.getInterviews().subscribe({
       next: (list: ApiInterview[]) => {
         // المطلوب: securityResult = Negative && status != Active
-        const mapped = list
+        const mapped = (list || [])
           .filter((i) => (i.securityResult || '') === 'Negative')
           .filter((i) => !this.isActiveStatus(i.courierStatus))
           .map((i) => this.mapApiToRow(i));
@@ -155,7 +152,7 @@ export class BackgroundFollowUpComponent implements OnInit {
   }
 
   // ===== Helpers =====
-  private isActiveStatus(status: string | null | undefined): boolean {
+  private isActiveStatus(status: DriverContractStatus | null | undefined): boolean {
     const s = (status || '').toLowerCase().trim();
     return s === 'active' || s.startsWith('active');
   }
@@ -262,14 +259,10 @@ export class BackgroundFollowUpComponent implements OnInit {
 
   // ===== Pagination =====
   readonly totalPages = computed(() =>
-    this.filtered().length
-      ? Math.ceil(this.filtered().length / this.pageSize())
-      : 1,
+    this.filtered().length ? Math.ceil(this.filtered().length / this.pageSize()) : 1,
   );
 
-  readonly startIndex = computed(
-    () => (this.currentPage() - 1) * this.pageSize(),
-  );
+  readonly startIndex = computed(() => (this.currentPage() - 1) * this.pageSize());
 
   readonly endIndex = computed(() =>
     Math.min(this.startIndex() + this.pageSize(), this.filtered().length),
@@ -289,11 +282,7 @@ export class BackgroundFollowUpComponent implements OnInit {
     const range: number[] = [];
     const out: (number | string)[] = [];
 
-    for (
-      let i = Math.max(2, current - delta);
-      i <= Math.min(total - 1, current + delta);
-      i++
-    ) {
+    for (let i = Math.max(2, current - delta); i <= Math.min(total - 1, current + delta); i++) {
       range.push(i);
     }
 
@@ -319,8 +308,7 @@ export class BackgroundFollowUpComponent implements OnInit {
   }
 
   nextPage(): void {
-    if (this.currentPage() < this.totalPages())
-      this.currentPage.set(this.currentPage() + 1);
+    if (this.currentPage() < this.totalPages()) this.currentPage.set(this.currentPage() + 1);
   }
 
   onPageSizeChange(size: string): void {
@@ -362,7 +350,6 @@ export class BackgroundFollowUpComponent implements OnInit {
   }
 
   openEdit(row: FollowUpRow): void {
-    // clone عشان Cancel ما يبوظش الصف
     this.editRow.set({ ...row });
     this.errorMessage.set('');
     this.isEditOpen.set(true);
@@ -388,8 +375,7 @@ export class BackgroundFollowUpComponent implements OnInit {
     this.errorMessage.set('');
 
     const dto: UpdateInterviewDto = {
-      // أهم المطلوب للفولو-أب:
-      courierStatus: row.courierStatus ?? null,
+      courierStatus: (row.courierStatus ?? null) as any,
       followUp1: row.followUp1 ?? null,
       followUp2: row.followUp2 ?? null,
       followUp3: row.followUp3 ?? null,
@@ -398,7 +384,6 @@ export class BackgroundFollowUpComponent implements OnInit {
 
     this.interviewsService.updateInterview(row.id, dto).subscribe({
       next: (updated: ApiInterview) => {
-        // لو بقى Active بعد التعديل: لازم يتشال من القائمة
         if (this.isActiveStatus(updated.courierStatus)) {
           this.rows.update((list) => list.filter((r) => r.id !== updated.id));
           this.closeEdit();
@@ -406,17 +391,12 @@ export class BackgroundFollowUpComponent implements OnInit {
         }
 
         const updatedRow = this.mapApiToRow(updated);
-        this.rows.update((list) =>
-          list.map((r) => (r.id === updatedRow.id ? updatedRow : r)),
-        );
-
+        this.rows.update((list) => list.map((r) => (r.id === updatedRow.id ? updatedRow : r)));
         this.closeEdit();
       },
       error: (err) => {
         console.error('Failed to update follow-up', err);
-        this.errorMessage.set(
-          err?.error?.message || 'Failed to save changes. Please try again.',
-        );
+        this.errorMessage.set(err?.error?.message || 'Failed to save changes. Please try again.');
         this.saving.set(false);
       },
     });

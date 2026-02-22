@@ -1,250 +1,436 @@
-<div class="emp-attendance-container">
-  <div class="page-header">
-    <div class="title">
-      <h1>Attendance – Employee</h1>
-      <p class="muted" *ngIf="data() as d">
-        {{ d.employee.fullName }}
-        <span class="dot" *ngIf="d.employee.department">•</span>
-        <span *ngIf="d.employee.department">{{ d.employee.department }}</span>
-        <span class="dot">•</span>
-        Month {{ d.month }}
-      </p>
+<div class="page">
+  <!-- Header -->
+  <header class="page__header">
+    <div class="page__headerLeft">
+      <button type="button" class="btn btn--ghost" (click)="back()">
+        ← Back
+      </button>
+
+      <div class="title">
+        <div class="title__h1">Employee Attendance</div>
+        <div class="title__sub">
+          Monthly deductions & payroll preview
+          <span class="dot">•</span>
+          <span class="muted">Employee ID:</span>
+          <span class="mono">{{ employeeId() ?? '-' }}</span>
+        </div>
+      </div>
     </div>
 
-    <div class="actions">
-      <button class="btn btn-ghost" type="button" (click)="back()">
-        Back
+    <div class="page__headerRight">
+      <button
+        type="button"
+        class="btn btn--ghost"
+        (click)="reload()"
+        [disabled]="state() === 'loading' || saveState() === 'saving'"
+      >
+        Reload
+      </button>
+
+      <button
+        type="button"
+        class="btn btn--primary"
+        (click)="markSmallLateAsException()"
+        [disabled]="state() !== 'success' || saveState() === 'saving'"
+        [attr.title]="'Mark Late ≤ ' + SMALL_LATE_MAX_MINUTES + ' minutes as exception'"
+      >
+        Mark Late ≤ {{ SMALL_LATE_MAX_MINUTES }}m as Exception
       </button>
     </div>
-  </div>
+  </header>
 
-  <div class="toolbar" [formGroup]="form">
-    <div class="field">
-      <label>Month</label>
-      <input type="month" formControlName="month" />
+  <!-- Alerts -->
+  <div class="alerts">
+    <div *ngIf="errorMsg()" class="alert alert--error">
+      <div class="alert__title">Error</div>
+      <div class="alert__msg">{{ errorMsg() }}</div>
     </div>
 
-    <div class="mini">
-      <div class="mini-pill">
-        <span class="k">Working days</span>
-        <span class="v">{{ workingDays() }}</span>
-      </div>
-      <div class="mini-pill">
-        <span class="k">Daily rate</span>
-        <span class="v">EGP {{ formatEGP(dailyRate()) }}</span>
-      </div>
-      <div class="mini-pill" *ngIf="exceptionCount() > 0">
-        <span class="k">Exceptions</span>
-        <span class="v warn">{{ exceptionCount() }}</span>
-      </div>
+    <div *ngIf="toastMsg()" class="alert alert--success">
+      <div class="alert__title">Done</div>
+      <div class="alert__msg">{{ toastMsg() }}</div>
     </div>
 
-    <div class="spacer"></div>
-
-    <div class="field field--wide">
-      <label>Search</label>
-      <input type="text" formControlName="q" placeholder="Filter by date / type / note / minutes…" />
+    <div *ngIf="state() === 'success' && !hasPayroll()" class="alert alert--warn">
+      <div class="alert__title">Payroll Missing</div>
+      <div class="alert__msg">
+        Backend didn’t return payroll values for this month. Showing <b>0</b> fallback values.
+      </div>
     </div>
-
-    <label class="check">
-      <input type="checkbox" formControlName="showExceptions" />
-      <span>Show exceptions</span>
-    </label>
   </div>
 
-  <div *ngIf="state() === 'error' && errorMsg()" class="alert alert-error">
-    {{ errorMsg() }}
-  </div>
-
-  <div *ngIf="toastMsg()" class="alert alert-success">
-    {{ toastMsg() }}
-  </div>
-
-  <div *ngIf="state() === 'loading'" class="loading">Loading…</div>
-
-  <!-- ===== TOP HALF: Salary Summary ===== -->
-  <section class="salary-grid" *ngIf="state() === 'success' && data() as d">
-    <div class="card salary-card">
-      <div class="card-head">
-        <h2>Salary summary</h2>
-        <div class="pill" [class.pill--danger]="totalDeduction() > 0">
-          Deduction: EGP {{ formatEGP(totalDeduction()) }}
-        </div>
-      </div>
-
-      <div class="salary-rows">
-        <div class="salary-row">
-          <div class="label">Gross salary</div>
-          <div class="value">EGP {{ formatEGP(grossSalary()) }}</div>
-        </div>
-
-        <div class="salary-row">
-          <div class="label">Net salary (after deductions)</div>
-          <div class="value value--net">EGP {{ formatEGP(netSalary()) }}</div>
-        </div>
-      </div>
-
-      <div class="hint">
-        Daily rate is calculated from the sheet working days (Gross / WorkingDays). Deductions are applied as days (0.25 / 0.5 / 1) or manual amounts.
+  <!-- Filters -->
+  <section class="card">
+    <div class="card__head">
+      <div class="card__title">Filters</div>
+      <div class="card__hint">
+        Use search/type/toggle to narrow results. Exceptions are excluded from applied totals.
       </div>
     </div>
 
-    <div class="card quick-card">
-      <div class="card-head">
-        <h2>Quick actions</h2>
+    <form class="filters" [formGroup]="form">
+      <div class="control">
+        <label class="control__label">Month</label>
+        <input class="control__input" type="month" formControlName="month" />
       </div>
 
-      <div class="quick-items">
-        <div class="qi">
-          <div class="k">Employee</div>
-          <div class="v mono">#{{ d.employee.id }}</div>
-        </div>
-        <div class="qi">
-          <div class="k">Month</div>
-          <div class="v mono">{{ d.month }}</div>
-        </div>
-        <div class="qi">
-          <div class="k">Items</div>
-          <div class="v">{{ d.items.length }}</div>
-        </div>
+      <div class="control">
+        <label class="control__label">Type</label>
+        <select class="control__input" formControlName="type">
+          <option value="all">All</option>
+          <option value="late">Late</option>
+          <option value="absent">Absent</option>
+          <option value="manual">Manual</option>
+        </select>
       </div>
 
-      <div class="quick-note">
-        Exceptions are manual overrides (checkbox) and never auto-created.
+      <div class="control control--grow">
+        <label class="control__label">Search</label>
+        <input
+          class="control__input"
+          type="text"
+          placeholder="type / date / note / amount / source ..."
+          formControlName="q"
+        />
       </div>
+
+      <label class="check">
+        <input type="checkbox" formControlName="showExceptions" />
+        <span>Show exceptions</span>
+        <span class="chip" *ngIf="exceptionCount() > 0">
+          {{ exceptionCount() }} exception(s)
+        </span>
+      </label>
+
+      <div class="filters__actions">
+        <button type="button" class="btn btn--ghost" (click)="clearFilters()">
+          Clear
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Loading -->
+  <section *ngIf="state() === 'loading'" class="card">
+    <div class="loading">
+      <div class="spinner"></div>
+      <div>
+        <div class="loading__title">Loading month data...</div>
+        <div class="loading__sub">Please wait</div>
+      </div>
+    </div>
+
+    <div class="skeletonGrid">
+      <div class="sk"></div>
+      <div class="sk"></div>
+      <div class="sk"></div>
+      <div class="sk"></div>
+    </div>
+
+    <div class="skTable">
+      <div class="sk sk--row" *ngFor="let _ of [1,2,3,4,5,6]"></div>
     </div>
   </section>
 
-  <!-- ===== BOTTOM HALF: Reasons / Items + Manual ===== -->
-  <section class="bottom-grid" *ngIf="state() === 'success' && data() as d">
-    <!-- Items table -->
-    <div class="card">
-      <div class="card-head">
-        <h2>Deductions & reasons</h2>
-        <p class="muted-sm">
-          Late > 45 minutes is treated as full day, Absent=True is full day.
-          Early leave is currently not applied.
-        </p>
+  <!-- Content -->
+  <ng-container *ngIf="state() === 'success' && data() as d">
+    <section class="grid">
+      <!-- Summary cards -->
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Payroll</div>
+          <div class="card__hint">From payroll snapshot (if provided)</div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="kpi__label">Gross Salary</div>
+            <div class="kpi__value">
+              {{ formatEGP(grossSalary()) }} <span class="kpi__unit">EGP</span>
+            </div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi__label">Daily Rate</div>
+            <div class="kpi__value">
+              {{ formatEGP(dailyRate()) }} <span class="kpi__unit">EGP</span>
+            </div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi__label">Working Days</div>
+            <div class="kpi__value">
+              {{ workingDays() }}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="table-wrap">
-        <table class="tbl">
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Totals</div>
+          <div class="card__hint">Month totals as calculated by backend</div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="kpi__label">Total Deduction</div>
+            <div class="kpi__value kpi__value--danger">
+              {{ formatEGP(totalDeduction()) }} <span class="kpi__unit">EGP</span>
+            </div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi__label">Net Salary</div>
+            <div class="kpi__value kpi__value--ok">
+              {{ formatEGP(netSalary()) }} <span class="kpi__unit">EGP</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Applied (Filtered)</div>
+          <div class="card__hint">Based on current filters (excluding exceptions)</div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="kpi__label">Amount</div>
+            <div class="kpi__value">
+              {{ formatEGP(filteredAppliedTotals().amount) }}
+              <span class="kpi__unit">EGP</span>
+            </div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi__label">Days</div>
+            <div class="kpi__value">{{ filteredAppliedTotals().days }}</div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi__label">Late Minutes</div>
+            <div class="kpi__value">{{ filteredAppliedTotals().lateMinutes }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Quick Notes</div>
+          <div class="card__hint">Useful info</div>
+        </div>
+
+        <ul class="notes">
+          <li>
+            Exceptions are excluded from <b>Applied (Filtered)</b> totals.
+          </li>
+          <li>
+            Bulk button marks <b>Late ≤ {{ SMALL_LATE_MAX_MINUTES }}m</b> as exception (ignores > {{ SMALL_LATE_MAX_MINUTES }}m).
+          </li>
+          <li>
+            Use “Manual Adjustment” for one-off corrections.
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Items table -->
+    <section class="card">
+      <div class="card__head card__head--row">
+        <div>
+          <div class="card__title">Items</div>
+          <div class="card__hint">
+            Total: <b>{{ filteredItems().length }}</b>
+            <span class="dot">•</span>
+            Exceptions: <b>{{ exceptionCount() }}</b>
+          </div>
+        </div>
+
+        <div class="rightMeta">
+          <span class="statusPill" [class.statusPill--busy]="saveState() === 'saving'">
+            {{ saveState() === 'saving' ? 'Saving...' : (saveState() === 'success' ? 'Saved' : 'Ready') }}
+          </span>
+        </div>
+      </div>
+
+      <div class="tableWrap">
+        <table class="table">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Type</th>
-              <th class="num">Late</th>
-              <th class="num">Days</th>
-              <th class="num">Amount</th>
-              <th>Reason</th>
-              <th class="num">Exception</th>
+              <th class="col-date">Date</th>
+              <th class="col-type">Type</th>
+              <th class="col-late">Late (m)</th>
+              <th class="col-days">Days</th>
+              <th class="col-amount">Amount</th>
+              <th class="col-note">Note</th>
+              <th class="col-source">Source</th>
+              <th class="col-exc">Status</th>
             </tr>
           </thead>
 
           <tbody>
-            <tr *ngFor="let it of filteredItems()" [class.is-ex]="it.isException">
-              <td class="mono">{{ it.date }}</td>
+            <tr
+              *ngFor="let it of filteredItems(); trackBy: trackByItemId"
+              [class.row--exception]="it.isException"
+            >
+              <td class="mono">{{ it.date || '-' }}</td>
 
               <td>
                 <span class="badge" [ngClass]="badgeClass(it.type)">
                   {{ badgeLabel(it.type) }}
                 </span>
-                <span class="sub" *ngIf="it.source === 'manual'">manual</span>
               </td>
 
-              <td class="num mono">
-                {{ it.type === 'late' ? (it.lateMinutes ?? 0) + 'm' : '-' }}
+              <td class="mono">
+                <span *ngIf="it.type === 'late'">{{ it.lateMinutes ?? 0 }}</span>
+                <span *ngIf="it.type !== 'late'" class="muted">—</span>
               </td>
 
-              <td class="num mono">{{ it.deductionDays }}</td>
+              <td class="mono">{{ it.deductionDays ?? 0 }}</td>
 
-              <td class="num mono">
-                EGP {{ formatEGP(it.amount) }}
+              <td class="mono">
+                {{ formatEGP(it.amount ?? 0) }}
               </td>
 
-              <td class="reason">
-                {{ it.note || '-' }}
+              <td class="noteCell" [attr.title]="it.note || ''">
+                <span class="noteCell__text">{{ it.note || '-' }}</span>
               </td>
 
-              <td class="num">
-                <label class="toggle">
-                  <input
-                    type="checkbox"
-                    [checked]="it.isException"
-                    (change)="toggleException(it.id, it.isException)"
-                    [disabled]="saveState() === 'saving'"
-                  />
-                  <span class="track"></span>
-                </label>
+              <td class="muted">{{ it.source || '-' }}</td>
+
+              <td>
+                <select
+                  class="miniSelect"
+                  [value]="it.isException ? 'exception' : 'apply'"
+                  (change)="onExceptionSelect(it.id, $any($event.target).value)"
+                  [disabled]="saveState() === 'saving'"
+                >
+                  <option value="apply">Applied</option>
+                  <option value="exception">Exception</option>
+                </select>
+
+                <div class="miniHint" *ngIf="it.type === 'late'">
+                  <span *ngIf="(it.lateMinutes ?? 0) <= SMALL_LATE_MAX_MINUTES" class="hintOk">
+                    eligible ≤ {{ SMALL_LATE_MAX_MINUTES }}m
+                  </span>
+                  <span *ngIf="(it.lateMinutes ?? 0) > SMALL_LATE_MAX_MINUTES" class="hintMuted">
+                    ignored (> {{ SMALL_LATE_MAX_MINUTES }}m)
+                  </span>
+                </div>
               </td>
             </tr>
 
             <tr *ngIf="filteredItems().length === 0">
-              <td colspan="7" class="empty-row">
-                No items match your filter.
+              <td colspan="8">
+                <div class="empty">
+                  <div class="empty__title">No items</div>
+                  <div class="empty__sub">Try clearing filters or selecting another month.</div>
+                  <button type="button" class="btn btn--ghost" (click)="clearFilters()">
+                    Clear filters
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-
-      <div class="footer-note">
-        Rows marked as exception are excluded from totals after recompute.
-      </div>
-    </div>
+    </section>
 
     <!-- Manual adjustment -->
-    <div class="card">
-      <div class="card-head">
-        <h2>Manual adjustment</h2>
-        <p class="muted-sm">
-          For excuses (2 hours/month = 4 hours total) and annual leaves: must be entered manually (no auto).
-        </p>
+    <section class="card">
+      <div class="card__head">
+        <div class="card__title">Manual Adjustment</div>
+        <div class="card__hint">
+          Add manual deduction/restore item for selected month.
+        </div>
       </div>
 
-      <form class="manual-form" [formGroup]="manualForm">
-        <div class="row">
-          <div class="field">
-            <label>Date</label>
-            <input type="date" formControlName="date" />
+      <form class="manual" [formGroup]="manualForm" (ngSubmit)="addManual()">
+        <div class="manual__grid">
+          <div class="control">
+            <label class="control__label">Date</label>
+            <input class="control__input" type="date" formControlName="date" />
+            <div class="control__err" *ngIf="manualForm.controls.date.touched && manualForm.controls.date.invalid">
+              Date is required.
+            </div>
           </div>
 
-          <div class="field">
-            <label>Direction</label>
-            <select formControlName="direction">
+          <div class="control">
+            <label class="control__label">Direction</label>
+            <select class="control__input" formControlName="direction">
               <option value="deduct">Deduct</option>
               <option value="restore">Restore</option>
             </select>
           </div>
-        </div>
 
-        <div class="row">
-          <div class="field">
-            <label>Amount (EGP)</label>
-            <input type="number" formControlName="amount" placeholder="e.g. 250" />
+          <div class="control">
+            <label class="control__label">Reason</label>
+            <select class="control__input" formControlName="reasonType">
+              <option value="annual">Annual</option>
+              <option value="excuse">Excuse</option>
+              <option value="admin">Admin</option>
+              <option value="other">Other</option>
+            </select>
           </div>
 
-          <div class="field">
-            <label>Or Days</label>
-            <input type="number" step="0.25" formControlName="deductionDays" placeholder="0.25 / 0.5 / 1" />
+          <div class="control" *ngIf="manualForm.controls.reasonType.value === 'annual'">
+            <label class="check check--inline">
+              <input type="checkbox" formControlName="annualApproved" />
+              <span>Annual approved</span>
+            </label>
+            <div class="miniHelp">
+              If off, note will be saved as <b>Annual (pending)</b>.
+            </div>
+          </div>
+
+          <div class="control">
+            <label class="control__label">Amount (EGP)</label>
+            <input class="control__input" type="number" step="0.01" formControlName="amount" placeholder="e.g. 50" />
+          </div>
+
+          <div class="control">
+            <label class="control__label">Deduction Days</label>
+            <input class="control__input" type="number" step="0.01" formControlName="deductionDays" placeholder="e.g. 0.5" />
+          </div>
+
+          <div class="control control--full">
+            <label class="control__label">Note</label>
+            <textarea class="control__input control__input--textarea" rows="3" formControlName="note"
+              placeholder="Explain why this manual adjustment is added..."></textarea>
+
+            <div class="control__err" *ngIf="manualForm.controls.note.touched && manualForm.controls.note.invalid">
+              Note is required (min 3 chars).
+            </div>
           </div>
         </div>
 
-        <div class="field">
-          <label>Note</label>
-          <textarea rows="3" formControlName="note" placeholder="Write reason (Excuse / Annual / Admin override)"></textarea>
-        </div>
-
-        <div class="actions-row">
-          <button class="btn btn-primary" type="button" (click)="addManual()" [disabled]="saveState() === 'saving'">
-            Add manual item
+        <div class="manual__actions">
+          <button
+            type="submit"
+            class="btn btn--primary"
+            [disabled]="saveState() === 'saving' || manualForm.invalid"
+          >
+            Add Manual Item
           </button>
-        </div>
 
-        <div class="mini-hint" *ngIf="manualForm.touched && manualForm.invalid">
-          Note is required. Also provide Amount or Days.
+          <div class="manual__hint">
+            Tip: Provide either <b>Amount</b> or <b>Deduction Days</b> (or both).
+          </div>
         </div>
       </form>
+    </section>
+  </ng-container>
+
+  <!-- Idle / Error fallback -->
+  <section *ngIf="state() === 'idle' || state() === 'error'" class="card">
+    <div class="empty">
+      <div class="empty__title">No data loaded</div>
+      <div class="empty__sub">
+        Select a month or click reload.
+      </div>
+      <button type="button" class="btn btn--primary" (click)="reload()">Reload</button>
     </div>
   </section>
 </div>

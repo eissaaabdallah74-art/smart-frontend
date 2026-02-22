@@ -3,6 +3,11 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+import type {
+  DriverContractStatus,
+  SignedWithHrStatus,
+} from '../../shared/enums/driver-enums';
+
 export interface ApiDriver {
   id: number;
   name: string;
@@ -28,8 +33,15 @@ export interface ApiDriver {
   dLicenseExpiryDate: string | null;
   idExpiryDate: string | null;
   liabilityAmount: number | null;
+
   signed: boolean;
-  contractStatus: string | null;
+
+  // ✅ NEW
+  signedWithHr: SignedWithHrStatus | null;
+
+  // ✅ enum
+  contractStatus: DriverContractStatus | null;
+
   hiringStatus: string | null;
   securityQueryStatus: string | null;
   securityQueryComment: string | null;
@@ -40,9 +52,7 @@ export interface ApiDriver {
 export type CreateDriverDto = Omit<ApiDriver, 'id'>;
 export type UpdateDriverDto = Partial<CreateDriverDto>;
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class DriversServiceService {
   private readonly baseUrl = `${environment.apiUrl}/drivers`;
 
@@ -68,7 +78,6 @@ export class DriversServiceService {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
-  // لو حابب تستخدم bulk import بعدين
   bulkUpsertDrivers(rows: Partial<ApiDriver>[]): Observable<ApiDriver[]> {
     return this.http.post<ApiDriver[]>(`${this.baseUrl}/bulk`, rows);
   }

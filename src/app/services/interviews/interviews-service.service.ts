@@ -3,8 +3,14 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
-// نتيجة الاستعلام الأمني
-export type SecurityResult = 'Positive' | 'Negative';
+import type {
+  DriverContractStatus,
+  SignedWithHrStatus,
+  SecurityResult as EnumSecurityResult,
+} from '../../shared/enums/driver-enums';
+
+// ✅ keep old export name used across app (so you don't break imports)
+export type SecurityResult = EnumSecurityResult;
 
 export interface ApiInterview {
   id: number;
@@ -27,7 +33,8 @@ export interface ApiInterview {
   accountManagerId: number | null;
   interviewerId: number | null;
 
-  signedWithHr: string | null;
+  // ✅ ENUM
+  signedWithHr: SignedWithHrStatus | null;
 
   feedback: string | null;
   hrFeedback: string | null;
@@ -35,11 +42,18 @@ export interface ApiInterview {
   followUp1: string | null;
   followUp2: string | null;
   followUp3: string | null;
-  courierStatus: string | null;
+
+  // ✅ we unify this to DriverContractStatus (same enum as Driver.contractStatus)
+  courierStatus: DriverContractStatus | null;
 
   securityResult: SecurityResult | null;
 
   notes: string | null;
+
+  // ✅ Licenses (DATEONLY / yyyy-mm-dd)
+  vLicenseExpiryDate: string | null;
+  dLicenseExpiryDate: string | null;
+  idExpiryDate: string | null;
 
   client?: { id: number; name: string };
   hub?: { id: number; name: string };
@@ -93,10 +107,7 @@ export class InterviewsServiceService {
     return this.http.post<ApiInterview>(this.baseUrl, body);
   }
 
-  updateInterview(
-    id: number,
-    body: UpdateInterviewDto,
-  ): Observable<ApiInterview> {
+  updateInterview(id: number, body: UpdateInterviewDto): Observable<ApiInterview> {
     return this.http.put<ApiInterview>(`${this.baseUrl}/${id}`, body);
   }
 

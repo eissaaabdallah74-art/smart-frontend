@@ -1,0 +1,256 @@
+<!-- src/app/pages/.../client-page/components/update-driver-master/update-driver-master.component.html -->
+<div class="update-root">
+  <div class="head">
+    <div>
+      <div class="kicker">DRIVER • UPDATE</div>
+      <h4 class="title">Update Driver</h4>
+      <div class="subtitle">Edit driver info, compliance dates, and status.</div>
+    </div>
+
+    <div class="head-actions">
+      <button type="button" class="btn" (click)="onCancel()" [disabled]="saving()">
+        <i class="ri-arrow-left-line" aria-hidden="true"></i>
+        Back
+      </button>
+
+      <button
+        type="button"
+        class="btn primary"
+        (click)="submit()"
+        [disabled]="loading() || saving() || form.pristine"
+      >
+        <i class="ri-save-3-line" aria-hidden="true"></i>
+        {{ saving() ? 'Saving...' : 'Save' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="loading" *ngIf="loading()">
+    <div class="sk-line w-70"></div>
+    <div class="sk-line w-45"></div>
+    <div class="sk-box"></div>
+  </div>
+
+  <div class="alert alert--error" *ngIf="!loading() && error()">
+    <div>
+      <div class="alert-title">Error</div>
+      <div class="alert-text">{{ error() }}</div>
+    </div>
+  </div>
+
+  <div class="alert alert--success" *ngIf="!loading() && success()">
+    <div>
+      <div class="alert-title">Done</div>
+      <div class="alert-text">{{ success() }}</div>
+    </div>
+  </div>
+
+  <form class="form" *ngIf="!loading()" [formGroup]="form" (ngSubmit)="submit()">
+    <!-- Basic -->
+    <section class="section">
+      <div class="section-title">Basic</div>
+
+      <div class="grid">
+        <div class="field span-2">
+          <label>Name *</label>
+          <input type="text" formControlName="name" placeholder="Driver name" />
+          <div class="err" *ngIf="ctrl('name')?.touched && ctrl('name')?.invalid">
+            Name is required (min 2 chars).
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Arabic Name</label>
+          <input type="text" formControlName="fullNameArabic" placeholder="Arabic full name" />
+        </div>
+
+        <div class="field">
+          <label>Email</label>
+          <input type="email" formControlName="email" placeholder="Email" />
+        </div>
+
+        <div class="field">
+          <label>Phone</label>
+          <input type="text" formControlName="courierPhone" placeholder="Phone" />
+        </div>
+
+        <div class="field">
+          <label>Courier ID</label>
+          <input type="text" formControlName="courierId" placeholder="Courier ID" />
+        </div>
+
+        <div class="field">
+          <label>Courier Code</label>
+          <input type="text" formControlName="courierCode" placeholder="Courier Code" />
+        </div>
+
+        <div class="field">
+          <label>Residence</label>
+          <input type="text" formControlName="residence" placeholder="Residence" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Assignment -->
+    <section class="section">
+      <div class="section-title">Assignment</div>
+
+      <div class="grid">
+        <div class="field span-2">
+          <label>Client</label>
+          <input type="text" formControlName="clientName" placeholder="Client name" />
+        </div>
+
+        <div class="field">
+          <label>Hub</label>
+          <input type="text" formControlName="hub" placeholder="Hub" />
+        </div>
+
+        <div class="field">
+          <label>Area</label>
+          <input type="text" formControlName="area" placeholder="Area" />
+        </div>
+
+        <div class="field">
+          <label>Vehicle Type</label>
+          <input type="text" formControlName="vehicleType" placeholder="Vehicle type" />
+        </div>
+
+        <div class="field">
+          <label>Module</label>
+          <input type="text" formControlName="module" placeholder="Module" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Hiring & Status -->
+    <section class="section">
+      <div class="section-title">Hiring & Status</div>
+
+      <div class="grid">
+        <div class="field">
+          <label>Hiring Status</label>
+          <input type="text" formControlName="hiringStatus" placeholder="e.g. active / pending" />
+        </div>
+
+        <div class="field">
+          <label>Contract Status</label>
+          <input type="text" formControlName="contractStatus" placeholder="Contract status" />
+        </div>
+
+        <div class="field">
+          <label>Hiring Date</label>
+          <input type="date" formControlName="hiringDate" />
+        </div>
+
+        <div class="field">
+          <label>Day 1 Date</label>
+          <input type="date" formControlName="day1Date" />
+        </div>
+
+        <div class="field">
+          <label>Signed</label>
+          <label class="check">
+            <input type="checkbox" formControlName="signed" />
+            <span>Contract signed</span>
+          </label>
+        </div>
+
+        <div class="field">
+          <label>Liability Amount</label>
+          <input type="number" formControlName="liabilityAmount" placeholder="0" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Compliance -->
+    <section class="section">
+      <div class="section-title">Compliance</div>
+
+      <div class="grid">
+        <div class="field">
+          <label>Vehicle License Expiry</label>
+          <input type="date" formControlName="vLicenseExpiryDate" />
+        </div>
+
+        <div class="field">
+          <label>Driver License Expiry</label>
+          <input type="date" formControlName="dLicenseExpiryDate" />
+        </div>
+
+        <div class="field">
+          <label>ID Expiry</label>
+          <input type="date" formControlName="idExpiryDate" />
+        </div>
+
+        <div class="field">
+          <label>Security Query Status</label>
+          <input type="text" formControlName="securityQueryStatus" placeholder="Status" />
+        </div>
+
+        <div class="field span-2">
+          <label>Security Query Comment</label>
+          <textarea rows="3" formControlName="securityQueryComment" placeholder="Comment"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- Management -->
+    <section class="section">
+      <div class="section-title">Management</div>
+
+      <div class="grid">
+        <div class="field">
+          <label>Contractor</label>
+          <input type="text" formControlName="contractor" placeholder="Contractor" />
+        </div>
+
+        <div class="field">
+          <label>Point of Contact</label>
+          <input type="text" formControlName="pointOfContact" placeholder="Point of contact" />
+        </div>
+
+        <div class="field">
+          <label>Account Manager</label>
+          <input type="text" formControlName="accountManager" placeholder="Account manager" />
+        </div>
+
+        <div class="field">
+          <label>Interviewer</label>
+          <input type="text" formControlName="interviewer" placeholder="Interviewer" />
+        </div>
+
+        <div class="field">
+          <label>HR Representative</label>
+          <input type="text" formControlName="hrRepresentative" placeholder="HR rep" />
+        </div>
+
+        <div class="field">
+          <label>Exception By</label>
+          <input type="text" formControlName="exceptionBy" placeholder="Exception by" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Notes -->
+    <section class="section">
+      <div class="section-title">Notes</div>
+
+      <div class="grid">
+        <div class="field span-2">
+          <label>Notes</label>
+          <textarea rows="4" formControlName="notes" placeholder="Notes..."></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer buttons (mobile friendly) -->
+    <div class="footer">
+      <button type="button" class="btn" (click)="onCancel()" [disabled]="saving()">Cancel</button>
+      <button type="submit" class="btn primary" [disabled]="saving() || form.pristine">
+        <i class="ri-save-3-line" aria-hidden="true"></i>
+        {{ saving() ? 'Saving...' : 'Save changes' }}
+      </button>
+    </div>
+  </form>
+</div>

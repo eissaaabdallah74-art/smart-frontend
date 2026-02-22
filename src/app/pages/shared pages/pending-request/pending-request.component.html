@@ -1,95 +1,21 @@
 <section class="pending-requests-shell">
   <div class="pending-requests-container">
-    <header class="header">
-      <div>
-        <p class="badge-label">LOGISTICS • PENDING REQUESTS</p>
-        <h1 class="title">Pending Requests</h1>
-        <p class="subtitle">
-          Excel import validates Client/Hub/Zone against DB before sending to
-          backend.
-        </p>
-      </div>
-
-      <div class="header-actions">
-        <button
-          type="button"
-          class="btn ghost"
-          (click)="downloadImportTemplate()"
-        >
-          Excel Template
-        </button>
-
-        <button
-          type="button"
-          class="btn ghost"
-          (click)="exportFilteredAsExcel()"
-        >
-          Export Excel
-        </button>
-
-        <input
-          #importFile
-          type="file"
-          accept=".xlsx,.xls"
-          hidden
-          (change)="handleImportFile($event)"
-        />
-
-        <button
-          type="button"
-          class="btn ghost"
-          (click)="triggerImport(importFile)"
-        >
-          Import Excel
-        </button>
-
-        <button type="button" class="btn primary" (click)="openCreate()">
-          + New Request
-        </button>
-      </div>
-    </header>
-
-    <!-- Top Tabs: List / Summary -->
-    <div class="tabs">
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="activeTab === 'list'"
-        (click)="setTab('list')"
-      >
-        Pending Requests
-      </button>
-
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="activeTab === 'summary'"
-        (click)="setTab('summary')"
-      >
-        Summary
-      </button>
-
-      <div class="tabs-meta">
-        <span class="muted small">Total: {{ totalRows }}</span>
-        <span class="muted small" *ngIf="summaryLastUpdatedAt">
-          Last update: {{ formatIsoDateTime(summaryLastUpdatedAt) }}
-        </span>
-      </div>
-    </div>
-
-    <!-- Client Tabs -->
-    <div class="client-tabs">
-      <button
-        type="button"
-        class="client-tab"
-        *ngFor="let t of clientTabs"
-        [class.active]="selectedClientId === t.id"
-        (click)="setClientTab(t.id)"
-      >
-        <span class="label">{{ t.label }}</span>
-        <span class="count">{{ t.count ?? 0 }}</span>
-      </button>
-    </div>
+    <!-- Header -->
+    <app-pr-header
+      [loading]="loading"
+      [activeTab]="activeTab"
+      [totalRows]="totalRows"
+      [summaryLastUpdatedAt]="summaryLastUpdatedAt"
+      [lastUpdateLabel]="summaryLastUpdateLabel"
+      [clientTabs]="clientTabs"
+      [selectedClientId]="selectedClientId"
+      (downloadTemplate)="downloadImportTemplate()"
+      (exportExcel)="exportFilteredAsExcel()"
+      (importExcel)="onImportExcelFile($event)"
+      (createNew)="openCreate()"
+      (tabChange)="setTab($event)"
+      (clientTabChange)="setClientTab($event)"
+    ></app-pr-header>
 
     <!-- Alerts -->
     <div *ngIf="errorMsg" class="alert error">
@@ -106,6 +32,7 @@
         Excel validation errors (showing first
         {{ importValidationErrors.length }}):
       </div>
+
       <ul class="errors-list">
         <li *ngFor="let e of importValidationErrors">
           Row {{ e.row }} — {{ e.message }}
@@ -133,66 +60,13 @@
     <!-- Summary Tab -->
     <!-- ===================== -->
     <ng-container *ngIf="activeTab === 'summary'">
-      <div *ngIf="!summaryRows.length" class="empty-state">
-        <h3>No data</h3>
-        <p>There are no clients or no requests to summarize yet.</p>
-      </div>
-
-      <div class="summary-wrap" *ngIf="summaryRows.length">
-        <div class="summary-table-wrap">
-          <table class="summary-table">
-            <thead>
-              <tr>
-                <th class="col-date">Date</th>
-                <th class="col-account">Account</th>
-
-                <th class="col-v" *ngFor="let t of vehicleTypeColumns">
-                  {{ getVehicleLabel(t) }}
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              <tr *ngFor="let r of summaryRows; trackBy: trackByClientId">
-                <td class="mono small">{{ r.date }}</td>
-
-                <td class="account-cell">
-                  <div class="account-name">{{ r.accountName }}</div>
-                  <div class="account-sub muted small">
-                    Client #{{ r.clientId }}
-                  </div>
-                </td>
-
-                <td class="num" *ngFor="let t of vehicleTypeColumns">
-                  {{ r.counts[t] || 0 }}
-                </td>
-
-                <td class="num total-strong">{{ r.total || 0 }}</td>
-              </tr>
-            </tbody>
-
-            <tfoot>
-              <tr class="grand-row">
-                <td class="mono small">—</td>
-                <td class="grand-label">Grand total</td>
-
-                <td class="num" *ngFor="let t of vehicleTypeColumns">
-                  {{ summaryGrandTotals.counts[t] || 0 }}
-                </td>
-
-                <td class="num total-strong">
-                  {{ summaryGrandTotals.total || 0 }}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-
-        <p class="muted small summary-note">
-          This table uses the latest updated request per client (by
-          updatedAt/createdAt).
-        </p>
-      </div>
+      <app-pr-summary
+        *ngIf="activeTab === 'summary'"
+        [rows]="filteredRequests"
+        [clients]="clients"
+        [vehicleTypes]="vehicleTypes"
+        [vehicleTypeColumns]="vehicleTypeColumns"
+      ></app-pr-summary>
     </ng-container>
 
     <!-- ===================== -->
@@ -202,7 +76,6 @@
       <!-- Filters bar -->
       <div class="filters-bar">
         <div class="filters-left">
-          <!-- SEARCH: full width -->
           <div class="search-box">
             <span class="search-icon">⌕</span>
             <input
@@ -214,7 +87,6 @@
             />
           </div>
 
-          <!-- Filters side-by-side -->
           <div class="filters-inline">
             <select
               class="select compact"
@@ -238,7 +110,11 @@
             </select>
           </div>
 
-          <button type="button" class="btn ghost small" (click)="clearFilters()">
+          <button
+            type="button"
+            class="btn ghost small"
+            (click)="clearFilters()"
+          >
             Clear
           </button>
         </div>
@@ -278,329 +154,50 @@
         </div>
       </div>
 
-      <!-- ✅ table-wrap padding fixed حسب viewMode -->
+      <!-- content box -->
       <div
         class="table-wrap"
         [class.loading]="loading"
         [class.is-table]="viewMode === 'table'"
         [class.is-cards]="viewMode === 'cards'"
       >
-        <ng-container
-          *ngIf="pagedRequests && pagedRequests.length; else emptyStateTpl"
-        >
+        <ng-container *ngIf="pagedRequests?.length; else emptyStateTpl">
           <!-- Cards view -->
-          <div
-            class="cards-grid"
-            *ngIf="viewMode === 'cards'; else tableViewTpl"
-          >
-            <article
-              class="request-card"
-              *ngFor="let row of pagedRequests; trackBy: trackById"
-            >
-              <header class="request-card-header">
-                <div class="title-block">
-                  <div class="client-name">
-                    {{ row.client?.name || "Client #" + row.clientId }}
-                  </div>
-                  <div class="sub-line">
-                    <span
-                      *ngIf="row.hub?.name; else hubNameTpl"
-                      class="pill light"
-                    >
-                      {{ row.hub?.name }}
-                    </span>
-                    <ng-template #hubNameTpl>
-                      <span *ngIf="row.hubId" class="pill light"
-                        >Hub #{{ row.hubId }}</span
-                      >
-                      <span *ngIf="!row.hubId" class="muted small">No hub</span>
-                    </ng-template>
+          <app-pr-cards
+            *ngIf="viewMode === 'cards'"
+            [rows]="pagedRequests"
+            [loading]="loading"
+            [priorityLabel]="priorityLabel.bind(this)"
+            [priorityClass]="priorityClass.bind(this)"
+            (edit)="openEdit($event)"
+            (remove)="confirmDelete($event)"
+            (details)="openDetails($event)"
+            (quickDecrement)="
+              quickDecrementItem($event.row, $event.index, $event.ev)
+            "
+          ></app-pr-cards>
 
-                    <span class="sep-dot"></span>
-
-                    <span
-                      *ngIf="row.zone?.name; else zoneNameTpl"
-                      class="pill light"
-                    >
-                      {{ row.zone?.name }}
-                    </span>
-                    <ng-template #zoneNameTpl>
-                      <span *ngIf="row.zoneId" class="pill light"
-                        >Zone #{{ row.zoneId }}</span
-                      >
-                      <span *ngIf="!row.zoneId" class="muted small"
-                        >No zone</span
-                      >
-                    </ng-template>
-                  </div>
-                </div>
-
-                <div class="status-block">
-                  <div class="pill-stack">
-                    <span [class]="priorityClass(row)">
-                      {{ priorityLabel(row) }}
-                    </span>
-                  </div>
-
-                  <div class="dates">
-                    <span class="mono small">{{ row.requestDate }}</span>
-                    <span class="mono badge" *ngIf="row.billingMonth">{{
-                      row.billingMonth
-                    }}</span>
-                  </div>
-                </div>
-              </header>
-
-              <section class="request-card-body">
-                <div
-                  class="items-summary"
-                  *ngIf="row.items.length; else noLinesTpl"
-                >
-                  <div
-                    class="item-card"
-                    *ngFor="let it of row.items; let i = index"
-                  >
-                    <div class="item-card-header">
-                      <span class="item-type">{{ it.vehicleType }}</span>
-                      <div class="item-count-actions">
-                        <span class="item-count">× {{ it.vehicleCount }}</span>
-                        <button
-                          type="button"
-                          class="chip-btn"
-                          title="Decrease count by 1"
-                          (click)="quickDecrementItem(row, i, $event)"
-                          [disabled]="loading || (it.vehicleCount || 0) <= 1"
-                        >
-                          −1
-                        </button>
-                      </div>
-                    </div>
-
-                    <div class="item-card-meta">
-                      <ng-container
-                        *ngIf="
-                          it.guaranteeMinOrders != null && it.orderPrice != null
-                        "
-                      >
-                        <span
-                          >G: {{ it.guaranteeMinOrders }} @
-                          {{ it.orderPrice }}</span
-                        >
-                      </ng-container>
-
-                      <ng-container *ngIf="it.fixedAmount != null">
-                        <span
-                          *ngIf="
-                            it.guaranteeMinOrders != null &&
-                            it.orderPrice != null
-                          "
-                        >
-                          •
-                        </span>
-                        <span>Fixed: {{ it.fixedAmount }}</span>
-                      </ng-container>
-
-                      <ng-container *ngIf="it.allowanceAmount != null">
-                        <span
-                          *ngIf="
-                            it.fixedAmount != null ||
-                            (it.guaranteeMinOrders != null &&
-                              it.orderPrice != null)
-                          "
-                        >
-                          •
-                        </span>
-                        <span>Allowance: {{ it.allowanceAmount }}</span>
-                      </ng-container>
-
-                      <ng-container *ngIf="it.totalAmount != null">
-                        <span
-                          *ngIf="
-                            it.allowanceAmount != null ||
-                            it.fixedAmount != null ||
-                            (it.guaranteeMinOrders != null &&
-                              it.orderPrice != null)
-                          "
-                        >
-                          •
-                        </span>
-                        <span>Total: {{ it.totalAmount }}</span>
-                      </ng-container>
-
-                      <ng-container
-                        *ngIf="
-                          it.guaranteeMinOrders == null &&
-                          it.orderPrice == null &&
-                          it.fixedAmount == null &&
-                          it.allowanceAmount == null &&
-                          it.totalAmount == null
-                        "
-                      >
-                        <span class="muted small">No pricing configured</span>
-                      </ng-container>
-                    </div>
-                  </div>
-                </div>
-
-                <ng-template #noLinesTpl>
-                  <p class="muted small">No vehicle lines configured.</p>
-                </ng-template>
-
-                <div class="notes" *ngIf="row.notes">
-                  <span class="notes-label">Notes:</span>
-                  <span class="notes-text">{{ row.notes }}</span>
-                </div>
-              </section>
-
-              <footer class="request-card-footer">
-                <span class="mono small">Request #{{ row.id }}</span>
-                <div class="actions">
-                  <button
-                    type="button"
-                    class="btn ghost small"
-                    (click)="openEdit(row)"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    class="btn danger small"
-                    (click)="confirmDelete(row)"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </footer>
-            </article>
-          </div>
-
-          <ng-template #tableViewTpl>
-            <div class="smart-table-wrap">
-              <table class="smart-table smart-table-v4">
-                <thead>
-                  <tr>
-                    <th class="sticky-left col-date">Date</th>
-                    <th class="sticky-left-2 col-client">Client / Hub / Zone</th>
-                    <th class="col-priority">Priority</th>
-                    <th class="col-vehicles">Vehicles</th>
-                    <th class="col-actions sticky-right">Actions</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  <ng-container *ngFor="let row of pagedRequests; trackBy: trackById">
-                    <tr class="data-row">
-                      <!-- Date -->
-                      <td class="sticky-left col-date">
-                        <div class="mono small">{{ row.requestDate }}</div>
-                        <div class="mono small muted" *ngIf="row.billingMonth">
-                          {{ row.billingMonth }}
-                        </div>
-                      </td>
-
-                      <!-- Client / Hub / Zone -->
-                      <td class="sticky-left-2 col-client">
-                        <div class="cell-title">
-                          {{ row.client?.name || ("Client #" + row.clientId) }}
-                        </div>
-
-                        <div class="cell-sub">
-                          <span *ngIf="row.hub?.name; else hubIdTpl" class="pill light">
-                            {{ row.hub?.name }}
-                          </span>
-                          <ng-template #hubIdTpl>
-                            <span *ngIf="row.hubId" class="pill light">Hub #{{ row.hubId }}</span>
-                            <span *ngIf="!row.hubId" class="muted small">No hub</span>
-                          </ng-template>
-
-                          <span class="sep-dot"></span>
-
-                          <span *ngIf="row.zone?.name; else zoneIdTpl" class="pill light">
-                            {{ row.zone?.name }}
-                          </span>
-                          <ng-template #zoneIdTpl>
-                            <span *ngIf="row.zoneId" class="pill light">Zone #{{ row.zoneId }}</span>
-                            <span *ngIf="!row.zoneId" class="muted small">No zone</span>
-                          </ng-template>
-                        </div>
-                      </td>
-
-                      <!-- Priority -->
-                      <td class="col-priority">
-                        <span [class]="priorityClass(row)">
-                          {{ priorityLabel(row) }}
-                        </span>
-                      </td>
-
-                      <!-- Vehicles -->
-                      <td class="col-vehicles vehicles-cell">
-                        <ng-container *ngIf="getVehicleChips(row).length; else noVehiclesTpl">
-                          <div class="vehicle-chips">
-                            <span class="vehicle-chip" *ngFor="let c of getVehicleChips(row)">
-                              <span class="label">{{ c.label }}</span>
-                              <span class="count mono">× {{ c.count }}</span>
-                            </span>
-                          </div>
-                        </ng-container>
-
-                        <ng-template #noVehiclesTpl>
-                          <span class="muted small">No vehicle lines</span>
-                        </ng-template>
-                      </td>
-
-                      <!-- Actions -->
-                      <td class="col-actions sticky-right actions-cell">
-                        <div class="actions-wrap">
-                          <button
-                            type="button"
-                            class="icon-action"
-                            (click)="openDetails(row)"
-                            [disabled]="!row.id"
-                            title="Details"
-                            aria-label="Details"
-                          >
-                            <svg viewBox="0 0 24 24" class="i">
-                              <path
-                                d="M12 5c-5 0-9.27 3.11-11 7 1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7Zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"
-                              />
-                            </svg>
-                          </button>
-
-                          <button
-                            type="button"
-                            class="icon-action"
-                            (click)="openEdit(row)"
-                            title="Edit"
-                            aria-label="Edit"
-                          >
-                            <svg viewBox="0 0 24 24" class="i">
-                              <path
-                                d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Zm2.92 2.83H5v-.92l9.06-9.06.92.92L5.92 20.08ZM20.71 7.04a1 1 0 0 0 0-1.41L18.37 3.29a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"
-                              />
-                            </svg>
-                          </button>
-
-                          <button
-                            type="button"
-                            class="icon-action danger"
-                            (click)="confirmDelete(row)"
-                            title="Delete"
-                            aria-label="Delete"
-                          >
-                            <svg viewBox="0 0 24 24" class="i">
-                              <path
-                                d="M6 7h12l-1 14H7L6 7Zm3-3h6l1 2H8l1-2Zm-4 2h14v2H5V6Z"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  </ng-container>
-                </tbody>
-              </table>
-            </div>
-          </ng-template>
+          <!-- Table view -->
+          <app-pr-table
+            *ngIf="viewMode === 'table'"
+            [rows]="pagedRequests"
+            [loading]="loading"
+            [isRowExpanded]="isRowExpanded.bind(this)"
+            [toggleRowExpanded]="toggleRowExpanded.bind(this)"
+            [priorityLabel]="priorityLabel.bind(this)"
+            [priorityClass]="priorityClass.bind(this)"
+            [getRowTotal]="getRowTotal.bind(this)"
+            [getVehicleChips]="getVehicleChips.bind(this)"
+            [getVehicleGroups]="getVehicleGroups.bind(this)"
+            [getVehicleLabel]="getVehicleLabel.bind(this)"
+            [getPricingColLabel]="getPricingColLabel.bind(this)"
+            (details)="openDetails($event)"
+            (edit)="openEdit($event)"
+            (remove)="confirmDelete($event)"
+            (quickDecrement)="
+              quickDecrementItem($event.row, $event.index, $event.ev)
+            "
+          ></app-pr-table>
         </ng-container>
 
         <div class="loading-overlay" *ngIf="loading">
@@ -674,408 +271,34 @@
         </div>
       </ng-template>
 
-      <!-- Modal Editor (كما هو عندك) -->
-      <div class="modal-backdrop" *ngIf="showEditor">
-        <div class="modal">
-          <header class="modal-header">
-            <h2 class="modal-title">
-              {{ isEditMode ? "Edit Request" : "New Request" }}
-            </h2>
-            <button type="button" class="icon-btn" (click)="closeEditor()">
-              ✕
-            </button>
-          </header>
+      <!-- ✅ Editor Modal Component -->
+      <app-pr-editor-modal
+        [open]="showEditor"
+        [loading]="loading"
+        [isEditMode]="isEditMode"
+        [form]="form"
+        [clients]="clients"
+        [hubs]="hubs"
+        [zones]="zones"
+        [priorities]="priorities"
+        [vehicleTypes]="vehicleTypes"
+        (close)="closeEditor()"
+        (submit)="submit()"
+        (addItem)="addItem()"
+        (removeItem)="removeItem($event)"
+        (increment)="incrementCount($event)"
+        (decrement)="decrementCount($event)"
+      ></app-pr-editor-modal>
 
-          <form class="modal-body" [formGroup]="form" (ngSubmit)="submit()">
-            <!-- Client / Hub / Zone -->
-            <div class="grid grid-3">
-              <div class="field">
-                <label>Client</label>
-                <select formControlName="clientId" class="select">
-                  <option [ngValue]="null">Select client</option>
-                  <option *ngFor="let c of clients" [ngValue]="c.id">
-                    {{ c.name }}
-                  </option>
-                </select>
-                <div
-                  class="field-error"
-                  *ngIf="clientIdCtrl?.invalid && clientIdCtrl?.touched"
-                >
-                  Client is required.
-                </div>
-              </div>
-
-              <div class="field">
-                <label>Hub (optional)</label>
-                <select
-                  formControlName="hubId"
-                  class="select"
-                  [disabled]="!clientIdCtrl?.value || !hubs.length"
-                >
-                  <option [ngValue]="null">
-                    {{
-                      !clientIdCtrl?.value
-                        ? "Select client first"
-                        : "Select hub"
-                    }}
-                  </option>
-                  <option *ngFor="let h of hubs" [ngValue]="h.id">
-                    {{ h.name }}
-                  </option>
-                </select>
-              </div>
-
-              <div class="field">
-                <label>Zone (optional)</label>
-                <select
-                  formControlName="zoneId"
-                  class="select"
-                  [disabled]="!hubIdCtrl?.value || !zones.length"
-                >
-                  <option [ngValue]="null">
-                    {{ !hubIdCtrl?.value ? "Select hub first" : "Select zone" }}
-                  </option>
-                  <option *ngFor="let z of zones" [ngValue]="z.id">
-                    {{ z.name }}
-                  </option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Date / Billing / Status -->
-            <div class="grid grid-1">
-              <div class="field">
-                <label>Request date</label>
-                <input
-                  type="date"
-                  formControlName="requestDate"
-                  class="input"
-                />
-                <div
-                  class="field-error"
-                  *ngIf="
-                    form.get('requestDate')?.invalid &&
-                    form.get('requestDate')?.touched
-                  "
-                >
-                  Request date is required.
-                </div>
-              </div>
-            </div>
-
-            <!-- Priority + Notes -->
-            <div class="grid grid-3">
-              <div class="field">
-                <label>Priority</label>
-                <select formControlName="priority" class="select">
-                  <option
-                    *ngFor="let p of priorities"
-                    [ngValue]="p.value"
-                    [disabled]="p.value === ''"
-                  >
-                    {{ p.label }}
-                  </option>
-                </select>
-              </div>
-
-              <div class="field" style="grid-column: span 2">
-                <label>Notes</label>
-                <textarea
-                  formControlName="notes"
-                  class="textarea"
-                  rows="2"
-                  placeholder="Internal notes..."
-                ></textarea>
-              </div>
-            </div>
-
-            <!-- Vehicle Lines -->
-            <div class="items-section">
-              <div class="items-header">
-                <h3>Vehicle lines</h3>
-                <button
-                  type="button"
-                  class="btn ghost small"
-                  (click)="addItem()"
-                >
-                  + Line
-                </button>
-              </div>
-
-              <div
-                class="items-table"
-                formArrayName="items"
-                *ngIf="itemsArray.controls.length"
-              >
-                <div class="item-row header-row">
-                  <div class="col col-type">Vehicle</div>
-                  <div class="col col-small">Count</div>
-                  <div class="col col-small">Order price</div>
-                  <div class="col col-small">Guarantee</div>
-                  <div class="col col-small">Fixed</div>
-                  <div class="col col-small">Allowance</div>
-                  <div class="col col-small">Total</div>
-                  <div class="col col-actions"></div>
-                </div>
-
-                <div
-                  class="item-row"
-                  *ngFor="let ctrl of itemsArray.controls; let i = index"
-                  [formGroupName]="i"
-                >
-                  <div class="col col-type">
-                    <label class="field-label">Type</label>
-                    <select formControlName="vehicleType" class="select">
-                      <option [ngValue]="null">Select type</option>
-                      <option
-                        *ngFor="let v of vehicleTypes"
-                        [ngValue]="v.value"
-                      >
-                        {{ v.label }}
-                      </option>
-                    </select>
-                  </div>
-
-                  <div class="col col-small">
-                    <label class="field-label">Count</label>
-                    <div class="count-input">
-                      <button
-                        type="button"
-                        class="count-btn"
-                        (click)="decrementCount(i)"
-                      >
-                        −
-                      </button>
-                      <input
-                        type="number"
-                        class="input"
-                        formControlName="vehicleCount"
-                        min="1"
-                      />
-                      <button
-                        type="button"
-                        class="count-btn"
-                        (click)="incrementCount(i)"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="col col-small">
-                    <label class="field-toggle">
-                      <input type="checkbox" formControlName="useOrderPrice" />
-                      <span>Use</span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      class="input"
-                      formControlName="orderPrice"
-                      placeholder="6.25"
-                    />
-                  </div>
-
-                  <div class="col col-small">
-                    <label class="field-toggle">
-                      <input type="checkbox" formControlName="useGuarantee" />
-                      <span>Use</span>
-                    </label>
-                    <input
-                      type="number"
-                      class="input"
-                      formControlName="guaranteeMinOrders"
-                      placeholder="25"
-                    />
-                  </div>
-
-                  <div class="col col-small">
-                    <label class="field-toggle">
-                      <input type="checkbox" formControlName="useFixedAmount" />
-                      <span>Use</span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      class="input"
-                      formControlName="fixedAmount"
-                      placeholder="5072"
-                    />
-                  </div>
-
-                  <div class="col col-small">
-                    <label class="field-toggle">
-                      <input
-                        type="checkbox"
-                        formControlName="useAllowanceAmount"
-                      />
-                      <span>Use</span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      class="input"
-                      formControlName="allowanceAmount"
-                      placeholder="375"
-                    />
-                  </div>
-
-                  <div class="col col-small">
-                    <label class="field-toggle">
-                      <input type="checkbox" formControlName="useTotalAmount" />
-                      <span>Use</span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      class="input"
-                      formControlName="totalAmount"
-                      placeholder="8697"
-                    />
-                  </div>
-
-                  <div class="col col-actions">
-                    <button
-                      type="button"
-                      class="icon-btn"
-                      (click)="removeItem(i)"
-                      [disabled]="itemsArray.controls.length === 1"
-                      title="Remove line"
-                    >
-                      🗑
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <footer class="modal-footer">
-              <button type="button" class="btn ghost" (click)="closeEditor()">
-                Cancel
-              </button>
-              <button type="submit" class="btn primary">
-                {{ isEditMode ? "Save changes" : "Create request" }}
-              </button>
-            </footer>
-          </form>
-        </div>
-      </div>
+      <!-- ✅ Details Modal Component -->
+      <app-pr-details-modal
+        [open]="!!detailsRow"
+        [row]="detailsRow"
+        [priorityLabel]="priorityLabel.bind(this)"
+        [priorityClass]="priorityClass.bind(this)"
+        [getVehicleLabel]="getVehicleLabel.bind(this)"
+        (close)="closeDetails()"
+      ></app-pr-details-modal>
     </ng-container>
-
-    <!-- Details Modal -->
-    <div class="modal-backdrop" *ngIf="detailsRow" (click)="closeDetails()">
-      <div class="modal details-modal" (click)="$event.stopPropagation()">
-        <header class="modal-header">
-          <div>
-            <h2 class="modal-title">Request Details</h2>
-            <div class="muted small">
-              #{{ detailsRow.id }} • {{ detailsRow.requestDate }}
-              <span *ngIf="detailsRow.billingMonth">
-                • {{ detailsRow.billingMonth }}
-              </span>
-            </div>
-          </div>
-
-          <button type="button" class="icon-btn" (click)="closeDetails()">✕</button>
-        </header>
-
-        <div class="modal-body">
-          <div class="details-meta">
-            <div class="meta-card">
-              <div class="meta-label">Client</div>
-              <div class="meta-value">
-                {{ detailsRow.client?.name || ('Client #' + detailsRow.clientId) }}
-              </div>
-            </div>
-
-            <div class="meta-card">
-              <div class="meta-label">Hub</div>
-              <div class="meta-value">
-                {{ detailsRow.hub?.name || (detailsRow.hubId ? ('Hub #' + detailsRow.hubId) : '—') }}
-              </div>
-            </div>
-
-            <div class="meta-card">
-              <div class="meta-label">Zone</div>
-              <div class="meta-value">
-                {{ detailsRow.zone?.name || (detailsRow.zoneId ? ('Zone #' + detailsRow.zoneId) : '—') }}
-              </div>
-            </div>
-
-            <div class="meta-card">
-              <div class="meta-label">Status</div>
-              <div class="meta-value">
-                <span class="status-pill" [ngClass]="'status-' + (detailsRow.status || '').toLowerCase()">
-                  {{ detailsRow.status }}
-                </span>
-              </div>
-            </div>
-
-            <div class="meta-card">
-              <div class="meta-label">Priority</div>
-              <div class="meta-value">
-                <span [class]="priorityClass(detailsRow)">{{ priorityLabel(detailsRow) }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="details-block" *ngIf="detailsRow.notes">
-            <div class="block-title">Notes</div>
-            <div class="block-body notes-full">{{ detailsRow.notes }}</div>
-          </div>
-
-          <div class="details-block">
-            <div class="block-title">Pricing details</div>
-
-            <ng-container *ngIf="getVehicleGroups(detailsRow!).length; else noPricingTpl">
-              <div class="vehicle-groups">
-                <section
-                  class="vehicle-group"
-                  *ngFor="let g of getVehicleGroups(detailsRow!); trackBy: trackByVehicleGroup"
-                >
-                  <div class="vehicle-group-title">
-                    <span class="v-pill">{{ getVehicleLabel(g.type) }}</span>
-                    <span class="muted small">
-                      Count: <span class="mono">{{ g.count }}</span>
-                    </span>
-                  </div>
-
-                  <div class="vehicle-group-table-wrap">
-                    <table class="vehicle-mini-table">
-                      <thead>
-                        <tr>
-                          <th class="mini-th count-col">Count</th>
-                          <th class="mini-th" *ngFor="let c of g.cols">
-                            {{ getPricingColLabel(c) }}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td class="mini-td mono count-col">{{ g.count }}</td>
-                          <td class="mini-td" *ngFor="let c of g.cols">
-                            <span class="mono">{{ g.values[c] }}</span>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              </div>
-            </ng-container>
-
-            <ng-template #noPricingTpl>
-              <div class="muted small">No pricing configured.</div>
-            </ng-template>
-          </div>
-        </div>
-
-        <footer class="modal-footer">
-          <button type="button" class="btn ghost" (click)="closeDetails()">Close</button>
-          <button type="button" class="btn ghost" (click)="openEdit(detailsRow!)">Edit</button>
-          <button type="button" class="btn danger" (click)="confirmDelete(detailsRow!)">Delete</button>
-        </footer>
-      </div>
-    </div>
   </div>
 </section>

@@ -1,0 +1,116 @@
+<div class="page">
+  <div class="header">
+    <div class="title">My Attendance Requests</div>
+    <div class="actions">
+      <label class="field">
+        <span>Month</span>
+        <input type="month" [value]="month" (change)="changeMonth(($any($event.target)).value)" />
+      </label>
+
+      <button class="btn btn-ghost" type="button" (click)="load()" [disabled]="loading">
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="errorMsg" class="alert alert-error">{{ errorMsg }}</div>
+  <div *ngIf="successMsg" class="alert alert-ok">{{ successMsg }}</div>
+
+  <!-- Create Request -->
+  <div class="card">
+    <div class="card-title">Create Request</div>
+
+    <form class="grid" [formGroup]="form" (ngSubmit)="submit()">
+      <label class="field">
+        <span>Type</span>
+        <select formControlName="type">
+          <option value="excuse_minutes">Excuse Minutes</option>
+          <option value="leave_day">Leave Day</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Date</span>
+        <input type="date" formControlName="date" />
+        <small class="hint" *ngIf="form.get('date')?.touched && form.get('date')?.invalid">
+          Required
+        </small>
+      </label>
+
+      <label class="field" [class.disabled]="form.get('minutes')?.disabled">
+        <span>Minutes</span>
+<input type="number" formControlName="minutes" min="1" max="120" placeholder="e.g. 120" />
+        <small class="hint" *ngIf="form.get('minutes')?.enabled && form.get('minutes')?.touched && form.get('minutes')?.invalid">
+          1..240
+        </small>
+      </label>
+
+      <label class="field" [class.disabled]="form.get('leaveType')?.disabled">
+        <span>Leave Type</span>
+        <select formControlName="leaveType">
+          <option *ngFor="let t of leaveTypes" [value]="t.value">{{ t.label }}</option>
+        </select>
+      </label>
+
+      <label class="field full">
+        <span>Note (optional)</span>
+        <input type="text" formControlName="note" placeholder="Add details for HR..." />
+      </label>
+
+      <div class="form-actions full">
+        <button class="btn btn-primary" type="submit" [disabled]="saving">
+          {{ saving ? 'Submitting...' : 'Submit' }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- List -->
+  <div class="card">
+    <div class="card-title">Requests List</div>
+
+    <div *ngIf="loading" class="muted">Loading...</div>
+
+    <div class="table-wrap" *ngIf="!loading">
+      <table class="table" *ngIf="rows.length; else empty">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Note</th>
+            <th>Status</th>
+            <th>Decision</th>
+            <th class="right">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let r of rows; trackBy: trackById">
+            <td>{{ r.date }}</td>
+            <td>{{ formatType(r) }}</td>
+            <td class="muted">{{ r.note || '-' }}</td>
+            <td>
+              <span [class]="badgeClass(r.status)">{{ r.status }}</span>
+            </td>
+            <td class="muted">
+              <div *ngIf="r.decidedAt; else noDecision">
+                {{ r.decidedAt | date: 'yyyy-MM-dd HH:mm' }}<br />
+                <span class="muted">{{ r.decisionNote || '' }}</span>
+              </div>
+              <ng-template #noDecision>-</ng-template>
+            </td>
+            <td class="right">
+              <button class="btn btn-danger" type="button" (click)="cancel(r)" [disabled]="!canCancel(r)">
+                Cancel
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <ng-template #empty>
+        <div class="empty">No requests for this month.</div>
+      </ng-template>
+    </div>
+  </div>
+</div>

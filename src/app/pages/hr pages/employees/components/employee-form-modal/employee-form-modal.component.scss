@@ -51,6 +51,10 @@
   padding: 14px 16px;
 }
 
+.modal-status {
+  margin-bottom: 12px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -83,6 +87,17 @@
       border-color: #ef7f1a;
       box-shadow: 0 0 0 3px rgba(239, 127, 26, 0.15);
     }
+
+    &.invalid {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+    }
+  }
+
+  .field-error {
+    font-size: 12px;
+    font-weight: 700;
+    color: #b91c1c;
   }
 
   &.full {

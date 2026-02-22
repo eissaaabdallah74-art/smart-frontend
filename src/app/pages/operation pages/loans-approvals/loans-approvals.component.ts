@@ -2,13 +2,15 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
+
 import { AuthService } from '../../../services/auth/auth-service.service';
-import { LoanStatus, EmploysLoansServiceService, LoanApiRow } from '../../../services/employs-loans/employs-loans-service.service';
+import { LoanStatus, EmployeeLoansService, EmployeeLoanDto } from '../../../services/employs-loans/employs-loans-service.service';
 
 
 interface LoanRow {
   id: number;
-  requesterId: number;
+  requesterId: number; // هنا معناها employeeId
   requesterName: string;
   amount: number;
   note?: string;
@@ -50,11 +52,10 @@ function inMonth(iso: string, monthValue: string): boolean {
 })
 export class LoansApprovalsComponent implements OnInit {
   private auth = inject(AuthService);
-  private loansApi = inject(EmploysLoansServiceService);
+  private loansApi = inject(EmployeeLoansService);
 
   readonly me = computed(() => this.auth.currentUser());
 
-  // Raw from server (then we filter locally by month/q numeric)
   private readonly _rows = signal<LoanRow[]>([]);
   readonly allRows = computed(() =>
     this._rows().slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
@@ -63,7 +64,10 @@ export class LoansApprovalsComponent implements OnInit {
   // Filters
   month = currentMonthValue();
   status: LoanStatusFilter = 'all';
+
+  // NOTE: keep name for template compatibility (but actually employeeId)
   requesterId: number | 'all' = 'all';
+
   q = '';
 
   // Decision note per row
@@ -74,29 +78,24 @@ export class LoansApprovalsComponent implements OnInit {
   errorMsg = '';
   infoMsg = '';
 
-  // Details row
   expandedId: number | null = null;
 
   ngOnInit(): void {
-    this.refresh();
+    void this.refresh();
   }
 
-  private isManagerView(): boolean {
-    const u = this.me();
-    if (!u) return false;
-    if (u.role === 'admin') return true;
-    return (
-      u.role === 'operation' &&
-      (u.position === 'manager' || u.position === 'supervisor')
-    );
-  }
+private isManagerView(): boolean {
+  const u: any = this.me();
+  return !!u && u.role === 'admin';
+}
 
-  private mapApiRow(r: LoanApiRow): LoanRow {
-    const created = r.createdAt || r.created_at || new Date().toISOString();
+
+  private mapApiRow(r: EmployeeLoanDto): LoanRow {
+    const created = r.createdAt || new Date().toISOString();
     return {
       id: r.id,
-      requesterId: r.requesterId,
-      requesterName: r.requester?.fullName || '—',
+      requesterId: r.employeeId,
+      requesterName: r.employee?.fullName || `Employee #${r.employeeId}`,
       amount: Number(r.amount),
       note: r.note || undefined,
       status: r.status,
@@ -112,7 +111,6 @@ export class LoansApprovalsComponent implements OnInit {
   }
 
   readonly requesters = computed(() => {
-    // unique requesters from loaded rows
     const map = new Map<number, string>();
     for (const r of this.allRows()) map.set(r.requesterId, r.requesterName);
     return Array.from(map.entries())
@@ -136,14 +134,14 @@ export class LoansApprovalsComponent implements OnInit {
         return (
           String(r.id).includes(q) ||
           r.requesterName.toLowerCase().includes(q) ||
-          String(r.amount).includes(q)
+          String(r.amount).includes(q) ||
+          (r.note || '').toLowerCase().includes(q) ||
+          (r.managerNote || '').toLowerCase().includes(q)
         );
       });
   });
 
-  // ===== KPIs for selected filters (month + requesterId + status(all for KPIs)) =====
   readonly kpi = computed(() => {
-    // KPIs based on month + requesterId filters, but ignore status filter
     const mv = this.month;
     const rid = this.requesterId;
 
@@ -187,8 +185,7 @@ export class LoansApprovalsComponent implements OnInit {
     this.infoMsg = '';
 
     if (!this.isManagerView()) {
-      this.infoMsg =
-        'This page is for Operation managers/supervisors (or admin).';
+      this.infoMsg = 'This page is for HR/Finance/Managers (or admin).';
       this._rows.set([]);
       return;
     }
@@ -197,20 +194,29 @@ export class LoansApprovalsComponent implements OnInit {
     try {
       const q = this.q.trim();
 
-      // backend supports: status, requesterId, q (name/email) — so we push what we can
       const serverStatus = this.status === 'all' ? undefined : this.status;
-      const serverRequesterId = this.requesterId === 'all' ? undefined : this.requesterId;
 
-      // لو q رقم (id/amount) نخليه local عشان backend غالباً بيبحث في name/email
+      // requesterId هنا معناها employeeId
+      const serverEmployeeId =
+        this.requesterId === 'all' ? undefined : this.requesterId;
+
+      // لو q رقمي (id/amount) نخليه local
       const serverQ = q && !this.looksNumeric(q) ? q : undefined;
 
-      const list = await this.loansApi.getLoans({
-        status: serverStatus,
-        requesterId: serverRequesterId,
-        q: serverQ,
-      });
+      // ✅ استغل month في السيرفر (أحسن من تحميل كل حاجة)
+      const res = await firstValueFrom(
+        this.loansApi.listLoans({
+          status: serverStatus,
+          month: this.month || undefined,
+          employeeId: serverEmployeeId,
+          q: serverQ,
+          limit: 500,
+          offset: 0,
+        })
+      );
 
-      this._rows.set(list.map((r) => this.mapApiRow(r)));
+      const data = Array.isArray(res?.data) ? res.data : [];
+      this._rows.set(data.map((r) => this.mapApiRow(r)));
     } catch (e: any) {
       this.errorMsg = e?.error?.message || 'Failed to load loans.';
     } finally {
@@ -222,13 +228,19 @@ export class LoansApprovalsComponent implements OnInit {
     this.errorMsg = '';
     try {
       const note = (this.decisionNote[id] || '').trim();
-      const updated = await this.loansApi.approve(id, note || 'Approved');
+
+      // startMonth optional — backend defaults to current month (recommended)
+      const updated = await firstValueFrom(
+        this.loansApi.approveLoan(id, {
+          managerNote: note || 'Approved',
+        })
+      );
+
       const mapped = this.mapApiRow(updated);
       this.decisionNote[id] = '';
 
       this._rows.set(this._rows().map((r) => (r.id === id ? mapped : r)));
 
-      // لو واقف على pending فقط، شيلها من العرض فوراً
       if (this.status === 'pending') {
         this._rows.set(this._rows().filter((r) => r.id !== id));
       }
@@ -241,7 +253,13 @@ export class LoansApprovalsComponent implements OnInit {
     this.errorMsg = '';
     try {
       const note = (this.decisionNote[id] || '').trim();
-      const updated = await this.loansApi.reject(id, note || 'Rejected');
+
+      const updated = await firstValueFrom(
+        this.loansApi.rejectLoan(id, {
+          managerNote: note || 'Rejected',
+        })
+      );
+
       const mapped = this.mapApiRow(updated);
       this.decisionNote[id] = '';
 

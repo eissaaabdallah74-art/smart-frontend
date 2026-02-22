@@ -1,0 +1,164 @@
+<div class="cards-grid">
+  <article class="request-card" *ngFor="let row of rows; trackBy: trackById">
+    <header class="request-card-header">
+      <div class="title-block">
+        <div class="client-name">
+          {{ row.client?.name || "Client #" + row.clientId }}
+        </div>
+
+        <div class="sub-line">
+          <span *ngIf="row.hub?.name; else hubNameTpl" class="pill light">
+            {{ row.hub?.name }}
+          </span>
+          <ng-template #hubNameTpl>
+            <span *ngIf="row.hubId" class="pill light"
+              >Hub #{{ row.hubId }}</span
+            >
+            <span *ngIf="!row.hubId" class="muted small">No hub</span>
+          </ng-template>
+
+          <span class="sep-dot"></span>
+
+          <span *ngIf="row.zone?.name; else zoneNameTpl" class="pill light">
+            {{ row.zone?.name }}
+          </span>
+          <ng-template #zoneNameTpl>
+            <span *ngIf="row.zoneId" class="pill light"
+              >Zone #{{ row.zoneId }}</span
+            >
+            <span *ngIf="!row.zoneId" class="muted small">No zone</span>
+          </ng-template>
+        </div>
+      </div>
+
+      <div class="status-block">
+        <div class="pill-stack">
+          <span class="priority-pill" [ngClass]="priorityClass(row)">
+            {{ priorityLabel(row) }}
+          </span>
+        </div>
+
+        <div class="dates">
+          <span class="mono small">{{ row.requestDate }}</span>
+          <span class="mono badge" *ngIf="row.billingMonth">{{
+            row.billingMonth
+          }}</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="request-card-body">
+      <div class="items-summary" *ngIf="row.items?.length; else noLinesTpl">
+        <div class="item-card" *ngFor="let it of row.items; let i = index">
+          <div class="item-card-header">
+            <span class="item-type">{{ it.vehicleType }}</span>
+
+            <div class="item-count-actions">
+              <span class="item-count">× {{ it.vehicleCount }}</span>
+
+              <button
+                type="button"
+                class="chip-btn"
+                title="Decrease count by 1"
+                (click)="onQuickDecrement(row, i, $event)"
+                [disabled]="loading || (it.vehicleCount || 0) <= 1"
+              >
+                −1
+              </button>
+            </div>
+          </div>
+
+          <div class="item-card-meta">
+            <ng-container
+              *ngIf="it.guaranteeMinOrders != null && it.orderPrice != null"
+            >
+              <span>G: {{ it.guaranteeMinOrders }} @ {{ it.orderPrice }}</span>
+            </ng-container>
+
+            <ng-container *ngIf="it.fixedAmount != null">
+              <span
+                *ngIf="it.guaranteeMinOrders != null && it.orderPrice != null"
+              >
+                •
+              </span>
+              <span>Fixed: {{ it.fixedAmount }}</span>
+            </ng-container>
+
+            <ng-container *ngIf="it.allowanceAmount != null">
+              <span
+                *ngIf="
+                  it.fixedAmount != null ||
+                  (it.guaranteeMinOrders != null && it.orderPrice != null)
+                "
+              >
+                •
+              </span>
+              <span>Allowance: {{ it.allowanceAmount }}</span>
+            </ng-container>
+
+            <ng-container *ngIf="it.totalAmount != null">
+              <span
+                *ngIf="
+                  it.allowanceAmount != null ||
+                  it.fixedAmount != null ||
+                  (it.guaranteeMinOrders != null && it.orderPrice != null)
+                "
+              >
+                •
+              </span>
+              <span>Total: {{ it.totalAmount }}</span>
+            </ng-container>
+
+            <ng-container
+              *ngIf="
+                it.guaranteeMinOrders == null &&
+                it.orderPrice == null &&
+                it.fixedAmount == null &&
+                it.allowanceAmount == null &&
+                it.totalAmount == null
+              "
+            >
+              <span class="muted small">No pricing configured</span>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noLinesTpl>
+        <p class="muted small">No vehicle lines configured.</p>
+      </ng-template>
+
+      <div class="notes" *ngIf="row.notes">
+        <span class="notes-label">Notes:</span>
+        <span class="notes-text">{{ row.notes }}</span>
+      </div>
+    </section>
+
+    <footer class="request-card-footer">
+      <span class="mono small">Request #{{ row.id }}</span>
+
+      <div class="actions">
+        <button type="button" class="btn ghost small" (click)="edit.emit(row)">
+          Edit
+        </button>
+
+        <button
+          type="button"
+          class="btn ghost small"
+          (click)="details.emit(row)"
+          [disabled]="!row.id"
+        >
+          Details
+        </button>
+
+        <button
+          type="button"
+          class="btn danger small"
+          (click)="remove.emit(row)"
+        >
+          Delete
+        </button>
+      </div>
+    </footer>
+  </article>
+</div>

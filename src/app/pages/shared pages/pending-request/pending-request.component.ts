@@ -45,13 +45,17 @@ import {
   BulkImportResult,
   BulkImportError,
 } from '../../../services/pending request/pending-request-service.service';
+import { PrHeaderComponent } from './components/pr-header/pr-header.component';
+import { PrSummaryComponent } from './components/pr-summary/pr-summary.component';
+import { PrCardsComponent } from './components/pr-cards/pr-cards.component';
 
 type ViewMode = 'cards' | 'table';
 type TabMode = 'list' | 'summary';
 
-type PendingRequestVM = Omit<PendingRequest, 'priority'> & {
-  priority?: PendingRequestPriority | null;
-};
+import type { PendingRequestVM } from './components/pending-request.types';
+import { PrDetailsModalComponent } from './components/pr-details-modal/pr-details-modal.component';
+import { PrEditorModalComponent } from './components/pr-editor-modal/pr-editor-modal.component';
+import { PrTableComponent } from './components/pr-table/pr-table.component';
 
 interface SummaryRow {
   date: string;
@@ -84,7 +88,11 @@ type VehicleChipVM = {
 @Component({
   selector: 'app-pending-request',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+imports: [
+  CommonModule, FormsModule, ReactiveFormsModule,
+  PrHeaderComponent, PrSummaryComponent, PrCardsComponent,
+  PrTableComponent, PrDetailsModalComponent, PrEditorModalComponent
+],
   templateUrl: './pending-request.component.html',
   styleUrls: ['./pending-request.component.scss'],
 })
@@ -1126,69 +1134,6 @@ export class PendingRequestComponent implements OnInit, OnDestroy {
     input.click();
   }
 
-  async handleImportFile(ev: Event): Promise<void> {
-    const input = ev.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-
-    this.errorMsg = '';
-    this.toastMsg = '';
-    this.importResult = null;
-    this.importValidationErrors = [];
-
-    try {
-      if (!this.clients?.length) {
-        this.clients = (await lastValueFrom(
-          this.clientsService.getClients().pipe(catchError(() => of([])))
-        )) as ApiClient[];
-      }
-
-      const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { type: 'array' });
-      const sheetName = wb.SheetNames?.[0];
-      if (!sheetName) {
-        this.errorMsg = 'Excel file has no sheets.';
-        return;
-      }
-
-      const ws = wb.Sheets[sheetName];
-      const rawRows = XLSX.utils.sheet_to_json(ws, { defval: '' }) as any[];
-
-      const { requests, errors } = await this.normalizeImportExcelRowsWithDbLookup(rawRows);
-
-      if (errors.length) {
-        this.importValidationErrors = errors.slice(0, 50);
-        this.errorMsg = `Import validation failed: ${errors.length} error(s).`;
-        return;
-      }
-
-      if (!requests.length) {
-        this.errorMsg = 'Excel file has no valid requests.';
-        return;
-      }
-
-      this.loading = true;
-
-      this.pendingService.bulkImport({ requests }).subscribe({
-        next: (res) => {
-          this.loading = false;
-          this.importResult = res;
-          this.toastMsg =
-            `Import done: created ${this.importCreatedCount}, updated ${this.importUpdatedCount}, ` +
-            `skipped ${this.importSkippedCount}, failed ${this.importFailedCount} (total ${res.total}).`;
-          this.loadList();
-        },
-        error: (err) => {
-          console.error(err);
-          this.loading = false;
-          this.errorMsg = 'Bulk import failed.';
-        },
-      });
-    } catch (e) {
-      console.error(e);
-      this.errorMsg = 'Invalid Excel file.';
-    }
-  }
 
   private async normalizeImportExcelRowsWithDbLookup(rows: any[]): Promise<{
     requests: CreatePendingRequestDto[];
@@ -1630,4 +1575,77 @@ export class PendingRequestComponent implements OnInit, OnDestroy {
   closeDetails(): void {
     this.detailsRow = null;
   }
+
+  get summaryLastUpdateLabel(): string {
+  return this.formatIsoDateTime(this.summaryLastUpdatedAt);
+}
+
+onImportExcelFile(file: File): void {
+  // نعيد استخدام نفس منطق handleImportFile لكن بدون Event
+  this.handleImportFileFromFile(file);
+}
+
+// ✳️ ننقل جسم handleImportFile هنا تقريبًا
+private async handleImportFileFromFile(file: File): Promise<void> {
+  if (!file) return;
+
+  this.errorMsg = '';
+  this.toastMsg = '';
+  this.importResult = null;
+  this.importValidationErrors = [];
+
+  try {
+    if (!this.clients?.length) {
+      this.clients = (await lastValueFrom(
+        this.clientsService.getClients().pipe(catchError(() => of([])))
+      )) as ApiClient[];
+    }
+
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const sheetName = wb.SheetNames?.[0];
+    if (!sheetName) {
+      this.errorMsg = 'Excel file has no sheets.';
+      return;
+    }
+
+    const ws = wb.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json(ws, { defval: '' }) as any[];
+
+    const { requests, errors } =
+      await this.normalizeImportExcelRowsWithDbLookup(rawRows);
+
+    if (errors.length) {
+      this.importValidationErrors = errors.slice(0, 50);
+      this.errorMsg = `Import validation failed: ${errors.length} error(s).`;
+      return;
+    }
+
+    if (!requests.length) {
+      this.errorMsg = 'Excel file has no valid requests.';
+      return;
+    }
+
+    this.loading = true;
+
+    this.pendingService.bulkImport({ requests }).subscribe({
+      next: (res) => {
+        this.loading = false;
+        this.importResult = res;
+        this.toastMsg =
+          `Import done: created ${this.importCreatedCount}, updated ${this.importUpdatedCount}, ` +
+          `skipped ${this.importSkippedCount}, failed ${this.importFailedCount} (total ${res.total}).`;
+        this.loadList();
+      },
+      error: (err) => {
+        console.error(err);
+        this.loading = false;
+        this.errorMsg = 'Bulk import failed.';
+      },
+    });
+  } catch (e) {
+    console.error(e);
+    this.errorMsg = 'Invalid Excel file.';
+  }
+}
 }

@@ -1,0 +1,221 @@
+/* src/app/pages/.../client-page/components/details-driver-master/details-driver-master.component.scss */
+:host { display: block; }
+
+.details-root {
+  --border: #e5e7eb;
+  --text: #111827;
+  --muted: #6b7280;
+  --soft: #f9fafb;
+  --primary: #2563eb;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.topbar {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  padding: 12px;
+}
+
+.kicker {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.subtitle {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+
+  .dot { opacity: 0.6; }
+  .muted { opacity: 0.9; }
+}
+
+.btn {
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--soft);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+
+  i { font-size: 16px; }
+
+  &:hover { background: #f3f4f6; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+.btn.primary {
+  background: rgba(37, 99, 235, 0.10);
+  border-color: rgba(37, 99, 235, 0.25);
+  color: #1e3a8a;
+
+  &:hover { background: rgba(37, 99, 235, 0.14); }
+}
+
+.section {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  padding: 12px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.field {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--soft);
+  padding: 10px;
+
+  .k {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9ca3af;
+    margin-bottom: 4px;
+  }
+
+  .v {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    word-break: break-word;
+  }
+}
+
+.field.span-2 { grid-column: span 2; }
+
+.link {
+  color: var(--primary);
+  text-decoration: none;
+
+  &:hover { text-decoration: underline; }
+}
+
+/* Pills */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid var(--border);
+  background: var(--soft);
+  color: var(--muted);
+}
+.pill--success { border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.10); color: #065f46; }
+.pill--warn { border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.12); color: #92400e; }
+.pill--danger { border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.10); color: #991b1b; }
+.pill--info { border-color: rgba(37,99,235,.30); background: rgba(37,99,235,.10); color: #1e3a8a; }
+.pill--muted { border-color: var(--border); background: var(--soft); color: var(--muted); }
+
+.notes {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--soft);
+  padding: 10px;
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 600;
+  white-space: pre-wrap;
+}
+
+/* Loading + Alert */
+.loading {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  padding: 12px;
+}
+.sk-line {
+  height: 10px;
+  border-radius: 10px;
+  background: #eef2ff;
+  margin-bottom: 10px;
+}
+.w-70 { width: 70%; }
+.w-45 { width: 45%; }
+.sk-box {
+  margin-top: 10px;
+  height: 140px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #f3f4f6, #eef2ff, #f3f4f6);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+}
+@keyframes shimmer {
+  0% { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.alert {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(239,68,68,.04);
+  border-color: rgba(239,68,68,.35);
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.alert-title { font-weight: 900; color: #991b1b; }
+.alert-text { font-size: 13px; color: #7f1d1d; margin-top: 4px; }
+
+@media (max-width: 520px) {
+  .grid { grid-template-columns: 1fr; }
+  .field.span-2 { grid-column: auto; }
+}

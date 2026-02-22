@@ -1,0 +1,325 @@
+<div class="page">
+  <header class="top-nav">
+    <button class="nav-back-btn" type="button" (click)="back()">
+      <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
+      <span>Back</span>
+    </button>
+
+    <div class="nav-actions" *ngIf="doc() as row">
+      <span class="ticket-badge" *ngIf="row.documentNumber">
+        <i class="ri-file-list-3-line" aria-hidden="true"></i>
+        Doc #{{ row.documentNumber }}
+      </span>
+    </div>
+  </header>
+
+  <div class="alert error" *ngIf="state() === 'error'">
+    {{ errorMsg() }}
+  </div>
+
+  <ng-container *ngIf="state() === 'loading'">
+    <div class="skeleton-loader">
+      <div class="sk-side"></div>
+      <div class="sk-main">
+        <div class="sk-grid-3"></div>
+        <div class="sk-card"></div>
+        <div class="sk-card"></div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="state() === 'success' && doc() as row">
+    <div class="layout-grid">
+      <!-- LEFT: Identity -->
+      <aside class="col-identity">
+        <div class="profile-card">
+          <div class="profile-status" [ngClass]="statusClass(row)">
+            {{ statusLabel(row) }}
+          </div>
+
+          <div class="profile-header">
+            <div class="avatar-circle">{{ initials(row) }}</div>
+            <h1 class="profile-name">{{ displayType(row) }}</h1>
+            <p class="profile-role">{{ displayCompany(row) }}</p>
+          </div>
+
+          <div class="highlights-row">
+            <div class="highlight-badge" *ngIf="row.currentLocation">
+              <i class="ri-map-pin-user-line" aria-hidden="true"></i>
+              {{ row.currentLocation }}
+            </div>
+
+            <div class="highlight-badge secondary" *ngIf="row.validityYears !== null && row.validityYears !== undefined">
+              <i class="ri-timer-line" aria-hidden="true"></i>
+              {{ row.validityYears }} years
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="contact-section">
+            <div class="contact-row" *ngIf="row.documentNumber">
+              <i class="ri-hashtag" aria-hidden="true"></i>
+              <span class="mono">{{ row.documentNumber }}</span>
+              <button class="copy-btn" type="button" title="Copy" (click)="copyToClipboard(row.documentNumber)">
+                <i class="ri-file-copy-line" aria-hidden="true"></i>
+              </button>
+            </div>
+
+            <div class="contact-row" *ngIf="row.custodianName">
+              <i class="ri-user-3-line" aria-hidden="true"></i>
+              <span>{{ row.custodianName }}</span>
+              <button class="copy-btn" type="button" title="Copy" (click)="copyToClipboard(row.custodianName)">
+                <i class="ri-file-copy-line" aria-hidden="true"></i>
+              </button>
+            </div>
+
+            <div class="contact-row" *ngIf="row.custodianPhone">
+              <i class="ri-phone-line" aria-hidden="true"></i>
+              <span class="mono">{{ row.custodianPhone }}</span>
+              <button class="copy-btn" type="button" title="Copy" (click)="copyToClipboard(row.custodianPhone)">
+                <i class="ri-file-copy-line" aria-hidden="true"></i>
+              </button>
+            </div>
+
+            <div class="empty-mini" *ngIf="!row.documentNumber && !row.custodianName && !row.custodianPhone">
+              No key info available.
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- RIGHT: Details -->
+      <main class="col-details">
+        <!-- Top highlights -->
+        <section class="highlights-grid">
+          <div class="highlight-box brand-theme">
+            <div class="hb-icon"><i class="ri-shield-check-line" aria-hidden="true"></i></div>
+            <div class="hb-content">
+              <label>Status</label>
+              <div class="hb-value">{{ statusLabel(row) }}</div>
+
+              <div class="hb-sub" *ngIf="row.computed?.remainingDays !== null && row.computed?.remainingDays !== undefined">
+                <i class="ri-time-line" aria-hidden="true"></i>
+                Remaining:
+                <strong class="mono">{{ row.computed?.remainingDays }}</strong> days
+              </div>
+            </div>
+          </div>
+
+          <div class="highlight-box blue-theme" *ngIf="row.issueDate">
+            <div class="hb-icon"><i class="ri-calendar-check-line" aria-hidden="true"></i></div>
+            <div class="hb-content">
+              <label>Issue Date</label>
+              <div class="hb-value mono">{{ fmt(row.issueDate) }}</div>
+              <div class="hb-sub">Issued</div>
+            </div>
+          </div>
+
+          <div class="highlight-box status-theme" *ngIf="computedExpiry(row) as exp">
+            <div class="hb-icon"><i class="ri-calendar-event-line" aria-hidden="true"></i></div>
+            <div class="hb-content">
+              <label>Expiry</label>
+              <div class="hb-value mono">{{ fmt(exp) }}</div>
+              <div class="hb-sub">
+                <span class="chip" [ngClass]="getExpiryChipClass(exp)">
+                  {{ getExpiryChipLabel(exp) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Document / Company -->
+        <section class="content-card">
+          <h3 class="card-title">
+            <i class="ri-file-text-line" aria-hidden="true"></i>
+            Document & Company
+          </h3>
+
+          <div class="info-grid">
+            <div class="info-box">
+              <label>Type</label>
+              <div class="val">{{ row.type?.nameEn || row.type?.name || row.type?.code || '—' }}</div>
+            </div>
+
+            <div class="info-box">
+              <label>Type ID</label>
+              <div class="val mono">{{ row.typeId }}</div>
+            </div>
+
+            <div class="info-box">
+              <label>Company</label>
+              <div class="val">{{ (row.company?.code || '—') + ' — ' + (row.company?.name || '') }}</div>
+            </div>
+
+            <div class="info-box">
+              <label>Company ID</label>
+              <div class="val mono">{{ row.companyId }}</div>
+            </div>
+
+            <div class="info-box">
+              <label>Document #</label>
+              <div class="val mono">{{ row.documentNumber || '—' }}</div>
+            </div>
+
+            <div class="info-box">
+              <label>Location</label>
+              <div class="val">{{ row.currentLocation || '—' }}</div>
+            </div>
+
+            <div class="info-box">
+              <label>Issue Date</label>
+              <div class="val mono">{{ fmt(row.issueDate) }}</div>
+            </div>
+
+            <div class="info-box">
+              <label>Expiry Date</label>
+              <div class="val mono">{{ fmt(row.expiryDate) }}</div>
+            </div>
+
+            <div class="info-box">
+              <label>Validity (Years)</label>
+              <div class="val mono">{{ row.validityYears ?? '—' }}</div>
+            </div>
+
+            <div class="info-box">
+              <label>Computed Expiry</label>
+              <div class="val mono">{{ computedExpiry(row) ? fmt(computedExpiry(row)!) : '—' }}</div>
+            </div>
+
+            <div class="info-box">
+              <label>Remaining Days</label>
+              <div class="val mono">{{ row.computed?.remainingDays ?? '—' }}</div>
+            </div>
+
+            <div class="info-box">
+              <label>Soon Days</label>
+              <div class="val mono">{{ row.computed?.soonDays ?? '—' }}</div>
+            </div>
+          </div>
+
+          <div class="notes-block" *ngIf="row.notes">
+            <label>Notes</label>
+            <p>{{ row.notes }}</p>
+          </div>
+        </section>
+
+        <!-- Expiry & Reminders -->
+        <section class="content-card" *ngIf="computedExpiry(row) || row.remindAt || row.remindNote">
+          <h3 class="card-title">
+            <i class="ri-shield-check-line" aria-hidden="true"></i>
+            Expiry & Reminders
+          </h3>
+
+          <div class="licenses-grid">
+            <div class="license-card" *ngIf="computedExpiry(row) as exp">
+              <div class="lc-head">
+                <div class="lc-title">
+                  <i class="ri-calendar-event-line" aria-hidden="true"></i>
+                  Document Expiry
+                </div>
+
+                <span class="chip" [ngClass]="getExpiryChipClass(exp)">
+                  {{ getExpiryChipLabel(exp) }}
+                </span>
+              </div>
+
+              <div class="lc-body">
+                <div class="kv">
+                  <span class="k">Expiry</span>
+                  <span class="v mono">{{ fmt(exp) }}</span>
+                </div>
+
+                <div class="kv" *ngIf="getDaysLeft(exp) !== null">
+                  <span class="k">Days left</span>
+                  <span class="v mono">{{ getDaysLeft(exp) }}</span>
+                </div>
+
+                <div class="kv" *ngIf="row.validityYears !== null && row.validityYears !== undefined">
+                  <span class="k">Validity</span>
+                  <span class="v mono">{{ row.validityYears }} years</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="license-card" *ngIf="row.remindAt || row.remindNote">
+              <div class="lc-head">
+                <div class="lc-title">
+                  <i class="ri-notification-3-line" aria-hidden="true"></i>
+                  Reminder
+                </div>
+                <span class="chip chip--unknown">Scheduled</span>
+              </div>
+
+              <div class="lc-body">
+                <div class="kv">
+                  <span class="k">Remind At</span>
+                  <span class="v mono">{{ fmt(row.remindAt) }}</span>
+                </div>
+
+                <div class="kv" *ngIf="row.remindNote">
+                  <span class="k">Note</span>
+                  <span class="v">{{ row.remindNote }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Custodian -->
+        <section class="content-card" *ngIf="row.custodianName || row.custodianRole || row.custodianPhone || row.custodianOrganization">
+          <h3 class="card-title">
+            <i class="ri-user-3-line" aria-hidden="true"></i>
+            Custodian Details
+          </h3>
+
+          <div class="info-grid">
+            <div class="info-box" *ngIf="row.custodianRole">
+              <label>Role</label>
+              <div class="val mono">{{ row.custodianRole }}</div>
+            </div>
+
+            <div class="info-box" *ngIf="row.custodianName">
+              <label>Name</label>
+              <div class="val">{{ row.custodianName }}</div>
+            </div>
+
+            <div class="info-box" *ngIf="row.custodianPhone">
+              <label>Phone</label>
+              <div class="val mono">{{ row.custodianPhone }}</div>
+            </div>
+
+            <div class="info-box" *ngIf="row.custodianOrganization">
+              <label>Organization</label>
+              <div class="val">{{ row.custodianOrganization }}</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Raw quick view (اختياري) -->
+        <section class="content-card">
+          <h3 class="card-title">
+            <i class="ri-braces-line" aria-hidden="true"></i>
+            Raw Fields
+          </h3>
+
+          <div class="info-grid">
+            <div class="info-box">
+              <label>ID</label>
+              <div class="val mono">{{ row.id }}</div>
+            </div>
+            <div class="info-box">
+              <label>Status (Computed)</label>
+              <div class="val mono">{{ row.computed?.status || '—' }}</div>
+            </div>
+            <div class="info-box">
+              <label>Status Label (AR)</label>
+              <div class="val">{{ row.computed?.statusLabelAr || '—' }}</div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </ng-container>
+</div>

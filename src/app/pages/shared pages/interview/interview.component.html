@@ -1,3 +1,4 @@
+<!-- interview.component.html -->
 <section class="interviews-page">
   <div class="interviews-card">
     <!-- Header -->
@@ -14,10 +15,7 @@
 
       <div class="interviews-header-actions">
         <!-- Import -->
-        <import-button
-          class="import-btn"
-          (fileSelected)="onInterviewsImport($event)"
-        ></import-button>
+        <import-button class="import-btn" (fileSelected)="onInterviewsImport($event)"></import-button>
 
         <!-- Export -->
         <export-button
@@ -66,25 +64,9 @@
           </select>
         </div>
 
-        <!-- Status filter -->
+        <!-- ✅ Signed with HR (only 2 states) -->
         <div class="filter-group">
-          <label for="statusFilter" class="filter-label">Status</label>
-          <select
-            id="statusFilter"
-            class="filter-input"
-            [ngModel]="statusFilter()"
-            (ngModelChange)="onStatusFilterChange($event)"
-          >
-            <option value="">All Status</option>
-            <option *ngFor="let st of statusOptions" [value]="st">
-              {{ st }}
-            </option>
-          </select>
-        </div>
-
-        <!-- HR Contract filter -->
-        <div class="filter-group">
-          <label for="hrFilter" class="filter-label">HR Contract</label>
+          <label for="hrFilter" class="filter-label">Signed with HR</label>
           <select
             id="hrFilter"
             class="filter-input"
@@ -92,9 +74,40 @@
             (ngModelChange)="onSignedWithHrFilterChange($event)"
           >
             <option value="">All HR States</option>
-            <option value="signed">Signed with HR</option>
-            <option value="not_signed">Not signed</option>
-            <option value="other">Other statuses</option>
+            <option value="signed">Signed A Contract With HR</option>
+            <option value="think">Will Think About Our Offers</option>
+          </select>
+        </div>
+
+        <!-- Interviewer filter -->
+        <div class="filter-group">
+          <label for="interviewerFilter" class="filter-label">Interviewer</label>
+          <select
+            id="interviewerFilter"
+            class="filter-input"
+            [ngModel]="interviewerFilter()"
+            (ngModelChange)="onInterviewerFilterChange($event)"
+          >
+            <option value="">All Interviewers</option>
+            <option *ngFor="let n of interviewerOptions()" [value]="n">
+              {{ n }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Account Manager filter -->
+        <div class="filter-group">
+          <label for="accManagerFilter" class="filter-label">Account Manager</label>
+          <select
+            id="accManagerFilter"
+            class="filter-input"
+            [ngModel]="accountManagerFilter()"
+            (ngModelChange)="onAccountManagerFilterChange($event)"
+          >
+            <option value="">All Account Managers</option>
+            <option *ngFor="let n of accountManagerOptions()" [value]="n">
+              {{ n }}
+            </option>
           </select>
         </div>
       </div>
@@ -116,23 +129,30 @@
             </button>
           </span>
 
-          <span class="active-filter" *ngIf="statusFilter()">
-            Status: {{ statusFilter() }}
-            <button type="button" class="filter-remove" (click)="onStatusFilterChange('')">
+          <span class="active-filter" *ngIf="signedWithHrFilter()">
+            Signed with HR:
+            {{
+              signedWithHrFilter() === 'signed'
+                ? 'Signed A Contract With HR'
+                : signedWithHrFilter() === 'think'
+                ? 'Will Think About Our Offers'
+                : signedWithHrFilter()
+            }}
+            <button type="button" class="filter-remove" (click)="onSignedWithHrFilterChange('')">
               <i class="ri-close-line"></i>
             </button>
           </span>
 
-          <span class="active-filter" *ngIf="signedWithHrFilter()">
-            HR:
-            {{
-              signedWithHrFilter() === 'signed'
-                ? 'Signed with HR'
-                : signedWithHrFilter() === 'not_signed'
-                ? 'Not signed'
-                : 'Other'
-            }}
-            <button type="button" class="filter-remove" (click)="onSignedWithHrFilterChange('')">
+          <span class="active-filter" *ngIf="interviewerFilter()">
+            Interviewer: {{ interviewerFilter() }}
+            <button type="button" class="filter-remove" (click)="onInterviewerFilterChange('')">
+              <i class="ri-close-line"></i>
+            </button>
+          </span>
+
+          <span class="active-filter" *ngIf="accountManagerFilter()">
+            Account Manager: {{ accountManagerFilter() }}
+            <button type="button" class="filter-remove" (click)="onAccountManagerFilterChange('')">
               <i class="ri-close-line"></i>
             </button>
           </span>
@@ -262,6 +282,16 @@
                   <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
                   <span class="sr-only">Delete interview</span>
                 </button>
+
+                <button
+                  type="button"
+                  class="icon-action icon-action--logs"
+                  (click)="openAudit(row); $event.stopPropagation()"
+                  title="Audit logs"
+                >
+                  <i class="ri-file-list-3-line" aria-hidden="true"></i>
+                  <span class="sr-only">Audit logs</span>
+                </button>
               </td>
             </tr>
 
@@ -359,6 +389,17 @@
               <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
               <span class="sr-only">Delete interview</span>
             </button>
+
+            <button
+              type="button"
+              class="icon-action icon-action--logs"
+              (click)="openAudit(row); $event.stopPropagation()"
+              [disabled]="!row.id"
+              title="Audit logs"
+            >
+              <i class="ri-file-list-3-line" aria-hidden="true"></i>
+              <span class="sr-only">Audit logs</span>
+            </button>
           </footer>
         </article>
 
@@ -421,4 +462,14 @@
     (close)="closeModal()"
     (submit)="onFormSubmit($event)"
   ></app-interview-form-modal>
+
+  <app-audit-logs
+    *ngIf="isAuditOpen()"
+    [entity]="'Interview'"
+    [entityId]="auditEntityId()!"
+    [users]="operationUsers()"
+    [clients]="clients()"
+    title="Interview Logs"
+    (close)="closeAudit()"
+  ></app-audit-logs>
 </section>
